@@ -78,3 +78,18 @@ export const getRandomProducts = async () => {
 
     return randomProducts;
 }
+
+export const getProductBySlug = async (slug: string) => {
+    const { data, error } = await supabase
+		.from('products')
+		.select('*, variants(*)')
+		.eq('slug', slug)
+		.single();
+
+	if (error) {
+		console.log(error.message);
+		throw new Error(error.message);
+	}
+
+	return data;
+};
