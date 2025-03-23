@@ -149,7 +149,7 @@ export const ProductPage = () => {
 											? 'border border-slate-800'
 											: ''
 									}`}
-									onClick={() => setSelectedTarget(target)}>
+									onClick={() => setSelectedTarget(target)}>{target}
 								</button>
 							))}
 						</div>
