@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { VariantProduct } from '../../interfaces';
 import { formatPrice } from '../../helpers';
 import { useState } from 'react';
+import toast from 'react-hot-toast';
+import { useCartStore } from '../../store/cart.store';
 
 interface Props {
 	img: string;
@@ -23,9 +25,36 @@ export const CardProduct = ({
 	targets,
 	variants,
 }: Props) => {
-	const [activeTarget] = useState<{
+	const [activeTarget, setActiveTarget] = useState<{
 		target: string;
 	}>(targets[0]);
+
+	const addItem = useCartStore(state => state.addItem);
+
+	const handleAddClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+		e.preventDefault();
+
+		if (selectedVariant && selectedVariant.stock > 0) {
+			addItem({
+				variantId: selectedVariant.id,
+				productId: name,
+				name,
+				image: img,
+				target: selectedVariant.target,
+				kg: selectedVariant.kg,
+				type: selectedVariant.type,
+				price: selectedVariant.price,
+				quantity: 1,
+			});
+			toast.success('Producto añadido al carrito', {
+				position: 'bottom-right',
+			});
+		} else {
+			toast.error('Producto agotado', {
+				position: 'bottom-right',
+			});
+		}
+	};
 
 	// Identificar la variante seleccionada según el target activo
 	const selectedVariant  = variants.find(
@@ -48,7 +77,9 @@ export const CardProduct = ({
 					/>
 				</div>
 
-				<button className='bg-white border border-slate-200 absolute w-full bottom-0 py-3 rounded-3xl flex items-center justify-center gap-1 text-sm font-medium hover:bg-stone-100 translate-y-[100%] transition-all duration-300 group-hover:translate-y-0'>
+				<button
+					className='bg-white border border-slate-200 absolute w-full bottom-0 py-3 rounded-3xl flex items-center justify-center gap-1 text-sm font-medium hover:bg-stone-100 translate-y-[100%] transition-all duration-300 group-hover:translate-y-0'
+					onClick={handleAddClick}>
 					<FiPlus />
 					Añadir
 				</button>
@@ -62,8 +93,13 @@ export const CardProduct = ({
 					{targets.map(target => (
 						<span
 							key={target.target}
-							className={`grid place-items-center w-5 h-5 rounded-full cursor-pointer`}
-						>
+							className={`grid place-items-center w-5 h-5 cursor-pointer ${
+									activeTarget.target === target.target
+										? 'border border-black'
+										: ''
+								}`
+							}
+							onClick={() => setActiveTarget(target)}>
 							<span
 								className='w-[14px] h-[14px] rounded-full'
 							/>{target.type}
