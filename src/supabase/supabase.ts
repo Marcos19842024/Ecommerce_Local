@@ -190,25 +190,19 @@ export type Database = {
         Row: {
           brand: string
           created_at: string
-          description: Json
           id: string
-          images: string[]
           name: string
         }
         Insert: {
           brand: string
           created_at?: string
-          description: Json
           id?: string
-          images: string[]
           name: string
         }
         Update: {
           brand?: string
           created_at?: string
-          description?: Json
           id?: string
-          images?: string[]
           name?: string
         }
         Relationships: []
@@ -233,7 +227,9 @@ export type Database = {
       }
       variants: {
         Row: {
+          description: string
           id: string
+          image: string
           kg: number
           price: number
           product_id: string
@@ -242,7 +238,9 @@ export type Database = {
           type: string
         }
         Insert: {
+          description: string
           id?: string
+          image: string
           kg: number
           price: number
           product_id: string
@@ -251,7 +249,9 @@ export type Database = {
           type: string
         }
         Update: {
+          description?: string
           id?: string
+          image?: string
           kg?: number
           price?: number
           product_id?: string
