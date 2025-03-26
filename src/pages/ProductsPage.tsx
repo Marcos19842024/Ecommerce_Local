@@ -3,7 +3,7 @@ import { CardProduct } from '../components/products/CardProduct';
 import { ContainerFilter } from '../components/products/ContainerFilter';
 import { prepareProducts } from '../helpers';
 import { useFilteredProducts } from '../hooks';
-import { Pagination } from '../components/shared/pagination';
+import { Pagination } from '../components/shared/Pagination';
 
 export const ProductsPage = () => {
 
@@ -43,9 +43,7 @@ export const ProductsPage = () => {
 								{preparedProducts.map(product => (
 									<CardProduct
 										key={product.id}
-										img={product.images[0]}
 										name={product.name}
-										price={product.price}
 										targets={product.targets}
 										variants={product.variants}
 									/>

@@ -110,7 +110,7 @@ export const ProductPage = () => {
 				variantId: selectedVariant.id,
 				productId: product?.id || '',
 				name: product?.name || '',
-				image: product?.images[0] || '',
+				image: product?.variants[0].image || '',
 				target: selectedVariant.target,
 				type: selectedVariant.type,
 				kg: selectedVariant.kg,
@@ -130,7 +130,7 @@ export const ProductPage = () => {
 				variantId: selectedVariant.id,
 				productId: product?.id || '',
 				name: product?.name || '',
-				image: product?.images[0] || '',
+				image: product?.variants[0].image || '',
 				target: selectedVariant.target,
 				type: selectedVariant.type,
 				kg: selectedVariant.kg,
@@ -165,7 +165,7 @@ export const ProductPage = () => {
 		<>
 			<div className='h-fit flex flex-col md:flex-row gap-16 mt-8'>
 				{/* GALERÍA DE IMAGENES */}
-				<GridImages images={product.images} />
+				<GridImages images={[product.variants[0].image]} />
 
 				<div className='flex-1 space-y-5'>
 					<h1 className='text-3xl font-bold tracking-tight'>
@@ -300,7 +300,7 @@ export const ProductPage = () => {
 			</div>
 
 			{/* DESCRIPCIÓN */}
-			<ProductDescription content={product.description} />
+			<ProductDescription content={product.variants[0].description} />
 		</>
 	);
 };
