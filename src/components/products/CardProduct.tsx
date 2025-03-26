@@ -1,29 +1,24 @@
 import { FiPlus } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
-import { VariantProduct } from '../../interfaces';
+import { Type, VariantProduct } from '../../interfaces';
 import { formatPrice } from '../../helpers';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useCartStore } from '../../store/cart.store';
 
 interface Props {
-	img: string;
 	name: string;
-	price: number;
 	targets: {
 		target: string,
-		type: string,
-		kg: number
+		types: Type[]
 	}[];
 	variants: VariantProduct[];
 }
 
 export const CardProduct = ({
-	img,
 	name,
-	price,
 	targets,
-	variants,
+	variants
 }: Props) => {
 	const [activeTarget, setActiveTarget] = useState<{
 		target: string;
@@ -39,7 +34,7 @@ export const CardProduct = ({
 				variantId: selectedVariant.id,
 				productId: name,
 				name,
-				image: img,
+				image: selectedVariant.image,
 				target: selectedVariant.target,
 				kg: selectedVariant.kg,
 				type: selectedVariant.type,
@@ -71,7 +66,7 @@ export const CardProduct = ({
 			>
 				<div className='flex h-[350px] w-full items-center justify-center py-2 lg:h-[250px]'>
 					<img
-						src={img}
+						src={selectedVariant?.image}
 						alt={name}
 						className='object-contain h-full w-full'
 					/>
@@ -87,7 +82,7 @@ export const CardProduct = ({
 
 			<div className='flex flex-col gap-1 items-center'>
 				<p className='text-[15px] font-medium'>{name}</p>
-				<p className='text-[15px] font-medium'>{formatPrice(price)}</p>
+				<p className='text-[15px] font-medium'>{formatPrice(selectedVariant?.price || 0)}</p>
 
 				<div className='flex gap-3'>
 					{targets.map(target => (
@@ -102,7 +97,7 @@ export const CardProduct = ({
 							onClick={() => setActiveTarget(target)}>
 							<span
 								className='w-[14px] h-[14px] rounded-full'
-							/>{target.type}
+							/>{target.types[0].type}
 						</span>
 					))}
 				</div>

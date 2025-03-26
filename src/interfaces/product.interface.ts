@@ -1,5 +1,20 @@
 import { Json } from '../supabase/supabase';
 
+export interface Target {
+	target: string;
+	types: Type[];
+}
+
+export interface Type {
+	type: string;
+	kgs: Kg[];
+}
+
+export interface Kg {
+	kg: number;
+	price: number;
+}
+
 export interface VariantProduct {
 	id: string;
 	target: string;
@@ -7,36 +22,26 @@ export interface VariantProduct {
 	kg: number;
 	price: number;
 	stock: number;
-}
-
-export interface Targets {
-	target: string;
-	type: string;
-	kg: number;
-	price: number;
+	image: string;
+	description: Json;
 }
 
 export interface Product {
+	id: string;
 	brand: string;
 	name: string;
-	id: string;
-	description: Json;
 	created_at: string;
-	images: string[];
 	variants: VariantProduct[];
 }
 
 export interface PreparedProducts {
+	id: string;
 	brand: string;
 	name: string;
-	id: string;
-	description: Json;
-	images: string[];
-	price: number;
+	created_at: string;
 	targets: {
-		target: string,
-		type: string,
-		kg: number,
+		target: string;
+		types: Type[];
 	}[];
 	variants: VariantProduct[];
 }
