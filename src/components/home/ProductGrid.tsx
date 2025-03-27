@@ -18,7 +18,9 @@ export const ProductGrid = ({ title, products }: Props) => {
 					<CardProduct
 						key={product.id}
 						name={product.name}
-						targets={product.targets}
+						price={product.price}
+						img={product.images[0]}
+						target={product.target}
 						variants={product.variants}
 					/>
 				))}
