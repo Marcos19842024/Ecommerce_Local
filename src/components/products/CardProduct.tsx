@@ -11,9 +11,7 @@ interface Props {
 	img: string;
 	name: string;
 	price: number;
-	target: { target: string }[];
-	type: { type: string }[];
-	kg: { kg: number }[];
+	targets: { target: string, type: string, kg: number, price: number }[];
 	variants: VariantProduct[];
 }
 
@@ -21,38 +19,30 @@ export const CardProduct = ({
 	img,
 	name,
 	price,
-	target,
-	type,
-	kg,
+	targets,
 	variants,
 }: Props) => {
 	const [activeTarget, setActiveTarget] = useState<{
 		target: string;
-	}>(target[0]);
-
-	const [activeType, setActiveType] = useState<{
-		type: string;
-	}>(type[0]);
-
-	const [activeKg, setActiveKg] = useState<{
-		kg: number;
-	}>(kg[0]);
+		type : string;
+		kg: number
+	}>(targets[0]);
 
 	const addItem = useCartStore(state => state.addItem);
 
 	const handleAddClick = (e: React.MouseEvent<HTMLButtonElement>) => {
 		e.preventDefault();
 
-		if (selectedVariantTarget && selectedVariantType && selectedVariantKg && selectedVariantKg.stock > 0) {
+		if (selectedVariant && selectedVariant.stock > 0) {
 			addItem({
-				variantId: selectedVariantTarget?.id || "0",
+				variantId: selectedVariant?.id || "0",
 				productId: name,
 				name,
 				image: img,
 				target: activeTarget.target,
-				type: activeType.type,
-				kg: activeKg.kg,
-				price: selectedVariantKg.price,
+				type: selectedVariant?.type || "",
+				kg: selectedVariant?.kg || 0,
+				price: selectedVariant?.price || 0,
 				quantity: 1,
 			});
 			toast.success('Producto añadido al carrito', {
@@ -66,19 +56,11 @@ export const CardProduct = ({
 	};
 
 	// Identificar la variante seleccionada según el target activo
-	const selectedVariantTarget  = variants.find(
-		variant => variant.target === activeTarget.target
+	const selectedVariant  = variants.find(
+		variant => variant.target === activeTarget.target && variant.type === activeTarget.type && variant.kg === activeTarget.kg
 	);
 
-	const selectedVariantType  = variants.find(
-		variant => variant.type === activeType.type
-	);
-
-	const selectedVariantKg  = variants.find(
-		variant => variant.kg === activeKg.kg
-	);
-
-	const stock = selectedVariantKg?.stock || 0;
+	const stock = selectedVariant?.stock || 0;
 
 	return (
 		<div className='flex flex-col gap-6 relative'>
@@ -107,19 +89,43 @@ export const CardProduct = ({
 				<p className='text-[15px] font-medium'>{formatPrice(price)}</p>
 
 				<div className='flex gap-3'>
-					{target.map(target => (
+					{targets.map(target => (
 						<span
-							key={target}
-							className={`grid place-items-center w-5 h-5 cursor-pointer ${
+							key={target.target}
+							className={`grid place-items-center w-20 h-10 cursor-pointer ${
 								activeTarget === target
 								? 'border border-black'
 								: ''
-							}`
-						}
-						onClick={() => setActiveTarget(target)}>
+							}`}	
+							onClick={() => setActiveTarget(target)}>
+						</span>
+					))}
+				</div>
+
+				<div className='flex gap-3'>
+					{targets.map(target => (
 						<span
-								className='w-[14px] h-[14px] rounded-full'
-							/>{target.types[0].type}
+							key={target.type}
+							className={`grid place-items-center w-20 h-10 cursor-pointer ${
+								activeTarget.type === target.type
+								? 'border border-black'
+								: ''
+							}`}	
+							onClick={() => setActiveTarget(target)}>
+						</span>
+					))}
+				</div>
+
+				<div className='flex gap-3'>
+					{targets.map(target => (
+						<span
+							key={target.kg}
+							className={`grid place-items-center w-20 h-10 cursor-pointer ${
+								activeTarget.kg === target.kg
+								? 'border border-black'
+								: ''
+							}`}	
+							onClick={() => setActiveTarget(target)}>
 						</span>
 					))}
 				</div>

@@ -14,7 +14,6 @@ export interface VariantProduct {
 	kg: number;
 	price: number;
 	stock: number;
-	description: Json;
 }
 
 export interface Product {
@@ -22,6 +21,7 @@ export interface Product {
 	brand: string;
 	name: string;
 	images: string[];
+	description: Json;
 	created_at: string;
 	variants: VariantProduct[];
 }
@@ -30,11 +30,13 @@ export interface PreparedProducts {
 	id: string;
 	brand: string;
 	name: string;
+	price: number;
 	images: string[];
+	description: Json;
 	created_at: string;
-	target: {
+	targets: {
 		target: string;
-		types: string;
+		type: string;
 		kg: number;
 		price: number;
 	}[];

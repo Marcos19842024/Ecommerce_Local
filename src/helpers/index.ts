@@ -48,7 +48,7 @@ export const prepareProducts = (products: Product[]) => {
 		return {
 			...product,
 			price,
-			targets: targets.map(({ target, type, kg }) => ({ target, type, kg })),
+			targets: targets.map(({ target, type, kg, price }) => ({ target, type, kg, price })),
 			variants: product.variants,
 		};
 	});

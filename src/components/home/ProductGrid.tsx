@@ -20,7 +20,7 @@ export const ProductGrid = ({ title, products }: Props) => {
 						name={product.name}
 						price={product.price}
 						img={product.images[0]}
-						target={product.target}
+						targets={product.targets}
 						variants={product.variants}
 					/>
 				))}
