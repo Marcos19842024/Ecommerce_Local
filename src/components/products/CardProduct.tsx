@@ -35,14 +35,14 @@ export const CardProduct = ({
 
 		if (selectedVariant && selectedVariant.stock > 0) {
 			addItem({
-				variantId: selectedVariant?.id || "0",
+				variantId: selectedVariant.id,
 				productId: name,
 				name,
 				image: img,
 				target: activeTarget.target,
-				type: selectedVariant?.type || "",
-				kg: selectedVariant?.kg || 0,
-				price: selectedVariant?.price || 0,
+				type: selectedVariant.type,
+				kg: selectedVariant.kg,
+				price: selectedVariant.price,
 				quantity: 1,
 			});
 			toast.success('Producto añadido al carrito', {
@@ -57,7 +57,9 @@ export const CardProduct = ({
 
 	// Identificar la variante seleccionada según el target activo
 	const selectedVariant  = variants.find(
-		variant => variant.target === activeTarget.target && variant.type === activeTarget.type && variant.kg === activeTarget.kg
+		variant => variant.target === activeTarget.target &&
+		variant.type === activeTarget.type &&
+		variant.kg === activeTarget.kg
 	);
 
 	const stock = selectedVariant?.stock || 0;
@@ -86,49 +88,23 @@ export const CardProduct = ({
 
 			<div className='flex flex-col gap-1 items-center'>
 				<p className='text-[15px] font-medium'>{name}</p>
-				<p className='text-[15px] font-medium'>{formatPrice(price)}</p>
 
 				<div className='flex gap-3'>
 					{targets.map(target => (
 						<span
 							key={target.target}
-							className={`grid place-items-center w-20 h-10 cursor-pointer ${
+							className={`grid place-items-center cursor-pointer rounded-full text-[15px] font-medium ${
 								activeTarget === target
-								? 'border border-black'
+								? 'bg-gray-900 text-white'
 								: ''
-							}`}	
-							onClick={() => setActiveTarget(target)}>
+							}`}
+							onClick={() => setActiveTarget(target)}>{target.target}
 						</span>
 					))}
 				</div>
 
-				<div className='flex gap-3'>
-					{targets.map(target => (
-						<span
-							key={target.type}
-							className={`grid place-items-center w-20 h-10 cursor-pointer ${
-								activeTarget.type === target.type
-								? 'border border-black'
-								: ''
-							}`}	
-							onClick={() => setActiveTarget(target)}>
-						</span>
-					))}
-				</div>
+				<p className='text-[15px] font-medium'>{formatPrice(price)}</p>
 
-				<div className='flex gap-3'>
-					{targets.map(target => (
-						<span
-							key={target.kg}
-							className={`grid place-items-center w-20 h-10 cursor-pointer ${
-								activeTarget.kg === target.kg
-								? 'border border-black'
-								: ''
-							}`}	
-							onClick={() => setActiveTarget(target)}>
-						</span>
-					))}
-				</div>
 			</div>
 
 			<div className='absolute top-2 left-2'>
