@@ -1,30 +1,32 @@
-import { useQueries } from "@tanstack/react-query"
-import { getRandomProducts, getRecentProducts } from "../../acctions"
+import { useQueries } from '@tanstack/react-query';
+import { getRandomProducts, getRecentProducts } from '../../actions';
 
 export const useHomeProducts = () => {
-    const results = useQueries({
-        queries: [
-            {
-                queryKey: ['recentProducts'],
-                queryFn: getRecentProducts,
-            },
-            {
-                queryKey: ['popularProducts'],
-                queryFn: getRandomProducts,
-            }
-        ],
-    });
+	const results = useQueries({
+		queries: [
+			{
+				queryKey: ['recentProducts'],
+				queryFn: getRecentProducts,
+			},
+			{
+				queryKey: ['popularProducts'],
+				queryFn: getRandomProducts,
+			},
+		],
+	});
 
-    const [ recentProductsResult, popularProductsResult ] = results;
+	const [recentProductsResult, popularProductsResult] = results; // [resultadoQuery1, resultadoQuery2]
 
-    const isLoading = recentProductsResult.isLoading || popularProductsResult.isLoading;
+	// Combinar los estados de las consultas
+	const isLoading =
+		recentProductsResult.isLoading || popularProductsResult.isLoading;
+	const isError =
+		recentProductsResult.isError || popularProductsResult.isError;
 
-    const isError = recentProductsResult.isError || popularProductsResult.isError;
-
-    return {
-        recentProducts: recentProductsResult.data || [],
-        popularProducts: popularProductsResult.data  || [],
-        isLoading,
-        isError
-    };
+	return {
+		recentProducts: recentProductsResult.data || [],
+		popularProducts: popularProductsResult.data || [],
+		isLoading,
+		isError,
+	};
 };

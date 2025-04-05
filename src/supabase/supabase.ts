@@ -148,7 +148,7 @@ export type Database = {
         Row: {
           address_id: string
           created_at: string
-          customers_id: string
+          customer_id: string
           id: number
           status: string | null
           total_amount: number
@@ -156,7 +156,7 @@ export type Database = {
         Insert: {
           address_id: string
           created_at?: string
-          customers_id: string
+          customer_id: string
           id?: number
           status?: string | null
           total_amount: number
@@ -164,7 +164,7 @@ export type Database = {
         Update: {
           address_id?: string
           created_at?: string
-          customers_id?: string
+          customer_id?: string
           id?: number
           status?: string | null
           total_amount?: number
@@ -179,7 +179,7 @@ export type Database = {
           },
           {
             foreignKeyName: "orders_customers_id_fkey"
-            columns: ["customers_id"]
+            columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
@@ -194,6 +194,7 @@ export type Database = {
           id: string
           images: string[]
           name: string
+          slug: string
         }
         Insert: {
           brand: string
@@ -202,6 +203,7 @@ export type Database = {
           id?: string
           images: string[]
           name: string
+          slug: string
         }
         Update: {
           brand?: string
@@ -210,6 +212,7 @@ export type Database = {
           id?: string
           images?: string[]
           name?: string
+          slug?: string
         }
         Relationships: []
       }

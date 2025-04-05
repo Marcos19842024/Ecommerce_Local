@@ -3,7 +3,7 @@ import { HiOutlineSearch } from 'react-icons/hi';
 import { IoMdClose } from 'react-icons/io';
 import { useGlobalStore } from '../../store/global.store';
 import { formatPrice } from '../../helpers';
-import { searchProducts } from '../../acctions';
+import { searchProducts } from '../../actions';
 import { Product } from '../../interfaces';
 import { useNavigate } from 'react-router-dom';
 
@@ -54,7 +54,7 @@ export const Search = () => {
 								<button
 									className='flex items-center gap-3'
 									onClick={() => {
-										navigate(`/productos/${product.name}`);
+										navigate(`/productos/${product.slug}`);
 										closeSheet();
 									}}
 								>
@@ -70,6 +70,7 @@ export const Search = () => {
 										</p>
 
 										<p className='text-[13px] text-gray-600'>
+											{product.variants[0].target} /{' '}
 											{product.variants[0].type} /{' '}
 											{product.variants[0].kg}
 										</p>

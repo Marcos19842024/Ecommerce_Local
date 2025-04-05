@@ -52,7 +52,7 @@ export const CartItem = ({ item }: Props) => {
 
 				<div className='flex gap-3'>
 					<p className='text-[13px] text-gray-600'>
-						{item.type} / {item.target}
+						{item.type} / {item.target} / {item.kg}
 					</p>
 				</div>
 

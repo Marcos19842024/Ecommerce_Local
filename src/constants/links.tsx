@@ -1,4 +1,4 @@
-import { FaFacebookF, FaInstagram } from 'react-icons/fa6';
+import { FaBoxOpen, FaCartShopping, FaFacebookF, FaInstagram } from 'react-icons/fa6';
 import { FaWhatsapp } from "react-icons/fa";
 
 export const navbarLinks = [
@@ -37,5 +37,20 @@ export const socialLinks = [
 		title: 'Instagram',
 		href: 'https://api.whatsapp.com/',
 		icon: <FaWhatsapp />,
+	},
+];
+
+export const dashboardLinks = [
+	{
+		id: 1,
+		title: 'Productos',
+		href: '/dashboard/productos',
+		icon: <FaBoxOpen size={25} />,
+	},
+	{
+		id: 2,
+		title: 'Ordenes',
+		href: '/dashboard/ordenes',
+		icon: <FaCartShopping size={25} />,
 	},
 ];

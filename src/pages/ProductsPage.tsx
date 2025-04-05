@@ -6,7 +6,6 @@ import { useFilteredProducts } from '../hooks';
 import { Pagination } from '../components/shared/Pagination';
 
 export const ProductsPage = () => {
-
 	const [page, setPage] = useState(1);
 	const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
 
@@ -14,8 +13,6 @@ export const ProductsPage = () => {
 		page,
 		brands: selectedBrands,
 	});
-
-	if (isLoading || !products) return <p> Cargando...</p>;
 
 	const preparedProducts = prepareProducts(products);
 
@@ -44,7 +41,10 @@ export const ProductsPage = () => {
 									<CardProduct
 										key={product.id}
 										name={product.name}
+										price={product.price}
 										targets={product.targets}
+										img={product.images[0]}
+										slug={product.slug}
 										variants={product.variants}
 									/>
 								))}

@@ -62,7 +62,7 @@ export const Cart = () => {
 						Su carro está vacío
 					</p>
 					<Link
-						to='/celulares'
+						to='/productos'
 						className='py-4 bg-black rounded-full text-white px-7 text-xs uppercase tracking-widest font-semibold'
 						onClick={closeSheet}
 					>

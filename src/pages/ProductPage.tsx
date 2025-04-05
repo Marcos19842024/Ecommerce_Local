@@ -2,6 +2,7 @@ import { LuMinus, LuPlus } from 'react-icons/lu';
 import { Separator } from '../components/shared/Separator';
 import { formatPrice } from '../helpers';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { BsChatLeftText } from 'react-icons/bs';
 import { ProductDescription } from '../components/one-product/ProductDescription';
 import { GridImages } from '../components/one-product/GridImages';
 import { useProduct } from '../hooks/products/useProduct';
@@ -12,29 +13,34 @@ import { Loader } from '../components/shared/Loader';
 import { useCounterStore } from '../store/counter.store';
 import { useCartStore } from '../store/cart.store';
 import toast from 'react-hot-toast';
-import { BsChatLeftText } from 'react-icons/bs';
 
 interface Acc {
 	[key: string]: {
-		peso: number;
         types: string[];
+		kgs: number[];
 	};
 }
 
 export const ProductPage = () => {
-	const { name } = useParams<{ name: string }>();
+	const { slug } = useParams<{ slug: string }>();
 
-	const [currentName, setCurrentName] = useState(name);
+	const [currentSlug, setCurrentSlug] = useState(slug);
 
-	const { product, isLoading, isError } = useProduct(currentName || '');
+	const { product, isLoading, isError } = useProduct(
+		currentSlug || ''
+	);
 
 	const [selectedTarget, setSelectedTarget] = useState<string | null>(
 		null
 	);
 
-	const [selectedType, setSelectedType] = useState<
-		string | null
-	>(null);
+	const [selectedType, setSelectedType] = useState<string | null>(
+		null
+	);
+
+	const [selectedKg, setSelectedKg] = useState<number | null>(
+		null
+	);
 
 	const [selectedVariant, setSelectedVariant] = useState<VariantProduct | null>(null);
 
@@ -56,13 +62,17 @@ export const ProductPage = () => {
 					const { target, type, kg } = variant;
 					if (!acc[target]) {
 						acc[target] = {
-                            peso: kg,
                             types: [],
+							kgs: [],
 						};
 					}
 
 					if (!acc[target].types.includes(type)) {
 						acc[target].types.push(type);
+					}
+
+					if (!acc[target].kgs.includes(kg)) {
+						acc[target].kgs.push(kg);
 					}
 
 					return acc;
@@ -87,18 +97,26 @@ export const ProductPage = () => {
 		}
 	}, [selectedTarget, targets, selectedType]);
 
+	// Actualizar el peso seleccionado cuando cambia el tipo
+	useEffect(() => {
+		if (selectedTarget && selectedType && targets[selectedTarget] && !selectedKg) {
+			setSelectedKg(targets[selectedTarget].kgs[0]);
+		}
+	}, [selectedTarget, targets, selectedType, selectedKg]);
+
 	// Obtener la variante seleccionada
 	useEffect(() => {
-		if (selectedTarget && selectedType) {
+		if (selectedTarget && selectedType && selectedKg) {
 			const variant = product?.variants.find(
-                (variant: { target: string; type: string; }) =>
+                (variant: { target: string; type: string; kg: number }) =>
 					variant.target === selectedTarget &&
-					variant.type === selectedType
+					variant.type === selectedType &&
+					variant.kg === selectedKg
 			);
 
 			setSelectedVariant(variant as VariantProduct);
 		}
-	}, [selectedTarget, selectedType, product?.variants]);
+	}, [selectedTarget, selectedType, selectedKg, product?.variants ]);
 
 	// Obtener el stock
 	const isOutOfStock = selectedVariant?.stock === 0;
@@ -110,7 +128,7 @@ export const ProductPage = () => {
 				variantId: selectedVariant.id,
 				productId: product?.id || '',
 				name: product?.name || '',
-				image: product?.variants[0].image || '',
+				image: product?.images[0] || '',
 				target: selectedVariant.target,
 				type: selectedVariant.type,
 				kg: selectedVariant.kg,
@@ -130,7 +148,7 @@ export const ProductPage = () => {
 				variantId: selectedVariant.id,
 				productId: product?.id || '',
 				name: product?.name || '',
-				image: product?.variants[0].image || '',
+				image: product?.images[0] || '',
 				target: selectedVariant.target,
 				type: selectedVariant.type,
 				kg: selectedVariant.kg,
@@ -144,13 +162,14 @@ export const ProductPage = () => {
 
 	// Resetear el name actual cuando cambia en la URL
 	useEffect(() => {
-		setCurrentName(name);
+		setCurrentSlug(slug);
 
 		// Reiniciar target, type y variante seleccionada
 		setSelectedTarget(null);
 		setSelectedType(null);
+		setSelectedKg(null);
 		setSelectedVariant(null);
-	}, [name]);
+	}, [slug]);
 
 	if (isLoading) return <Loader />;
 
@@ -165,7 +184,7 @@ export const ProductPage = () => {
 		<>
 			<div className='h-fit flex flex-col md:flex-row gap-16 mt-8'>
 				{/* GALERÍA DE IMAGENES */}
-				<GridImages images={[product.variants[0].image]} />
+				<GridImages images={[product.images[0]]} />
 
 				<div className='flex-1 space-y-5'>
 					<h1 className='text-3xl font-bold tracking-tight'>
@@ -186,22 +205,9 @@ export const ProductPage = () => {
 
 					<Separator />
 
-					{/* Características */}
-					{/* <ul className='space-y-2 ml-7 my-10'>
-						{product.features.map(feature => (
-							<li
-								key={feature}
-								className='text-sm flex items-center gap-2 tracking-tight font-medium'
-							>
-								<span className='bg-black w-[5px] h-[5px] rounded-full' />
-								{feature}
-							</li>
-						))}
-					</ul> */}
-
 					<div className='flex flex-col gap-3'>
 						<p>
-                            Especie: {selectedTarget && targets[selectedTarget].types}
+                            Especie: {selectedTarget}
 						</p>
 						<div className='flex gap-3'>
 							{availableTargets.map(target => (
@@ -221,7 +227,7 @@ export const ProductPage = () => {
 					{/* OPCIONES DE TIPO */}
 					<div className='flex flex-col gap-3'>
 						<p className='text-xs font-medium'>
-							Tipos disponible
+							Tipos disponibles
 						</p>
 
 						{selectedTarget && (
@@ -231,9 +237,32 @@ export const ProductPage = () => {
 									value={selectedType || ''}
 									onChange={e => setSelectedType(e.target.value)}
 								>
-									{targets[selectedTarget].types.map((type: string) => (
+									{targets[selectedTarget].types.map(type => (
 										<option value={type} key={type}>
 											{type}
+										</option>
+									))}
+								</select>
+							</div>
+						)}
+					</div>
+
+					{/* OPCIONES DE PESO */}
+					<div className='flex flex-col gap-3'>
+						<p className='text-xs font-medium'>
+							Pesos disponibles
+						</p>
+
+						{selectedTarget && (
+							<div className='flex gap-3'>
+								<select
+									className='border border-gray-300 px-3 py-1'
+									value={selectedKg || ''}
+									onChange={e => setSelectedKg(parseInt(e.target.value))}
+								>
+									{targets[selectedTarget].kgs.map(kg => (
+										<option value={kg} key={kg}>
+											{kg}
 										</option>
 									))}
 								</select>
@@ -300,7 +329,7 @@ export const ProductPage = () => {
 			</div>
 
 			{/* DESCRIPCIÓN */}
-			<ProductDescription content={product.variants[0].description} />
+			<ProductDescription content={product.description} />
 		</>
 	);
 };

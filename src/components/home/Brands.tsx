@@ -20,10 +20,6 @@ const brands = [
 		alt: 'Excellent',
 	},
 	{
-		image: '/img/brands/Bayer-logo.png',
-		alt: 'Bayer',
-	},
-	{
 		image: '/img/brands/Otras-logo.png',
 		alt: 'Otras',
 	}

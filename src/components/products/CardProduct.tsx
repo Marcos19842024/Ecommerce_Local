@@ -1,17 +1,18 @@
+import { useState } from 'react';
 import { FiPlus } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import { VariantProduct } from '../../interfaces';
 import { formatPrice } from '../../helpers';
-import { useState } from 'react';
-import toast from 'react-hot-toast';
+import { Tag } from '../shared/Tag';
 import { useCartStore } from '../../store/cart.store';
-import React from 'react';
+import toast from 'react-hot-toast';
 
 interface Props {
 	img: string;
 	name: string;
 	price: number;
-	targets: { target: string, type: string, kg: number, price: number }[];
+	slug: string;
+	targets: { target: string }[];
 	variants: VariantProduct[];
 }
 
@@ -19,13 +20,12 @@ export const CardProduct = ({
 	img,
 	name,
 	price,
+	slug,
 	targets,
 	variants,
 }: Props) => {
 	const [activeTarget, setActiveTarget] = useState<{
 		target: string;
-		type : string;
-		kg: number
 	}>(targets[0]);
 
 	const addItem = useCartStore(state => state.addItem);
@@ -57,9 +57,7 @@ export const CardProduct = ({
 
 	// Identificar la variante seleccionada según el target activo
 	const selectedVariant  = variants.find(
-		variant => variant.target === activeTarget.target &&
-		variant.type === activeTarget.type &&
-		variant.kg === activeTarget.kg
+		variant => variant.target === activeTarget.target
 	);
 
 	const stock = selectedVariant?.stock || 0;
@@ -67,7 +65,7 @@ export const CardProduct = ({
 	return (
 		<div className='flex flex-col gap-6 relative'>
 			<Link
-				to={`/productos/${name}`}
+				to={`/productos/${slug}`}
 				className='flex relative group overflow-hidden '
 			>
 				<div className='flex h-[350px] w-full items-center justify-center py-2 lg:h-[250px]'>
@@ -88,13 +86,16 @@ export const CardProduct = ({
 
 			<div className='flex flex-col gap-1 items-center'>
 				<p className='text-[15px] font-medium'>{name}</p>
+				<p className='text-[15px] font-medium'>
+					{formatPrice(price)}
+				</p>
 
 				<div className='flex gap-3'>
 					{targets.map(target => (
 						<span
 							key={target.target}
 							className={`grid place-items-center cursor-pointer rounded-full text-[15px] font-medium ${
-								activeTarget === target
+								activeTarget.target === target.target
 								? 'bg-gray-900 text-white'
 								: ''
 							}`}
@@ -103,12 +104,10 @@ export const CardProduct = ({
 					))}
 				</div>
 
-				<p className='text-[15px] font-medium'>{formatPrice(price)}</p>
-
 			</div>
 
 			<div className='absolute top-2 left-2'>
-				{stock === 0 && <span>Agotado</span>}
+				{stock === 0 && <Tag contentTag='agotado' />}
 			</div>
 		</div>
 	);
