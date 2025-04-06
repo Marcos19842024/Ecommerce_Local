@@ -104,7 +104,9 @@ export const VariantsInput = ({
 							<input
 								type='number'
 								placeholder='Kg'
-								{...register(`variants.${index}.kg`)}
+								{...register(`variants.${index}.kg`, {
+									valueAsNumber: true,
+								})}
 								className='border rounded-md px-3 py-1.5 text-xs font-semibold placeholder:font-normal focus:outline-none appearance-none'
 							/>
 

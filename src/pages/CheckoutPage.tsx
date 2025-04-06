@@ -53,7 +53,7 @@ export const CheckoutPage = () => {
 							Su carro esta vacío
 						</p>
 						<Link
-							to='/celulares'
+							to='/products'
 							className='py-4 bg-black rounded-full text-white px-7 text-xs uppercase tracking-widest font-semibold'
 						>
 							Empezar a comprar

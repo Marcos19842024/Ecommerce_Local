@@ -13,6 +13,7 @@ import { UploaderImages } from './UploaderImages';
 import { Editor } from './Editor';
 import { useCreateProduct, useProduct, useUpdateProduct } from '../../../hooks';
 import { Loader } from '../../shared/Loader';
+import { JSONContent } from '@tiptap/react';
 
 interface Props {
 	titleForm: string;
@@ -44,11 +45,7 @@ export const FormProduct = ({ titleForm }: Props) => {
 			setValue('name', product.name);
 			setValue('slug', product.slug);
 			setValue('brand', product.brand);
-			setValue(
-				'features',
-				product.features.map((f: string) => ({ value: f }))
-			);
-			setValue('description', product.description);
+			setValue('description', product.description as JSONContent);
 			setValue('images', product.images);
 			setValue(
 				'variants',
@@ -65,7 +62,6 @@ export const FormProduct = ({ titleForm }: Props) => {
 	}, [product, isLoading, setValue]);
 
 	const onSubmit = handleSubmit(data => {
-		const features = data.features.map(feature => feature.value);
 
 		if (slug) {
 			updateProduct({
@@ -75,7 +71,6 @@ export const FormProduct = ({ titleForm }: Props) => {
 				variants: data.variants,
 				images: data.images,
 				description: data.description,
-				features,
 			});
 		} else {
 			createProduct({
@@ -85,7 +80,6 @@ export const FormProduct = ({ titleForm }: Props) => {
 				variants: data.variants,
 				images: data.images,
 				description: data.description,
-				features,
 			});
 		}
 	});
@@ -184,7 +178,7 @@ export const FormProduct = ({ titleForm }: Props) => {
 					<Editor
 						setValue={setValue}
 						errors={errors}
-						initialContent={product?.description}
+						initialContent={product?.description as JSONContent}
 					/>
 				</SectionFormProduct>
 
