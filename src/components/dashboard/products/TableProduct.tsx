@@ -117,7 +117,7 @@ export const TableProduct = () => {
 														key={variant.id}
 														value={variantIndex}
 													>
-														{variant.target} - {variant.type} - {variant.kg}
+														{variant.target} - {variant.type} - {variant.kg} kg.
 													</option>
 												)
 											)}

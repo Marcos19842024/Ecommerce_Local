@@ -102,7 +102,7 @@ export const ThankyouPage = () => {
 
 										<div className='flex gap-3'>
 											<p className='text-[13px] text-gray-600'>
-											{item.target} / {item.type} / {item.kg}
+											{item.target} / {item.type} / {item.kg} kg.
 											</p>
 										</div>
 									</div>
@@ -143,7 +143,6 @@ export const ThankyouPage = () => {
 							<p>{data.address.city}</p>
 							<p>{data.address.state}</p>
 							<p>{data.address.postalCode}</p>
-							<p>{data.address.country}</p>
 						</div>
 
 						<div className='flex flex-col text-sm'>

@@ -5,7 +5,6 @@ export interface OrderInput {
 		city: string;
 		state: string;
 		postalCode?: string;
-		country: string;
 	};
 	cartItems: {
 		variantId: string;

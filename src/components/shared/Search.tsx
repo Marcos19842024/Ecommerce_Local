@@ -72,7 +72,7 @@ export const Search = () => {
 										<p className='text-[13px] text-gray-600'>
 											{product.variants[0].target} /{' '}
 											{product.variants[0].type} /{' '}
-											{product.variants[0].kg}
+											{product.variants[0].kg} kg.
 										</p>
 
 										<p className='text-sm font-medium text-gray-600'>

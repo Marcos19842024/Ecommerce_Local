@@ -92,15 +92,8 @@ export const FormCheckout = () => {
 						register={register}
 						errors={errors}
 						name='postalCode'
-						placeholder='Código Postal (Opcional)'
+						placeholder='Código Postal'
 					/>
-
-					<select
-						className='border border-slate-200 rounded-md p-3'
-						{...register('country')}
-					>
-						<option value='México'>México</option>
-					</select>
 				</div>
 
 				<div className='flex flex-col'>

@@ -33,7 +33,7 @@ export const ItemsCheckout = () => {
 							</div>
 							<div className='flex gap-3'>
 								<p className='text-[13px] text-gray-600'>
-									{item.target} / {item.type} / {item.kg}
+									{item.target} / {item.type} / {item.kg} kg.
 								</p>
 							</div>
 						</div>

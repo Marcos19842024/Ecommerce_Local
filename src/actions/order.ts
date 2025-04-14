@@ -54,7 +54,6 @@ export const createOrder = async (order: OrderInput) => {
 			city: order.address.city,
 			state: order.address.state,
 			postal_code: order.address.postalCode,
-			country: order.address.country,
 			customer_id: customerId,
 		})
 		.select()
@@ -218,7 +217,6 @@ export const getOrderById = async (orderId: number) => {
 			city: order.addresses?.city,
 			state: order.addresses?.state,
 			postalCode: order.addresses?.postal_code,
-			country: order.addresses?.country,
 		},
 		orderItems: order.order_items.map(item => ({
 			quantity: item.quantity,
@@ -297,7 +295,6 @@ export const getOrderByIdAdmin = async (id: number) => {
 			city: order.addresses?.city,
 			state: order.addresses?.state,
 			postalCode: order.addresses?.postal_code,
-			country: order.addresses?.country,
 		},
 		orderItems: order.order_items.map(item => ({
 			quantity: item.quantity,

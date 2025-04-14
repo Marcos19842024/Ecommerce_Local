@@ -4,10 +4,7 @@ import { Link, Navigate } from 'react-router-dom';
 import { useRegister, useUser } from '../hooks';
 import { LuLoader2 } from 'react-icons/lu';
 import { Loader } from '../components/shared/Loader';
-import {
-	UserRegisterFormValues,
-	userRegisterSchema,
-} from '../lib/validators';
+import { UserRegisterFormValues, userRegisterSchema } from '../lib/validators';
 
 export const RegisterPage = () => {
 	const {
@@ -69,12 +66,14 @@ export const RegisterPage = () => {
 
 						<input
 							type='text'
-							placeholder='Celular'
+							placeholder='Teléfono'
 							className='border border-slate-200 text-black px-5 py-4 placeholder:text-black text-sm rounded-full w-full'
 							{...register('phone')}
 						/>
 						{errors.phone && (
-							<p className='text-red-500'>{errors.phone.message}</p>
+							<p className='text-red-500'>
+								{errors.phone.message}
+							</p>
 						)}
 
 						<input
@@ -84,7 +83,9 @@ export const RegisterPage = () => {
 							{...register('email')}
 						/>
 						{errors.email && (
-							<p className='text-red-500'>{errors.email.message}</p>
+							<p className='text-red-500'>
+								{errors.email.message}
+							</p>
 						)}
 
 						<input
@@ -106,7 +107,7 @@ export const RegisterPage = () => {
 
 					<p className='text-sm text-stone-800'>
 						¿Ya tienes una cuenta?
-						<Link to='/registro' className='underline ml-2'>
+						<Link to='/login' className='underline ml-2'>
 							Inicia sesión
 						</Link>
 					</p>

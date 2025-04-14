@@ -59,7 +59,7 @@ export const DashboardOrderPage = () => {
 									<div className='space-y-2'>
 										<h3>{item.productName}</h3>
 										<p className='text-xs'>
-											{item.target} / {item.type} / {item.kg}
+											{item.target} / {item.type} / {item.kg} kg.
 										</p>
 										<p className='text-sm'>
 											{formatPrice(item.price)}
@@ -111,7 +111,6 @@ export const DashboardOrderPage = () => {
 							<p>{order.address.city}</p>
 							<p>{order.address.state}</p>
 							<p>{order.address.postalCode}</p>
-							<p>{order.address.country}</p>
 						</div>
 					</div>
 				</div>

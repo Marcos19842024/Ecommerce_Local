@@ -5,7 +5,6 @@ import { IoIosArrowBack } from 'react-icons/io';
 import { useNavigate, useParams } from 'react-router-dom';
 import { SectionFormProduct } from './SectionFormProduct';
 import { InputForm } from './InputForm';
-import { FeaturesInput } from './FeaturesInput';
 import { useEffect } from 'react';
 import { generateSlug } from '../../../helpers';
 import { VariantsInput } from './VariantsInput';
@@ -130,7 +129,6 @@ export const FormProduct = ({ titleForm }: Props) => {
 						errors={errors}
 						required
 					/>
-					<FeaturesInput control={control} errors={errors} />
 				</SectionFormProduct>
 
 				<SectionFormProduct>

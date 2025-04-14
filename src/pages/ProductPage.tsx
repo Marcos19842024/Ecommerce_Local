@@ -14,12 +14,17 @@ import { useCounterStore } from '../store/counter.store';
 import { useCartStore } from '../store/cart.store';
 import toast from 'react-hot-toast';
 
-interface Acc {
+interface Ta {
 	[key: string]: {
-        types: string[];
+		types: string[];
+	};
+};
+
+interface Ty {
+	[key: string]: {
 		kgs: number[];
 	};
-}
+};
 
 export const ProductPage = () => {
 	const { slug } = useParams<{ slug: string }>();
@@ -53,17 +58,16 @@ export const ProductPage = () => {
 	const addItem = useCartStore(state => state.addItem);
 
 	const navigate = useNavigate();
-	
+
 	// Agrupamos las variantes por target
 	const targets = useMemo(() => {
 		return (
 			product?.variants.reduce(
-				(acc: Acc, variant: VariantProduct) => {
-					const { target, type, kg } = variant;
+				(acc: Ta, variant: VariantProduct) => {
+					const { target, type } = variant;
 					if (!acc[target]) {
 						acc[target] = {
-                            types: [],
-							kgs: [],
+							types: [],
 						};
 					}
 
@@ -71,13 +75,9 @@ export const ProductPage = () => {
 						acc[target].types.push(type);
 					}
 
-					if (!acc[target].kgs.includes(kg)) {
-						acc[target].kgs.push(kg);
-					}
-
 					return acc;
 				},
-				{} as Acc
+				{} as Ta
 			) || {}
 		);
 	}, [product?.variants]);
@@ -90,19 +90,21 @@ export const ProductPage = () => {
 		}
 	}, [availableTargets, selectedTarget]);
 
+	// Obtener el primer tipo predeterminado si no se ha seleccionado ninguno
+	const availableTypes = Object.keys(types);
+	useEffect(() => {
+		if (!selectedType && availableTypes.length > 0) {
+			setSelectedType(availableTypes[0]);
+		}
+	}, [availableTypes, selectedType]);
+
 	// Actualizar el tipo seleccionado cuando cambia el target
 	useEffect(() => {
 		if (selectedTarget && targets[selectedTarget] && !selectedType) {
 			setSelectedType(targets[selectedTarget].types[0]);
+			setSelectedKg(targets[selectedTarget].types[0].kgs[0]);
 		}
 	}, [selectedTarget, targets, selectedType]);
-
-	// Actualizar el peso seleccionado cuando cambia el tipo
-	useEffect(() => {
-		if (selectedTarget && selectedType && targets[selectedTarget] && !selectedKg) {
-			setSelectedKg(targets[selectedTarget].kgs[0]);
-		}
-	}, [selectedTarget, targets, selectedType, selectedKg]);
 
 	// Obtener la variante seleccionada
 	useEffect(() => {
@@ -205,23 +207,27 @@ export const ProductPage = () => {
 
 					<Separator />
 
+					{/* OPCIONES DE OBJETIVO */}
 					<div className='flex flex-col gap-3'>
-						<p>
-                            Especie: {selectedTarget}
+						<p className='text-xs font-medium'>
+							Objetivos disponibles
 						</p>
-						<div className='flex gap-3'>
-							{availableTargets.map(target => (
-								<button
-									key={target}
-									className={`w-8 h-8 flex justify-center items-center ${
-										selectedTarget === target
-											? 'border border-slate-800'
-											: ''
-									}`}
-									onClick={() => setSelectedTarget(target)}>{target}
-								</button>
-							))}
-						</div>
+
+						{availableTargets && (
+							<div className='flex gap-3'>
+								<select
+									className='border border-gray-300 px-3 py-1'
+									value={selectedTarget || ''}
+									onChange={e => setSelectedTarget(e.target.value)}
+								>
+									{availableTargets.map(target => (
+										<option value={target} key={target}>
+											{target}
+										</option>
+									))}
+								</select>
+							</div>
+						)}
 					</div>
 
 					{/* OPCIONES DE TIPO */}
@@ -253,12 +259,12 @@ export const ProductPage = () => {
 							Pesos disponibles
 						</p>
 
-						{selectedTarget && (
+						{selectedTarget && selectedType && (
 							<div className='flex gap-3'>
 								<select
 									className='border border-gray-300 px-3 py-1'
 									value={selectedKg || ''}
-									onChange={e => setSelectedKg(parseInt(e.target.value))}
+									onChange={e => setSelectedType(e.target.value)}
 								>
 									{targets[selectedTarget].kgs.map(kg => (
 										<option value={kg} key={kg}>

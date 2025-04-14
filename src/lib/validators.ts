@@ -7,7 +7,7 @@ export const userRegisterSchema = z.object({
 		.string()
 		.min(6, 'La contraseña debe tener al menos 6 caracteres'),
 	fullName: z.string().min(1, 'El nombre completo es requerido'),
-	phone: z.string().optional(),
+	phone: z.string().min(10, 'El numero de teléfono debe ser de 10 digitos'),
 });
 
 export const addressSchema = z.object({
@@ -29,14 +29,10 @@ export const addressSchema = z.object({
 		.max(50, 'El estado no debe exceder los 50 carácteres'),
 	postalCode: z
 		.string()
-		.max(10, 'El código postal no debe exceder los 10 carácteres')
-		.optional(),
-	country: z.string().min(1, 'El país es requerido'),
+		.max(5, 'El código postal no debe exceder los 5 carácteres'),
 });
 
-export type UserRegisterFormValues = z.infer<
-	typeof userRegisterSchema
->;
+export type UserRegisterFormValues = z.infer<typeof userRegisterSchema>;
 export type AddressFormValues = z.infer<typeof addressSchema>;
 
 const isContentEmpty = (value: JSONContent): boolean => {
@@ -81,7 +77,7 @@ export const productSchema = z.object({
 				price: z.number().min(0.01, 'El precio debe ser mayor a 0'),
 				target: z.string().min(1, 'El objetivo es requerido'),
 				type: z.string().min(1, 'El tipo es requerido'),
-				kg: z.string().min(0.01, 'El peso es requerido'),
+				kg: z.number().min(0.01, 'El peso es requerido'),
 			})
 		)
 		.min(1, 'Debe haber al menos una variante'),
