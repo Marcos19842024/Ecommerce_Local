@@ -39,11 +39,7 @@ export const AboutPage = () => {
 				</p>
 
 				<p
-					className='text-cyan-600 font-bold'>
-					<a href='baalak.cv@gmail.com'>
-						baalak.cv@gmail.com
-					</a>{' '}
-					o llamado al <a href='tel:981 206 2582'>981 206 2582</a>
+					className='text-cyan-600 font-bold'>baalak.cv@gmail.com	o llamado al 981 206 2582
 				</p>
 			</div>
 		</div>

@@ -14,16 +14,14 @@ import { useCounterStore } from '../store/counter.store';
 import { useCartStore } from '../store/cart.store';
 import toast from 'react-hot-toast';
 
-interface Ta {
-	[key: string]: {
-		types: string[];
-	};
+interface Target {
+	target: string,
+	types: Type[]
 };
 
-interface Ty {
-	[key: string]: {
-		kgs: number[];
-	};
+interface Type {
+	type: string,
+	kgs: number[]
 };
 
 export const ProductPage = () => {
@@ -31,21 +29,17 @@ export const ProductPage = () => {
 
 	const [currentSlug, setCurrentSlug] = useState(slug);
 
-	const { product, isLoading, isError } = useProduct(
-		currentSlug || ''
-	);
+	const { product, isLoading, isError } = useProduct(currentSlug || '');
 
-	const [selectedTarget, setSelectedTarget] = useState<string | null>(
-		null
-	);
+	const [selectedTarget, setSelectedTarget] = useState<string | null>(null);
 
-	const [selectedType, setSelectedType] = useState<string | null>(
-		null
-	);
+	const [availableTypes, setAvailableTypes] = useState<Type[] | null>(null);
 
-	const [selectedKg, setSelectedKg] = useState<number | null>(
-		null
-	);
+	const [selectedType, setSelectedType] = useState<string | null>(null);
+
+	const [availableKgs, setAvailableKgs] = useState<number[] | null>(null);
+
+	const [selectedKg, setSelectedKg] = useState<number | null>(null);
 
 	const [selectedVariant, setSelectedVariant] = useState<VariantProduct | null>(null);
 
@@ -58,53 +52,42 @@ export const ProductPage = () => {
 	const addItem = useCartStore(state => state.addItem);
 
 	const navigate = useNavigate();
-
+	
 	// Agrupamos las variantes por target
 	const targets = useMemo(() => {
 		return (
 			product?.variants.reduce(
-				(acc: Ta, variant: VariantProduct) => {
-					const { target, type } = variant;
-					if (!acc[target]) {
-						acc[target] = {
-							types: [],
-						};
-					}
+				(acc: Target[], variant: VariantProduct) => {
+					const { target, type, kg } = variant;
+					const existingTarget = acc.find(
+						item => item.target === target
+					);
 
-					if (!acc[target].types.includes(type)) {
-						acc[target].types.push(type);
-					}
+					if (!existingTarget) {
+						acc.push({
+							target: target,
+							types: []
+						})
+					};
+
+					acc.find(item => {
+						if (item.target === target && !item.types.find(item => item.type === type)) {
+							item.types.push({type: type, kgs: []});
+						}
+
+						item.types.find(item => {
+							if (item.type === type && !item.kgs.includes(kg)) {
+								item.kgs.push(kg);
+							}
+						})
+					});
 
 					return acc;
 				},
-				{} as Ta
-			) || {}
-		);
+				[]
+			) || []
+		)
 	}, [product?.variants]);
-
-	// Obtener el primer target predeterminado si no se ha seleccionado ninguno
-	const availableTargets = Object.keys(targets);
-	useEffect(() => {
-		if (!selectedTarget && availableTargets.length > 0) {
-			setSelectedTarget(availableTargets[0]);
-		}
-	}, [availableTargets, selectedTarget]);
-
-	// Obtener el primer tipo predeterminado si no se ha seleccionado ninguno
-	const availableTypes = Object.keys(types);
-	useEffect(() => {
-		if (!selectedType && availableTypes.length > 0) {
-			setSelectedType(availableTypes[0]);
-		}
-	}, [availableTypes, selectedType]);
-
-	// Actualizar el tipo seleccionado cuando cambia el target
-	useEffect(() => {
-		if (selectedTarget && targets[selectedTarget] && !selectedType) {
-			setSelectedType(targets[selectedTarget].types[0]);
-			setSelectedKg(targets[selectedTarget].types[0].kgs[0]);
-		}
-	}, [selectedTarget, targets, selectedType]);
 
 	// Obtener la variante seleccionada
 	useEffect(() => {
@@ -117,8 +100,9 @@ export const ProductPage = () => {
 			);
 
 			setSelectedVariant(variant as VariantProduct);
+			console.log(selectedVariant)
 		}
-	}, [selectedTarget, selectedType, selectedKg, product?.variants ]);
+	}, [selectedTarget, selectedType, selectedKg, product?.variants]);
 
 	// Obtener el stock
 	const isOutOfStock = selectedVariant?.stock === 0;
@@ -166,7 +150,7 @@ export const ProductPage = () => {
 	useEffect(() => {
 		setCurrentSlug(slug);
 
-		// Reiniciar target, type y variante seleccionada
+		// Reiniciar target, type, peso y variante seleccionada
 		setSelectedTarget(null);
 		setSelectedType(null);
 		setSelectedKg(null);
@@ -213,21 +197,23 @@ export const ProductPage = () => {
 							Objetivos disponibles
 						</p>
 
-						{availableTargets && (
-							<div className='flex gap-3'>
-								<select
-									className='border border-gray-300 px-3 py-1'
-									value={selectedTarget || ''}
-									onChange={e => setSelectedTarget(e.target.value)}
-								>
-									{availableTargets.map(target => (
-										<option value={target} key={target}>
-											{target}
-										</option>
-									))}
-								</select>
-							</div>
-						)}
+						<div className='flex gap-3'>
+							{targets.map(item => (
+								<button
+									key={item.target}
+									className={`rounded-full flex justify-center items-center ${
+										selectedTarget === item.target
+											? 'border border-slate-800 bg-[#f3f3f3] uppercase font-semibold'
+											: ''
+									}`}
+									onClick={() => {
+										setSelectedTarget(item.target)
+										setAvailableTypes(item.types)
+										setSelectedType(item.types[0].type)
+									}}>{item.target}
+								</button>
+							))}
+						</div>
 					</div>
 
 					{/* OPCIONES DE TIPO */}
@@ -236,19 +222,23 @@ export const ProductPage = () => {
 							Tipos disponibles
 						</p>
 
-						{selectedTarget && (
+						{availableTypes && (
 							<div className='flex gap-3'>
-								<select
-									className='border border-gray-300 px-3 py-1'
-									value={selectedType || ''}
-									onChange={e => setSelectedType(e.target.value)}
-								>
-									{targets[selectedTarget].types.map(type => (
-										<option value={type} key={type}>
-											{type}
-										</option>
-									))}
-								</select>
+								{availableTypes.map(item => (
+									<button
+										key={item.type}
+										className={`rounded-full flex justify-center items-center ${
+											selectedType === item.type
+												? 'border border-slate-800 bg-[#f3f3f3] uppercase font-semibold'
+												: ''
+										}`}
+										onClick={() => {
+											setSelectedType(item.type)
+											setAvailableKgs(item.kgs)
+											setSelectedKg(item.kgs[0])
+										}}>{item.type}
+									</button>
+								))}
 							</div>
 						)}
 					</div>
@@ -259,16 +249,16 @@ export const ProductPage = () => {
 							Pesos disponibles
 						</p>
 
-						{selectedTarget && selectedType && (
+						{availableKgs && (
 							<div className='flex gap-3'>
 								<select
-									className='border border-gray-300 px-3 py-1'
-									value={selectedKg || ''}
-									onChange={e => setSelectedType(e.target.value)}
-								>
-									{targets[selectedTarget].kgs.map(kg => (
-										<option value={kg} key={kg}>
-											{kg}
+									className='border border-gray-300 rounded-lg px-3 py-1'
+									value={selectedKg || availableKgs[0]}
+									onChange={e => setSelectedKg(parseInt(e.target.value))}>
+									{availableKgs.map(kg => (
+										<option
+											value={kg}
+											key={kg}>{kg} kg.
 										</option>
 									))}
 								</select>

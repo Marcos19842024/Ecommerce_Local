@@ -20,8 +20,8 @@ export const prepareProducts = (products: Product[]) => {
 					item => item.target === variant.target
 				);
 
-				// Si ya existe el target, comparamos los precios
 				if (existingTarget) {
+					// Si ya existe el target, comparamos los precios
 					existingTarget.price = Math.min(
 						existingTarget.price,
 						variant.price
@@ -32,9 +32,9 @@ export const prepareProducts = (products: Product[]) => {
 						target: variant.target,
 						type: variant.type,
 						kg: variant.kg,
-						price: variant.price,
+						price: variant.price
 					});
-				};
+				}
 				
 				return acc;
 			},
@@ -48,7 +48,7 @@ export const prepareProducts = (products: Product[]) => {
 		return {
 			...product,
 			price,
-			targets: targets.map(({ target, type, kg, price }) => ({ target, type, kg, price })),
+			targets: targets.map(({ target, type, kg }) => ({ target, type, kg })),
 			variants: product.variants,
 		};
 	});

@@ -8,6 +8,16 @@ export interface Target {
 	price: number;
 }
 
+export interface Type {
+	type: string;
+	kgs: Kg[];
+}
+
+export interface Kg {
+	kg: number;
+	price: number;
+}
+
 export interface VariantProduct {
 	id: string;
 	stock: number;
@@ -39,6 +49,8 @@ export interface PreparedProducts {
 	price: number;
 	targets: {
 		target: string;
+		type: string;
+		kg: number;
 	}[];
 	variants: VariantProduct[];
 }
