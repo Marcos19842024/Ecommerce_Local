@@ -24,22 +24,21 @@ export const Sidebar = () => {
 									? 'text-white bg-cyan-600'
 									: 'hover:text-white hover:bg-cyan-600'
 							} lg:pl-5 lg:justify-start`
-						}
-					>
+						}>
 						{link.icon}
-						<p className='font-semibold hidden lg:block'>
-							{link.title}
-						</p>
+						<p className='font-semibold hidden lg:block'>{link.title}</p>
 					</NavLink>
 				))}
 			</nav>
 
 			<button
 				className='bg-red-500 w-full py-[10px] rounded-md flex items-center justify-center gap-2 font-semibold text-sm hover:underline'
-				onClick={handleLogout}
-			>
+				onClick={handleLogout}>
 				<span className='hidden lg:block'>Cerrar sesión</span>
-				<IoLogOutOutline size={20} className='inline-block' />
+				<IoLogOutOutline
+					size={20}
+					className='inline-block'
+				/>
 			</button>
 		</div>
 	);

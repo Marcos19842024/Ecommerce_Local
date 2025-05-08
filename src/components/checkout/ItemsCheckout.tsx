@@ -11,8 +11,7 @@ export const ItemsCheckout = () => {
 				{cartItems.map(item => (
 					<li
 						key={item.variantId}
-						className='flex justify-between items-center gap-5'
-					>
+						className='flex justify-between items-center gap-5'>
 						<div className='flex relative border border-stone-300 bg-stone-200 rounded-md'>
 							<img
 								src={item.image}

@@ -10,7 +10,6 @@ export const DashboardOrdersPage = () => {
 	return (
 		<div className='space-y-5'>
 			<h1 className='text-2xl font-bold'>Órdenes</h1>
-
 			<TableOrdersAdmin orders={data} />
 		</div>
 	);

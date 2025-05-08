@@ -41,11 +41,8 @@ export const ProductsPage = () => {
 									<CardProduct
 										key={product.id}
 										name={product.name}
-										price={product.price}
-										targets={product.targets}
 										img={product.images[0]}
 										slug={product.slug}
-										variants={product.variants}
 									/>
 								))}
 							</div>

@@ -4,7 +4,6 @@ import { AddressFormValues } from '../../lib/validators';
 interface Props {
 	register: UseFormRegister<AddressFormValues>;
 	errors: FieldErrors<AddressFormValues>;
-
 	name: keyof AddressFormValues;
 	className?: string;
 	placeholder: string;
@@ -22,8 +21,7 @@ export const InputAddress = ({
 			<div
 				className={`border border-slate-200 rounded-md overflow-hidden py-2 ${
 					errors[name] && 'border-red-500'
-				} ${className}`}
-			>
+				} ${className}`}>
 				<input
 					type='text'
 					className='w-full px-3 py-1 text-sm focus:outline-none'

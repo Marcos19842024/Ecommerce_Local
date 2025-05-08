@@ -69,8 +69,8 @@ export const CheckoutPage = () => {
 							className='bg-stone-100 w-[50%] sticky top-0 right-0 p-10 hidden md:block'
 							style={{
 								minHeight: 'calc(100vh - 100px)',
-							}}
-						>
+							}}>
+								
 							{/* Elementos del carrito */}
 							<ItemsCheckout />
 						</div>

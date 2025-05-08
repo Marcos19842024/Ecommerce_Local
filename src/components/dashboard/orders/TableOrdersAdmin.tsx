@@ -58,7 +58,7 @@ export const TableOrdersAdmin = ({ orders }: Props) => {
 							</td>
 							<td className='p-4 font-medium tracking-tighter'>
 								<select
-									value={order.status}
+									value={order.status || ''}
 									onClick={e => e.stopPropagation()}
 									className='border border-gray-300 p-2 rounded'
 									onChange={e =>

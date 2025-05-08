@@ -227,7 +227,6 @@ export const ProductPage = () => {
 							<div className='flex gap-3'>
 								<select
 									className='border border-gray-300 rounded-lg px-3 py-1'
-									defaultValue={selectedType || ''}
 									value={selectedType || ''}
 									onChange={e => {
 										setSelectedType(e.target.value)
@@ -259,7 +258,6 @@ export const ProductPage = () => {
 							<div className='flex gap-3'>
 								<select
 									className='border border-gray-300 rounded-lg px-3 py-1'
-									defaultValue={selectedKg || ''}
 									value={selectedKg || ''}
 									onChange={e => setSelectedKg(parseInt(e.target.value))}>
 									{availableKgs.map(kg => (

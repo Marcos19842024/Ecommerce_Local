@@ -17,13 +17,13 @@ export interface OrderInput {
 export interface OrderItemSingle {
 	created_at: string;
 	id: number;
-	status: string;
+	status: string | null;
 	total_amount: number;
 }
 
 export interface OrderWithCustomer {
 	id: number;
-	status: string;
+	status: string | null;
 	total_amount: number;
 	created_at: string;
 	customers: {

@@ -27,20 +27,26 @@ export const ThankyouPage = () => {
 	if (isLoading || !data || isLoadingSession) return <Loader />;
 
 	return (
-		<div className='flex flex-col h-screen'>
-			<header className='text-black flex items-center justify-center flex-col px-10 py-12'>
+		<div
+			className='flex flex-col h-screen'>
+			<header
+				className='text-black flex items-center justify-center flex-col px-10 py-12'>
 				<Link
 					to='/'
-					className='text-4xl font-bold self-center tracking-tighter transition-all md:text-5xl'
-				>
+					className='text-4xl font-bold self-center tracking-tighter transition-all md:text-5xl'>
 					<p>
-						<img src='/img/Baalak-logo-banner.png' alt='Baalak'/>
+						<img
+							src='/img/Baalak-logo-banner.png'
+							alt='Baalak'
+						/>
 					</p>
 				</Link>
 			</header>
 
-			<main className='container flex-1 flex flex-col items-center gap-10'>
-				<div className='flex gap-3 items-center'>
+			<main
+				className='container flex-1 flex flex-col items-center gap-10'>
+				<div
+					className='flex gap-3 items-center'>
 					<CiCircleCheck size={40} />
 
 					<p className='text-4xl'>
@@ -51,14 +57,12 @@ export const ThankyouPage = () => {
 				<div className='border border-slate-200 w-full md:w-[600px] p-5 rounded-md space-y-3'>
 					<h3 className='font-medium'>Tu pedido está confirmado</h3>
 
-					<p className='text-sm'>
-						Gracias por realizar tu compra en Baalak'. Para
-						realizar la transferencia te compartimos los siguientes
-						datos
-					</p>
+					<p className='text-sm'>Gracias por realizar tu compra en Baalak'.</p>
+
+					<p className='text-sm'>Para realizar la transferencia te compartimos los siguientes	datos</p>
 
 					<div className='space-y-0.5 text-sm'>
-					<p>Banco Santander</p>
+						<p>Banco Santander</p>
 						<p>Razón Social: Francisco Julián Gómez Cancino</p>
 						<p>RFC: GOCF630405PW0</p>
 						<p>Tipo de cuenta: Corriente</p>
@@ -67,7 +71,7 @@ export const ThankyouPage = () => {
 
 					<p className='text-sm'>
 						Una vez realizada la transferencia, comparte tu
-						comprobante con tu numero de pedido por WhatsApp al 9812062582 para procesarla
+						comprobante con tu usuario por WhatsApp al 9812062582 para procesarla
 						y hacerte la entrega de tu producto a domicilio.
 					</p>
 				</div>
@@ -129,7 +133,7 @@ export const ThankyouPage = () => {
 						<div className='flex flex-col text-sm'>
 							<p className='font-semibold'>Métodos de pago:</p>
 							<p>
-								Deposito bancario - {formatPrice(data.totalAmount)}
+								Transferencia - {formatPrice(data.totalAmount)}
 							</p>
 						</div>
 
@@ -158,10 +162,8 @@ export const ThankyouPage = () => {
 					</p>
 
 					<Link
-						to='/celulares'
-						className='text-white bg-black py-4 text-sm rounded-md px-5 tracking-tight font-semibold'
-					>
-						Seguir comprando
+						to='/products'
+						className='text-white bg-black py-4 text-sm rounded-md px-5 tracking-tight font-semibold'>Seguir comprando
 					</Link>
 				</div>
 			</main>

@@ -24,9 +24,7 @@ export const OrdersUserPage = () => {
 					</p>
 					<Link
 						to='/products'
-						className='bg-black text-white uppercase font-semibold tracking-widest text-xs py-4 rounded-full px-8'
-					>
-						Empezar a comprar
+						className='bg-black text-white uppercase font-semibold tracking-widest text-xs py-4 rounded-full px-8'>Empezar a comprar
 					</Link>
 				</>
 			) : (

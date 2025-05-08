@@ -72,27 +72,24 @@ export const TableProduct = () => {
 					<thead className='border-b border-gray-200 pb-3'>
 						<tr className='text-sm font-bold'>
 							{tableHeaders.map((header, index) => (
-								<th key={index} className='h-12 px-4 text-left'>
-									{header}
+								<th
+									key={index}
+									className='h-12 px-4 text-left'>{header}
 								</th>
 							))}
 						</tr>
 					</thead>
 					<tbody>
 						{products.map((product, index) => {
-							const selectedVariantIndex =
-								selectedVariants[product.id] ?? 0;
-							const selectedVariant =
-								product.variants[selectedVariantIndex] || {};
+							const selectedVariantIndex = selectedVariants[product.id] ?? 0;
+							const selectedVariant =	product.variants[selectedVariantIndex] || {};
 
 							return (
 								<tr key={index}>
-									<td className='p-4 align-middle sm:table-cell'>
+									<td
+										className='p-4 align-middle sm:table-cell'>
 										<img
-											src={
-												product.images[0] ||
-												'https://ui.shadcn.com/placeholder.svg'
-											}
+											src={product.images[0] || 'https://ui.shadcn.com/placeholder.svg'}
 											alt='Imagen Product'
 											loading='lazy'
 											decoding='async'
@@ -100,7 +97,8 @@ export const TableProduct = () => {
 										/>
 									</td>
 									<CellTableProduct content={product.name} />
-									<td className='p-4 font-medium tracking-tighter'>
+									<td
+										className='p-4 font-medium tracking-tighter'>
 										<select
 											className='border border-gray-300 rounded-md p-1 w-full'
 											onChange={e =>
@@ -109,15 +107,12 @@ export const TableProduct = () => {
 													Number(e.target.value)
 												)
 											}
-											value={selectedVariantIndex}
-										>
+											value={selectedVariantIndex}>
 											{product.variants.map(
 												(variant, variantIndex) => (
 													<option
 														key={variant.id}
-														value={variantIndex}
-													>
-														{variant.target} - {variant.type} - {variant.kg} kg.
+														value={variantIndex}>{variant.target} - {variant.type} - {variant.kg} kg.
 													</option>
 												)
 											)}
@@ -132,23 +127,20 @@ export const TableProduct = () => {
 									<CellTableProduct
 										content={formatDate(product.created_at)}
 									/>
-									<td className='relative'>
+									<td
+										className='relative'>
 										<button
 											className='text-slate-900'
-											onClick={() => handleMenuToggle(index)}
-										>
+											onClick={() => handleMenuToggle(index)}>
 											<FaEllipsis />
 										</button>
 										{openMenuIndex === index && (
 											<div
 												className='absolute right-0 mt-2 bg-white border border-gray-200 rounded-md shadow-xl z-10 w-[120px]'
-												role='menu'
-											>
+												role='menu'>
 												<Link
 													to={`/dashboard/productos/editar/${product.slug}`}
-													className='flex items-center gap-1 w-full text-left px-4 py-2 text-xs font-medium text-gray-700 hover:bg-gray-100'
-												>
-													Editar
+													className='flex items-center gap-1 w-full text-left px-4 py-2 text-xs font-medium text-gray-700 hover:bg-gray-100'>Editar
 													<HiOutlineExternalLink
 														size={13}
 														className='inline-block'
@@ -158,9 +150,7 @@ export const TableProduct = () => {
 													className='block w-full text-left px-4 py-2 text-xs font-medium text-gray-700 hover:bg-gray-100'
 													onClick={() =>
 														handleDeleteProduct(product.id)
-													}
-												>
-													Eliminar
+													}>Eliminar
 												</button>
 											</div>
 										)}
