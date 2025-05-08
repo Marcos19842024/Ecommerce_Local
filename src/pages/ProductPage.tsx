@@ -100,7 +100,6 @@ export const ProductPage = () => {
 			);
 
 			setSelectedVariant(variant as VariantProduct);
-			console.log(selectedVariant)
 		}
 	}, [selectedTarget, selectedType, selectedKg, product?.variants]);
 
@@ -210,6 +209,8 @@ export const ProductPage = () => {
 										setSelectedTarget(item.target)
 										setAvailableTypes(item.types)
 										setSelectedType(item.types[0].type)
+										setAvailableKgs(item.types[0].kgs)
+										setSelectedKg(item.types[0].kgs[0])
 									}}>{item.target}
 								</button>
 							))}
@@ -224,21 +225,26 @@ export const ProductPage = () => {
 
 						{availableTypes && (
 							<div className='flex gap-3'>
-								{availableTypes.map(item => (
-									<button
-										key={item.type}
-										className={`rounded-full flex justify-center items-center ${
-											selectedType === item.type
-												? 'border border-slate-800 bg-[#f3f3f3] uppercase font-semibold'
-												: ''
-										}`}
-										onClick={() => {
-											setSelectedType(item.type)
-											setAvailableKgs(item.kgs)
-											setSelectedKg(item.kgs[0])
-										}}>{item.type}
-									</button>
-								))}
+								<select
+									className='border border-gray-300 rounded-lg px-3 py-1'
+									defaultValue={selectedType || ''}
+									value={selectedType || ''}
+									onChange={e => {
+										setSelectedType(e.target.value)
+										availableTypes.find(item => {
+											if (item.type === e.target.value) {
+												setAvailableKgs(item.kgs)
+												setSelectedKg(item.kgs[0])
+											}
+										})
+									}}>
+									{availableTypes.map(item => (
+										<option
+											value={item.type}
+											key={item.type}>{item.type}
+										</option>
+									))}
+								</select>
 							</div>
 						)}
 					</div>
@@ -253,7 +259,8 @@ export const ProductPage = () => {
 							<div className='flex gap-3'>
 								<select
 									className='border border-gray-300 rounded-lg px-3 py-1'
-									value={selectedKg || availableKgs[0]}
+									defaultValue={selectedKg || ''}
+									value={selectedKg || ''}
 									onChange={e => setSelectedKg(parseInt(e.target.value))}>
 									{availableKgs.map(kg => (
 										<option
@@ -318,6 +325,9 @@ export const ProductPage = () => {
 									¿Necesitas ayuda?
 								</span>
 								Contáctanos aquí
+								<span className='text-cyan-600 font-semibold'>
+									9812062582
+								</span>
 							</p>
 						</Link>
 					</div>
