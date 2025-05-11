@@ -71,7 +71,7 @@ export const ThankyouPage = () => {
 
 					<p className='text-sm'>
 						Una vez realizada la transferencia, comparte tu
-						comprobante con tu usuario por WhatsApp al 9812062582 para procesarla
+						comprobante con tu número de pedido por WhatsApp al 9812062582 para procesarla
 						y hacerte la entrega de tu producto a domicilio.
 					</p>
 				</div>
@@ -79,7 +79,7 @@ export const ThankyouPage = () => {
 				<div className='border border-slate-200 w-full p-5 rounded-md space-y-3 md:w-[600px]'>
 					<h3 className='font-medium'>Detalles del pedido</h3>
 
-					<div className='flex flex-col gap-5'>
+					<div className='flex flex-col gap-5'>Pedido #{id} 
 						<ul className='space-y-3'>
 							{data.orderItems.map((item, index) => (
 								<li
