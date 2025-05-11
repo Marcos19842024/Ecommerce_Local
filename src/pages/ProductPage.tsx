@@ -89,6 +89,14 @@ export const ProductPage = () => {
 		)
 	}, [product?.variants]);
 
+	// Obtener el primer target predeterminado si no se ha seleccionado ninguno
+	useEffect(() => {
+		if (!selectedTarget && targets.length > 0) {
+			setSelectedTarget(targets[0].target);
+			document.getElementById(targets[0].target)?.click()
+		}
+	}, [selectedTarget, targets]);
+
 	// Obtener la variante seleccionada
 	useEffect(() => {
 		if (selectedTarget && selectedType && selectedKg) {
@@ -199,6 +207,7 @@ export const ProductPage = () => {
 						<div className='flex gap-3'>
 							{targets.map(item => (
 								<button
+									id={item.target}
 									key={item.target}
 									className={`rounded-full flex justify-center items-center ${
 										selectedTarget === item.target

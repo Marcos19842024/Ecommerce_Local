@@ -3,7 +3,8 @@ import { socialLinks } from '../../constants/links';
 
 export const Footer = () => {
 	return (
-		<footer className='py-4 bg-gray-950 px-2 flex justify-between gap-8 text-slate-200 text-sm flex-wrap mt-5 md:flex-nowrap'>
+		<footer
+			className='py-4 bg-gray-950 px-2 flex justify-between gap-8 text-slate-200 text-sm flex-wrap mt-5 md:flex-nowrap'>
 			<Link
 				to='/'
 				className={`tracking-tighter flex-5`}>

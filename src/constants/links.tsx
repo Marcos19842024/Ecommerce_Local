@@ -27,14 +27,14 @@ export const socialLinks = [
 		icon: <FaFacebookF />,
 	},
 	{
-		id: 3,
+		id: 2,
 		title: 'Instagram',
 		href: 'https://www.instagram.com',
 		icon: <FaInstagram />,
 	},
 	{
 		id: 3,
-		title: 'Instagram',
+		title: 'WhatsApp',
 		href: 'https://api.whatsapp.com/',
 		icon: <FaWhatsapp />,
 	},
