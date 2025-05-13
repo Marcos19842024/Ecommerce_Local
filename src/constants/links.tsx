@@ -23,7 +23,7 @@ export const socialLinks = [
 	{
 		id: 1,
 		title: 'Facebook',
-		href: 'https://www.facebook.com',
+		href: 'https://www.facebook.com/baalak.cv',
 		icon: <FaFacebookF />,
 	},
 	{
@@ -35,7 +35,7 @@ export const socialLinks = [
 	{
 		id: 3,
 		title: 'WhatsApp',
-		href: 'https://api.whatsapp.com/',
+		href: 'https://wa.me/message/E7HDZJLVTRDML1',
 		icon: <FaWhatsapp />,
 	},
 ];
