@@ -29,7 +29,7 @@ export const socialLinks = [
 	{
 		id: 2,
 		title: 'Instagram',
-		href: 'https://www.instagram.com',
+		href: 'https://www.instagram.com/baalak.cv',
 		icon: <FaInstagram />,
 	},
 	{
