@@ -37,7 +37,7 @@ input[type=number]{
     width: 100%;
     min-height: 100vh;
     height: max-content;
-    background-color: rgba(0, 0, 0, 0.30);
+    background-color: rgba(0, 0, 0, 0.75);
     display: none;
     justify-content: center;
     align-items: center;

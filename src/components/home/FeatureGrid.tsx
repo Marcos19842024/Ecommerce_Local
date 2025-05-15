@@ -2,31 +2,30 @@ import { RxScissors  } from 'react-icons/rx';
 import { ImLab  } from 'react-icons/im';
 import { TfiPulse  } from 'react-icons/tfi';
 import { MdLocalShipping, MdHotel } from 'react-icons/md';
-import { ServicesPage } from '../../pages';
+import { AestheticsPage, DayCarePage, LabPage, MedicalPage, TransportPage } from '../../pages';
 import { useState } from 'react';
 import Modal from '../modal/Modal';
 
 export const FeatureGrid = () => {
 	const [isOpenTransport, setIsOpenTransport] = useState(false);
-	const [isOpenMedical, setIsOpenMedical] = useState(false);
-	const [isOpenLab, setIsOpenLab] = useState(false);
-	const [isOpenEstetica, setIsOpenEstetica] = useState(false);
-	const [isOpenPension, setIsOpenPension] = useState(false);
-
 	const openModalTransport = () => setIsOpenTransport(true);
 	const closeModalTransport = () => setIsOpenTransport(false);
 
+	const [isOpenMedical, setIsOpenMedical] = useState(false);
 	const openModalMedical = () => setIsOpenMedical(true);
 	const closeModalMedical = () => setIsOpenMedical(false);
 
+	const [isOpenLab, setIsOpenLab] = useState(false);
 	const openModalLab = () => setIsOpenLab(true);
 	const closeModalLab = () => setIsOpenLab(false);
 
-	const openModalEstetica = () => setIsOpenEstetica(true);
-	const closeModalEstetica = () => setIsOpenEstetica(false);
+	const [isOpenAesthetics, setIsOpenAesthetics] = useState(false);
+	const openModalAesthetics = () => setIsOpenAesthetics(true);
+	const closeModalAesthetics = () => setIsOpenAesthetics(false);
 
-	const openModalPension = () => setIsOpenPension(true);
-	const closeModalPension = () => setIsOpenPension(false);
+	const [isOpenDayCare, setIsOpenDayCare] = useState(false);
+	const openModalDayCare = () => setIsOpenDayCare(true);
+	const closeModalDayCare = () => setIsOpenDayCare(false);
 
 	return (
 		<div className='grid grid-cols-2 gap-8 mt-6 mb-16 lg:grid-cols-5 lg:gap-5'>
@@ -49,7 +48,7 @@ export const FeatureGrid = () => {
 				<Modal
 					isOpen={isOpenTransport}
 					closeModal={closeModalTransport}>
-					<ServicesPage service={'Servicio de transporte'}/>
+					<TransportPage/>
 				</Modal>
 			</div>
 
@@ -71,7 +70,7 @@ export const FeatureGrid = () => {
 				<Modal
 					isOpen={isOpenMedical}
 					closeModal={closeModalMedical}>
-					<ServicesPage service={'Servicio Médico'}/>
+					<MedicalPage/>
 				</Modal>
 			</div>
 
@@ -93,7 +92,7 @@ export const FeatureGrid = () => {
 				<Modal
 					isOpen={isOpenLab}
 					closeModal={closeModalLab}>
-					<ServicesPage service={'Laboratorio'}/>
+					<LabPage/>
 				</Modal>
 			</div>
 
@@ -110,12 +109,12 @@ export const FeatureGrid = () => {
 				</div>
 				<button
 					className='bg-white border border-slate-200 absolute w-full bottom-0 py-3 rounded-3xl flex items-center justify-center gap-1 text-sm font-medium hover:bg-stone-100 translate-y-[100%] transition-all duration-300 group-hover:translate-y-0'
-					onClick={openModalEstetica}>Más información
+					onClick={openModalAesthetics}>Más información
 				</button>
 				<Modal
-					isOpen={isOpenEstetica}
-					closeModal={closeModalEstetica}>
-					<ServicesPage service={'Estética'}/>
+					isOpen={isOpenAesthetics}
+					closeModal={closeModalAesthetics}>
+					<AestheticsPage/>
 				</Modal>
 			</div>
 
@@ -132,12 +131,12 @@ export const FeatureGrid = () => {
 				</div>
 				<button
 					className='bg-white border border-slate-200 absolute w-full bottom-0 py-3 rounded-3xl flex items-center justify-center gap-1 text-sm font-medium hover:bg-stone-100 translate-y-[100%] transition-all duration-300 group-hover:translate-y-0'
-					onClick={openModalPension}>Más información
+					onClick={openModalDayCare}>Más información
 				</button>
 				<Modal
-					isOpen={isOpenPension}
-					closeModal={closeModalPension}>
-					<ServicesPage service={'Pensión'}/>
+					isOpen={isOpenDayCare}
+					closeModal={closeModalDayCare}>
+					<DayCarePage/>
 				</Modal>
 			</div>
 		</div>

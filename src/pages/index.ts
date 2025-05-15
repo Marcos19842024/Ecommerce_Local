@@ -8,7 +8,15 @@ export * from './OrdersUserPage';
 export * from './CheckoutPage';
 export * from './ThankyouPage';
 export * from './OrderUserPage';
-export * from './ServicesPage';
+
+/* ********************************** */
+/*           SERVICES PAGES          */
+/* ********************************** */
+export * from './services/TransportPage';
+export * from './services/MedicalPage';
+export * from './services/LabPage';
+export * from './services/AestheticsPage';
+export * from './services/DayCarePage';
 
 /* ********************************** */
 /*           DASHBOARD PAGES          */
