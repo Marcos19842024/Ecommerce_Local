@@ -8,7 +8,7 @@ export * from './OrdersUserPage';
 export * from './CheckoutPage';
 export * from './ThankyouPage';
 export * from './OrderUserPage';
-export * from './PrivacyPoliciesPage';
+export * from './PrivacyNoticePage';
 export * from './TermsPage';
 
 /* ********************************** */

@@ -19,8 +19,8 @@ import {
 	DashboardOrdersPage,
 	DashboardOrderPage,
 	TermsPage,
+	PrivacyNoticePage,
 } from '../pages';
-import { PrivacyPoliciesPage } from '../pages/PrivacyPoliciesPage';
 
 export const router = createBrowserRouter([
 	{
@@ -44,11 +44,11 @@ export const router = createBrowserRouter([
 				element: <AboutPage />,
 			},
 			{
-				path: 'políticas de privacidad',
-				element: <PrivacyPoliciesPage />,
+				path: 'aviso-de-privacidad',
+				element: <PrivacyNoticePage />,
 			},
 			{
-				path: 'terminos de uso',
+				path: 'terminos-de-uso',
 				element: <TermsPage />,
 			},
 			{
