@@ -18,7 +18,9 @@ import {
 	DashboardProductSlugPage,
 	DashboardOrdersPage,
 	DashboardOrderPage,
+	TermsPage,
 } from '../pages';
+import { PrivacyPoliciesPage } from '../pages/PrivacyPoliciesPage';
 
 export const router = createBrowserRouter([
 	{
@@ -40,6 +42,14 @@ export const router = createBrowserRouter([
 			{
 				path: 'nosotros',
 				element: <AboutPage />,
+			},
+			{
+				path: 'políticas de privacidad',
+				element: <PrivacyPoliciesPage />,
+			},
+			{
+				path: 'terminos de uso',
+				element: <TermsPage />,
 			},
 			{
 				path: 'login',

@@ -56,12 +56,12 @@ export const Footer = () => {
 				</p>
 				<nav className='flex flex-col gap-2 text-xs font-medium'>
 					<Link
-						to='#'
+						to='/políticas de privacidad'
 						className='text-slate-300 hover:text-white'>
 						Políticas de privacidad
 					</Link>
 					<Link
-						to='#'
+						to='/terminos de uso'
 						className='text-slate-300 hover:text-white'>
 						Términos de uso
 					</Link>
