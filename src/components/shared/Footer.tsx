@@ -56,12 +56,12 @@ export const Footer = () => {
 				</p>
 				<nav className='flex flex-col gap-2 text-xs font-medium'>
 					<Link
-						to='/aviso-de-privacidad'
+						to='/aviso_de_privacidad'
 						className='text-slate-300 hover:text-white'>
 						Políticas de privacidad
 					</Link>
 					<Link
-						to='/terminos-de-uso'
+						to='/terminos-y-condiciones'
 						className='text-slate-300 hover:text-white'>
 						Términos de uso
 					</Link>

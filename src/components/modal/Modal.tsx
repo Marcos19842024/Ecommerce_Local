@@ -1,4 +1,3 @@
-import "../../index.css";
 // This component is a modal that can be used to display content in a popup.
 
 import { ReactNode, MouseEvent } from "react";

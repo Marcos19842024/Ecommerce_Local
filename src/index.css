@@ -41,9 +41,9 @@ input[type=number]{
     display: none;
     justify-content: center;
     align-items: center;
-  }
+}
 
-  .modal-container {
+.modal-container {
     position: relative;
     padding: 1rem;
     height: 500px;
@@ -51,16 +51,50 @@ input[type=number]{
     overflow-y: auto;
     background-color: #ffffff;
     border-radius: 0.75rem;
-  }
-  
-  .modal-close {
+}
+
+.modal-close {
     position: absolute;
     top: 0.5rem;
     right: 0.5rem;
     background-color:"red";
     color:"white";
-  }
-  
-  .modal.is-open {
+}
+
+.modal.is-open {
     display: flex;
-  }
+}
+
+.container {
+	padding: 20px;
+	max-width: 800px;
+	margin: 0 auto;
+	font-family: Arial, sans-serif;
+}
+
+.typeh1 {
+	font-size: 2em;
+	color: #333;
+}
+
+.typeh2 {
+	font-size: 1.5em;
+	margin-top: 20px;
+}
+
+.typeul {
+	list-style-type: disc;
+	margin-left: 20px;
+}
+
+.typep {
+	font-size: 1em;
+	line-height: 1.6;
+	color: #555;
+}
+
+.typespan {
+	font-size: "16px";
+	line-height: "1.5";
+	margin-bottom: "10px";
+}

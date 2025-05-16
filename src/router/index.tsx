@@ -44,11 +44,11 @@ export const router = createBrowserRouter([
 				element: <AboutPage />,
 			},
 			{
-				path: 'aviso-de-privacidad',
+				path: 'aviso_de_privacidad',
 				element: <PrivacyNoticePage />,
 			},
 			{
-				path: 'terminos-de-uso',
+				path: 'terminos-y-condiciones',
 				element: <TermsPage />,
 			},
 			{
