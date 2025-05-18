@@ -3,7 +3,7 @@ export const MedicalPage = () => {
         <div className='relative bg-gray-900 text-white'>
             {/* IMAGEN DE FONDO */}
 			<div
-				className='absolute inset-0 bg-cover bg-center opacity-70 h-full'
+				className='absolute inset-0 bg-cover bg-center opacity-50 h-full'
 				style={{ backgroundImage: 'url(/img/background-banner.png)' }}
 			/>
 
