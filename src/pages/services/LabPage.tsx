@@ -33,6 +33,21 @@ export const LabPage = () => {
                         https://al.idexx.com/es-xl/
                     </a>
                 </p>
+                <h1 className='text-1xl font-bold mb-4 lg:text-2xl'>
+                    Radiografia Digital
+                </h1>
+                <p className='text-lg mb-8 lg:text-2xl'>
+                    La calidad en las radiografías es un factor determinante para obtener diagnósticos acertados,
+                    en Baalak´ contamos con un equipo digital que logra imágenes de alta calidad, de manera instantánea,
+                    con menos radiación y sin generar residuos tóxicos o contaminantes.
+                </p>
+                <h1 className='text-1xl font-bold mb-4 lg:text-2xl'>
+                    Terapia Láser
+                </h1>
+                <p className='text-lg mb-8 lg:text-2xl'>
+                    El láser terapéutico ayuda a aliviar dolores, a recuperarse mas rápido de heridas, cirugías, infecciones, etc.
+                    Es una herramienta muy efectiva de rehabilitación, amigable y placentera para los pacientes.
+                </p>
             </div>
             <div className='relative z-10 flex flex-col items-center justify-center py-1 px-2 text-center lg:py-1 lg:px-4'>
                 <button
