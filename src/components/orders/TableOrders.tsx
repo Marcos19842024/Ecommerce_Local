@@ -42,7 +42,7 @@ export const TableOrders = ({ orders }: Props) => {
 								{formatDateLong(order.created_at)}
 							</td>
 							<td className='p-4 font-medium tracking-tighter'>
-								{getStatus(order.status)}
+								{getStatus(order.status ?? '')}
 							</td>
 							<td className='p-4 font-medium tracking-tighter'>
 								{formatPrice(order.total_amount)}
