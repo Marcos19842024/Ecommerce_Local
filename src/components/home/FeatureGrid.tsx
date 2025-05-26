@@ -58,7 +58,7 @@ export const FeatureGrid = () => {
 					size={40}
 				/>
 				<div className='space-y-1'>
-					<p className='font-semibold'>Servicio Médico</p>
+					<p className='font-semibold'>Servicio médico</p>
 					<p className='text-sm'>
 						Consulta, medicina preventiva, cirugía y hospitalización.
 					</p>
