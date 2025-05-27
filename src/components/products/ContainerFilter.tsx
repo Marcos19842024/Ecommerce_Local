@@ -6,8 +6,6 @@ const availableBrands = [
 	'Proplan',
 	'Hills',
 	'Excellent',
-	'Bayer',
-	'Otras'
 ];
 
 interface Props {

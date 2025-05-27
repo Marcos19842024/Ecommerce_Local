@@ -48,7 +48,7 @@ export const router = createBrowserRouter([
 				element: <PrivacyNoticePage />,
 			},
 			{
-				path: 'terminos-y-condiciones',
+				path: 'terminos_y_condiciones',
 				element: <TermsPage />,
 			},
 			{

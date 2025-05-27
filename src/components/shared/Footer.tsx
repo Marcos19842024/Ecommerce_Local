@@ -61,9 +61,9 @@ export const Footer = () => {
 						Políticas de privacidad
 					</Link>
 					<Link
-						to='/terminos-y-condiciones'
+						to='/terminos_y_condiciones'
 						className='text-slate-300 hover:text-white'>
-						Términos de uso
+						Términos y condiciones
 					</Link>
 				</nav>
 			</div>
@@ -72,7 +72,6 @@ export const Footer = () => {
 				<p className='font-semibold uppercase tracking-tighter'>
 					Síguenos en nuestras redes sociales
 				</p>
-
 				<div className='flex'>
 					{socialLinks.map(link => (
 						<a
