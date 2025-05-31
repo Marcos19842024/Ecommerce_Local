@@ -1,7 +1,13 @@
 import { Link } from 'react-router-dom';
 import { socialLinks } from '../../constants/links';
+import Modal from '../modal/Modal';
+import { useState } from 'react';
 
 export const Footer = () => {
+	const [isOpenMap, setIsOpenMap] = useState(false);
+	const openModalMap= () => setIsOpenMap(true);
+	const closeModalMap = () => setIsOpenMap(false);
+
 	return (
 		<footer
 			className='py-4 bg-gray-950 px-2 flex justify-between gap-8 text-slate-200 text-sm flex-wrap mt-5 md:flex-nowrap'>
@@ -27,9 +33,26 @@ export const Footer = () => {
 					Ubicación
 				</p>
 				<nav className='flex flex-col gap-2 text-xs font-medium'>
-					<span className='text-slate-300 hover:text-white'>
-						Av. Central #33, Barrio de Santa Ana, 24050, San Francisco de Campeche, Campeche, México.
-					</span>
+					<div className='flex relative group overflow-hidden items-center gap-6'>
+						<span className='text-slate-300 hover:text-white'>
+							Av. Central #33, Barrio de Santa Ana, 24050, San Francisco de Campeche, Campeche, México.
+						</span>
+						<button
+							className='bg-white text-black border border-slate-200 absolute w-full bottom-0 py-3 rounded-3xl flex items-center justify-center gap-1 text-sm font-medium hover:bg-stone-100 translate-y-[100%] transition-all duration-300 group-hover:translate-y-0'
+							onClick={openModalMap}>Ver Ubicación en el mapa
+						</button>
+						<Modal
+							isOpen={isOpenMap}
+							closeModal={closeModalMap}>
+							<iframe
+								src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3181.4274111452305!2d-90.53723282564627!3d19.83129032782944!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x85f833e7e7ee3b57%3A0x890db96f7ed2ac60!2sBaalak&#39;%20Clinica%20Veterinaria!5e1!3m2!1ses-419!2smx!4v1748715086040!5m2!1ses-419!2smx"
+								width="100%"
+								height="100%"
+								loading="lazy"
+								referrerPolicy="no-referrer-when-downgrade">
+							</iframe>
+						</Modal>
+					</div>
 				</nav>
 			</div>
 
