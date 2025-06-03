@@ -30,7 +30,7 @@ export const Brands = () => {
 				Tenemos lo mejor en productos para el cuidado de tus mascotas.
 			</p>
 
-			<div className='grid grid-cols-3 gap-5 mt-8 items-center md:grid-cols-5'>
+			<div className='grid grid-cols-3 gap-5 mt-8 items-center md:grid-cols-2'>
 				{brands.map((brand, index) => (
 					<div key={index}>
 						<img src={brand.image} alt={brand.alt} />
