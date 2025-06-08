@@ -62,8 +62,7 @@ export const productSchema = z.object({
 	name: z.string().min(1, 'El nombre del producto es obligatorio'),
 	brand: z.string().min(1, 'La marca del producto es obligatoria'),
 	slug: z
-		.string()
-		.min(1, 'El slug del producto es obligatorio')
+		.string().min(1, 'El slug del producto es obligatorio')
 		.regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug inválido'),
 	description: z.custom<JSONContent>(
 		value => !isContentEmpty(value),

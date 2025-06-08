@@ -1,4 +1,4 @@
-import { Link, NavLink } from 'react-router-dom';
+import { Link, NavLink, Outlet } from 'react-router-dom';
 import { navbarLinks } from '../../constants/links';
 import { HiOutlineSearch, HiOutlineShoppingBag, HiOutlineUser } from 'react-icons/hi';
 import { FaBarsStaggered } from 'react-icons/fa6';
@@ -57,7 +57,7 @@ export const Navbar = () => {
 					<div className='relative'>
 						{/* User Nav */}
 						<Link
-							to= {role === 'admin'? '/dashboard/productos' : '/account'}
+							to= {role === 'admin'? '/dashboard' : '/account'}
 							className='border-2 border-slate-700 w-9 h-9 rounded-full grid place-items-center text-lg font-bold'
 						>
 							{customer && customer.full_name[0]}

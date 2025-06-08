@@ -1,7 +1,6 @@
-import { NavLink } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import { dashboardLinks } from '../../constants/links';
-import { Logo } from '../shared/Logo';
-import { IoLogOutOutline } from 'react-icons/io5';
+import { IoChevronBack, IoLogOutOutline } from 'react-icons/io5';
 import { signOut } from '../../actions';
 
 export const Sidebar = () => {
@@ -11,7 +10,14 @@ export const Sidebar = () => {
 
 	return (
 		<div className='w-[100px] bg-stone-800 text-white flex flex-col gap-10 items-center p-5 fixed h-screen lg:w-[200px]'>
-			<Logo isDashboard/>
+			<Link
+				className='w-full'
+				to='/'>
+				<button
+					className='border w-full rounded-md py-2 border-slate-200 px-5 flex items-center justify-center gap-2 text-xs font-medium uppercase tracking-widest hover:bg-cyan-600 transition-all'>
+					<IoChevronBack size={20} />Volver
+				</button>
+			</Link>
 
 			<nav className='w-full space-y-5 flex-1'>
 				{dashboardLinks.map(link => (

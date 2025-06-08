@@ -111,8 +111,7 @@ export const Editor = ({
 		},
 		editorProps: {
 			attributes: {
-				class:
-					'focus:outline-none min-h-[150px] prose prose-sm sm:prose-base',
+				class: 'focus:outline-none min-h-[150px] prose prose-sm sm:prose-base',
 			},
 		},
 	});

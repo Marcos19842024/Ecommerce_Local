@@ -107,6 +107,7 @@ export const VariantsInput = ({
 								{...register(`variants.${index}.kg`, {
 									valueAsNumber: true,
 								})}
+								step='0.01'
 								className='border rounded-md px-3 py-1.5 text-xs font-semibold placeholder:font-normal focus:outline-none appearance-none'
 							/>
 
