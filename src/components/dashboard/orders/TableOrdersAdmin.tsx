@@ -3,7 +3,7 @@ import { formatDateLong, formatPrice } from '../../../helpers';
 import { OrderWithCustomer } from '../../../interfaces';
 import { useChangeStatusOrder } from '../../../hooks';
 
-const tableHeaders = ['Cliente', 'Fecha', 'Estado', 'Total'];
+const tableHeaders = ['Orden', 'Cliente', 'Fecha', 'Estado', 'Total'];
 
 const statusOptions = [
 	{ value: 'Pending', label: 'Pendiente' },
@@ -47,6 +47,9 @@ export const TableOrdersAdmin = ({ orders }: Props) => {
 								navigate(`/dashboard/ordenes/${order.id}`)
 							}
 						>
+							<td className='p-4 font-medium tracking-tighter'>
+								{order.id}
+							</td>
 							<td className='p-4 font-medium tracking-tighter flex flex-col gap-1'>
 								<span className='font-semibold'>
 									{order.customers?.full_name}

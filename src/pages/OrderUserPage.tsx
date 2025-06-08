@@ -23,7 +23,7 @@ export const OrderUserPage = () => {
 					onClick={() => navigate(-1)}
 				>
 					<IoChevronBack size={16} />
-					Volver a los pedidos
+					Volver
 				</button>
 				<div className='flex flex-col items-center gap-1.5'>
 					<h1 className='text-3xl font-bold'>Pedido #{id}</h1>
@@ -31,8 +31,8 @@ export const OrderUserPage = () => {
 						{formatDateLong(order.created_at)}
 					</p>
 				</div>
-				<div></div>
-				<div></div>
+				<div />
+				<div />
 			</div>
 
 			<div className='flex flex-col mt-10 mb-5 gap-10'>
@@ -96,7 +96,7 @@ export const OrderUserPage = () => {
 
 					<div className='border border-stone-300 p-5 flex flex-col gap-5'>
 						<div className='space-y-1'>
-							<h3 className='font-medium'>Client:</h3>
+							<h3 className='font-medium'>Cliente:</h3>
 							<p>{order.customer.full_name}</p>
 						</div>
 

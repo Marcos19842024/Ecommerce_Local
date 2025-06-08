@@ -13,14 +13,14 @@ export const TermsPage = () => {
                 <p className='text-base leading-loose text-gray-800'>
                     {'Bienvenido a '}
                     <strong>
-                        Baalak' Shop
+                        Baalak'
                     </strong>. Al acceder y utilizar nuestro sitio web, aceptas los siguientes Términos y Condiciones. Te recomendamos leerlos cuidadosamente antes de utilizar nuestros servicios.
                 </p>
                 <h2 className='text-2xl mt-5'>
                     1. Información General
                 </h2>
                 <p className='text-base leading-loose text-gray-800'>
-                    Baalak' Shop es una tienda en línea ubicada en Campeche, México, dedicada a la venta de alimentos y productos relacionados para perros y gatos. Al utilizar nuestro sitio, aceptas cumplir con estos términos conforme a las leyes aplicables en México.
+                    Baalak' es una tienda en línea ubicada en Campeche, México, dedicada a la venta de alimentos y productos relacionados para perros y gatos. Al utilizar nuestro sitio, aceptas cumplir con estos términos conforme a las leyes aplicables en México.
                 </p>
                 <h2 className='text-2xl mt-5'>
                     2. Cuentas de Usuario
@@ -41,7 +41,7 @@ export const TermsPage = () => {
                     4. Pagos
                 </h2>
                 <p className='text-base leading-loose text-gray-800'>
-                    Actualmente, Baalak' Shop no cobra suscripciones ni pagos recurrentes. Los precios están expresados en pesos mexicanos e incluyen impuestos, a menos que se indique lo contrario.
+                    Actualmente, Baalak' no cobra suscripciones ni pagos recurrentes. Los precios están expresados en pesos mexicanos e incluyen impuestos, a menos que se indique lo contrario.
                 </p>
                 <h2 className='text-2xl mt-5'>
                     5. Envíos y Entregas
@@ -65,7 +65,7 @@ export const TermsPage = () => {
                     8. Propiedad Intelectual
                 </h2>
                 <p className='text-base leading-loose text-gray-800'>
-                    Todo el contenido de este sitio (textos, imágenes, logotipos, etc.) es propiedad de Baalak' Shop o se utiliza con permiso. Queda prohibido su uso sin autorización previa por escrito.
+                    Todo el contenido de este sitio (textos, imágenes, logotipos, etc.) es propiedad de Baalak' o se utiliza con permiso. Queda prohibido su uso sin autorización previa por escrito.
                 </p>
                 <h2 className='text-2xl mt-5'>
                     9. Modificaciones

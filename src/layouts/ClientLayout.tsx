@@ -1,16 +1,13 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { signOut } from '../actions';
-import { useRolUser, useUser } from '../hooks';
+import { useUser } from '../hooks';
 import { useEffect } from 'react';
 import { supabase } from '../supabase/client';
 import { Loader } from '../components/shared/Loader';
-import { HiOutlineExternalLink } from 'react-icons/hi';
+import { IoLogOutOutline } from 'react-icons/io5';
 
 export const ClientLayout = () => {
-	const { session, isLoading: isLoadingSession } = useUser();
-	const { data: role, isLoading: isLoadingRole } = useRolUser(
-		session?.user.id as string
-	);
+	const { isLoading: isLoadingSession } = useUser();
 
 	const navigate = useNavigate();
 
@@ -22,40 +19,26 @@ export const ClientLayout = () => {
 		});
 	}, [navigate]);
 
-	if (isLoadingSession || isLoadingRole) return <Loader />;
+	if (isLoadingSession) return <Loader />;
 
 	const handleLogout = async () => {
 		await signOut();
 	};
 
 	return (
-		<div className='flex flex-col gap-5'>
+		<div className='flex flex-col gap-2'>
 			{/* Menú */}
-			<nav className='flex justify-center gap-10 text-sm font-medium'>
-				<NavLink
-					to='/account/pedidos'
-					className={({ isActive }) =>
-						`${isActive ? 'underline' : 'hover:underline'}`
-					}>Pedidos
-				</NavLink>
-
-				{role === 'admin' && (
-					<NavLink
-						to='/dashboard/productos'
-						className='flex items-center gap-1 hover:underline'>Dasboard
-						<HiOutlineExternalLink
-							size={16}
-							className='inline-block'
-						/>
-					</NavLink>
-				)}
-
+			<div className='flex justify-end'>
 				<button
-					className='hover:underline'
-					onClick={handleLogout}>Cerrar sesión
+					className='bg-cyan-600 py-[10px] rounded-md flex justify-center gap-2 font-semibold text-sm hover:bg-red-500'
+					onClick={handleLogout}>
+					<span className='hidden lg:block'>Cerrar sesión</span>
+					<IoLogOutOutline
+						size={20}
+						className='inline-block'
+					/>
 				</button>
-			</nav>
-
+			</div>
 			<main className='container mt-12 flex-1'>
 				<Outlet />
 			</main>

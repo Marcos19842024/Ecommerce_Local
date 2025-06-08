@@ -49,7 +49,7 @@ export const dashboardLinks = [
 	},
 	{
 		id: 2,
-		title: 'Ordenes',
+		title: 'Órdenes',
 		href: '/dashboard/ordenes',
 		icon: <FaCartShopping size={25} />,
 	},

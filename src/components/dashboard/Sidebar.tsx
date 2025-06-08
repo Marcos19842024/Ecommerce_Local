@@ -32,7 +32,7 @@ export const Sidebar = () => {
 			</nav>
 
 			<button
-				className='bg-red-500 w-full py-[10px] rounded-md flex items-center justify-center gap-2 font-semibold text-sm hover:underline'
+				className='bg-red-500 w-full py-[10px] rounded-md flex items-center justify-center gap-2 font-semibold text-sm hover:bg-cyan-600'
 				onClick={handleLogout}>
 				<span className='hidden lg:block'>Cerrar sesión</span>
 				<IoLogOutOutline
