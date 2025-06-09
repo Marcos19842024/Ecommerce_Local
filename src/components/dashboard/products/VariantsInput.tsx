@@ -6,6 +6,7 @@ import {
 } from 'react-hook-form';
 import { ProductFormValues } from '../../../lib/validators';
 import { IoIosAddCircleOutline,	IoIosCloseCircleOutline } from 'react-icons/io';
+import { formatString } from '../../../helpers';
 
 interface Props {
 	control: Control<ProductFormValues>;
@@ -91,6 +92,7 @@ export const VariantsInput = ({
 								type='text'
 								placeholder='Target'
 								{...register(`variants.${index}.target`)}
+								onChange={e => (formatString(e.target.value))}
 								className='border rounded-md px-3 py-1.5 text-xs font-semibold placeholder:font-normal focus:outline-none appearance-none'
 							/>
 
@@ -98,6 +100,7 @@ export const VariantsInput = ({
 								type='text'
 								placeholder='Type'
 								{...register(`variants.${index}.type`)}
+								onChange={e => (formatString(e.target.value))}
 								className='border rounded-md px-3 py-1.5 text-xs font-semibold placeholder:font-normal focus:outline-none appearance-none'
 							/>
 
