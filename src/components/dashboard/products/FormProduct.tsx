@@ -6,7 +6,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { SectionFormProduct } from './SectionFormProduct';
 import { InputForm } from './InputForm';
 import { useEffect } from 'react';
-import { generateSlug } from '../../../helpers';
+import { formatString, generateSlug } from '../../../helpers';
 import { VariantsInput } from './VariantsInput';
 import { UploaderImages } from './UploaderImages';
 import { Editor } from './Editor';
@@ -64,18 +64,18 @@ export const FormProduct = ({ titleForm }: Props) => {
 
 		if (slug) {
 			updateProduct({
-				name: data.name,
-				brand: data.brand,
-				slug: data.slug,
+				name: formatString(data.name),
+				brand: formatString(data.brand),
+				slug: formatString(data.slug),
 				variants: data.variants,
 				images: data.images,
 				description: data.description,
 			});
 		} else {
 			createProduct({
-				name: data.name,
-				brand: data.brand,
-				slug: data.slug,
+				name: formatString(data.name),
+				brand: formatString(data.brand),
+				slug: formatString(data.slug),
 				variants: data.variants,
 				images: data.images,
 				description: data.description,

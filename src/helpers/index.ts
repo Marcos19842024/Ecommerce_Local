@@ -112,3 +112,11 @@ export const extractFilePath = (url: string) => {
 
 	return parts[1];
 };
+
+// Función para formatear texto a formato Oración
+export const formatString = (cadena: string) => {
+	if (cadena === null || cadena === '') {
+		return '';
+	}
+	return cadena.charAt(0).toUpperCase() + cadena.slice(1).toLowerCase();
+};
