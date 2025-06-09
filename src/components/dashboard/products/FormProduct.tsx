@@ -6,13 +6,13 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { SectionFormProduct } from './SectionFormProduct';
 import { InputForm } from './InputForm';
 import { useEffect } from 'react';
-import { formatString, generateSlug } from '../../../helpers';
 import { VariantsInput } from './VariantsInput';
 import { UploaderImages } from './UploaderImages';
 import { Editor } from './Editor';
 import { useCreateProduct, useProduct, useUpdateProduct } from '../../../hooks';
 import { Loader } from '../../shared/Loader';
 import { JSONContent } from '@tiptap/react';
+import { formatString, generateSlug } from '../../../helpers';
 
 interface Props {
 	titleForm: string;
