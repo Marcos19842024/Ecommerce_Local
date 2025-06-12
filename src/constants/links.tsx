@@ -1,5 +1,6 @@
-import { FaBoxOpen, FaCartShopping, FaFacebookF, FaInstagram } from 'react-icons/fa6';
+import { FaBoxOpen, FaCartShopping, FaFacebookF, FaInstagram, FaTruckPickup } from 'react-icons/fa6';
 import { FaWhatsapp } from "react-icons/fa";
+import { TbMessageCircleShare } from 'react-icons/tb';
 
 export const navbarLinks = [
 	{
@@ -52,5 +53,17 @@ export const dashboardLinks = [
 		title: 'Órdenes',
 		href: '/dashboard/ordenes',
 		icon: <FaCartShopping size={25} />,
+	},
+	{
+		id: 3,
+		title: 'Recordatorios',
+		href: '/dashboard/recordatorios',
+		icon: <TbMessageCircleShare size={25} />,
+	},
+	{
+		id: 4,
+		title: 'Transportes',
+		href: '/dashboard/transportes',
+		icon: <FaTruckPickup size={25} />,
 	},
 ];

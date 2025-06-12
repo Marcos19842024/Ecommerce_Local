@@ -18,6 +18,8 @@ import {
 	DashboardProductSlugPage,
 	DashboardOrdersPage,
 	DashboardOrderPage,
+	DashboardTransportPage,
+	DashboardRemindersPage,
 	TermsPage,
 	PrivacyNoticePage,
 } from '../pages';
@@ -114,6 +116,14 @@ export const router = createBrowserRouter([
 			{
 				path: 'ordenes/:id',
 				element: <DashboardOrderPage />,
+			},
+			{
+				path: 'recordatorios',
+				element: <DashboardRemindersPage />,
+			},
+			{
+				path: 'transportes',
+				element: <DashboardTransportPage />,
 			},
 		],
 	},

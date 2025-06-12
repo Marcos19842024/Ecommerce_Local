@@ -9,7 +9,7 @@ export const Sidebar = () => {
 	};
 
 	return (
-		<div className='w-[100px] bg-stone-800 text-white flex flex-col gap-10 items-center p-5 fixed h-screen lg:w-[200px]'>
+		<div className='w-[120px] bg-stone-800 text-white flex flex-col gap-10 items-center p-5 fixed h-screen lg:w-[220px]'>
 			<Link
 				className='w-full'
 				to='/'>

@@ -12,3 +12,9 @@ export * from './products/InputForm';
 export * from './products/VariantsInput';
 export * from './products/UploaderImages';
 export * from './products/Editor';
+
+// RECORDATORIOS
+export * from './recordatorios/Reminders';
+
+// TRANSPORTES
+export * from './transportes/Transport';
