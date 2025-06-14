@@ -8,26 +8,21 @@ export const getClients = async ({e}: Props) => {
     if (!e.target.files || e.target.files.length === 0) {
         throw new Error("No file selected.");
     }
-    const data = await readXlsxFile(e.target.files[0]) => {
-        if (!data || data.length === 0) {
-            throw new Error("Invalid file");
-        }
-        return data;
-    };
-    const response = [];
+    const data = await readXlsxFile(e.target.files[0]);
+    const response: string[];
     let error;
 
     const EvaluarContent = () => {
         const titles = ["CLIENTE","TELÉFONO 1","MASCOTA","TIPO DE RECORDATORIO","VACUNA","PRÓXIMA FECHA"];
 
         if (data[0][0] !== titles[0] ||
-            lista[0][1] !== titles[1] ||
-            lista[0][2] !== titles[2] ||
-            lista[0][3] !== titles[3] ||
-            lista[0][4] !== titles[4] ||
-            lista[0][5] !== titles[5]) {
+            data[0][1] !== titles[1] ||
+            data[0][2] !== titles[2] ||
+            data[0][3] !== titles[3] ||
+            data[0][4] !== titles[4] ||
+            data[0][5] !== titles[5]) {
             error = `Error: La hoja de Excel no contiene la información requerida. (${titles})`;
-        } else if (lista.length <= 1) {
+        } else if (data.length <= 1) {
             error = `Error: La hoja de Excel no contiene información`;
         } else {
             listarClientes();
@@ -39,13 +34,13 @@ export const getClients = async ({e}: Props) => {
         let LastClient;
         let LastPet;
         try {
-            for(let i = 1; i < lista.length; i++) {
-                let currentCliente = upercase(lista[i][0]);
-                let currentTelefono = onlyNumbers(lista[i][1]);
-                let currentMascota = upercase(lista[i][2]);
-                let currentTipo = upercase(lista[i][3]);
-                let currentProducto = upercase(lista[i][4]);
-                let currentFecha = upercase(lista[i][5]);
+            for(let i = 1; i < data.length; i++) {
+                let currentCliente = upercase(data[i][0]);
+                let currentTelefono = onlyNumbers(data[i][1]);
+                let currentMascota = upercase(data[i][2]);
+                let currentTipo = upercase(data[i][3]);
+                let currentProducto = upercase(data[i][4]);
+                let currentFecha = upercase(data[i][5]);
 
                 if (LastClient !== currentCliente) {
                     let recordatorio = {
