@@ -1,15 +1,78 @@
+import { useState } from "react";
 import { Reminders } from "../../components/dashboard";
 import { Loader } from "../../components/shared/Loader";
-import { useAllOrders } from "../../hooks";
+import { useClients } from "../../hooks";
 
 export const DashboardRemindersPage = () => {
-    const { data, isLoading } = useAllOrders();
+    const [clientes, setClientes] = useState();
+    const [info, setInfo] = useState();
     
-    if (isLoading || !data) return <Loader />;
+
+    const handleImageChange = (
+		e: React.ChangeEvent<HTMLInputElement>
+	) => {
+		if (e.target.files) {
+            const { data } = useClients({ e });
+
+            data.then((result) => {
+                if (result && result.rows.length > 0) {
+                    setClientes(result.rows);
+                    setInfo(e.target.files[0].name);
+                } else {
+                    setClientes(undefined);
+                    e.target.value = "";
+                }
+            });
+        };
+		}
+	};
+
+    if (!clientes) return <Loader />;
 
     return (
         <div className='space-y-5'>
             <h1 className='text-2xl font-bold'>Envío de mensajes</h1>
+            <div
+          className="lista"
+          id="divInput">
+          <input
+            type="file"
+            id="inputfile"
+            accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            hidden
+          />
+          <label
+            htmlFor="inputfile"
+            className="uploadlabel">
+            <span><i className="fa fa-cloud-upload fa-3x"></i></span>
+            <p>Click To Upload List</p>
+          </label>
+        </div> :
+        <div className="lista">
+          {info && (
+            <nav className="menuinfo">
+              <section className="menuinfo__container">
+                <ul className="menuinfo__links">
+                  <li className="menuinfo__item">
+                    <label className="menuinfo__link">
+                      <span>
+                        <i
+                          className="fa fa-file-excel-o fa-1x"
+                          style={{color:"green"}}>
+                        </i>
+                      </span>
+                      <span
+                        className="infolabel"
+                        style={{width:"230px"}}>{`${info} (${clientes.length} Registros)`}
+                      </span>
+                    </label>
+                  </li>
+                </ul>
+              </section>
+            </nav>
+        )}
+    </div>
+
             <Reminders clientes={data} />
         </div>
     );

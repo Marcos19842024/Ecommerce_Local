@@ -1,4 +1,8 @@
-export const Reminders = () => {
+interface Props {
+	clientes: string[];
+}
+
+export const Reminders = ({ clientes }: Props) => {
     return (
         <div className='flex flex-col items-center justify-center h-full'>
             <h1 className='text-2xl font-bold mb-4'>Recordatorios</h1>
