@@ -1,4 +1,5 @@
-import { Product, VariantProduct, Target } from '../interfaces';
+import { Row } from 'read-excel-file';
+import { Product, VariantProduct, Target, Cliente } from '../interfaces';
 
 // Función para formatear el precio a dólares
 export const formatPrice = (price: number) => {
@@ -52,6 +53,48 @@ export const prepareProducts = (products: Product[]) => {
 			variants: product.variants,
 		};
 	});
+};
+
+// Función para preparar los clientes
+export const prepareClients = (rows: Row[]) => {
+	// Agrupar los filas por cliente
+	return rows.reduce(
+		(acc: Cliente[], cell: Row) => {
+			const existingCliente = acc.find(
+				item => item.nombre === cell[0]
+			);
+
+			if (!existingCliente) {
+				acc.push({
+					nombre: cell[0].toString(),
+					telefono: cell[1].toString(),
+					mascotas: [],
+					mensaje: ''
+				});
+
+				acc.find(item => {
+					if (item.nombre === cell[0] && !item.mascotas.find(item => item.nombre === cell[2])) {
+						item.mascotas.push({nombre: cell[2].toString(), recordatorios: []});
+					}
+
+					item.mascotas.find(item => {
+						if (item.nombre === cell[2] && !item.recordatorios.find(item => item.nombre === cell[3])) {
+							item.recordatorios.push({nombre: cell[3].toString(), tipos: []});
+						}
+
+						item.recordatorios.find(item => {
+							if (item.nombre === cell[3] && !item.tipos.find(item => item.nombre === cell[4])) {
+								item.tipos.push({nombre: cell[4].toString(), fecha: cell[5].toString()});
+							}
+						})
+					})
+				});
+			}
+			
+			return acc;
+		},
+		[]
+	);
 };
 
 // Función para formatear la fecha a formato 3 de enero de 2022
@@ -119,4 +162,18 @@ export const formatString = (cadena: string) => {
 		return '';
 	}
 	return cadena.charAt(0).toUpperCase() + cadena.slice(1).toLowerCase();
+};
+
+export const formatNumbers = (cadena: string) => {
+    const numbers = "0123456789";
+    let numeros = "";
+    for(let i = 0; i < cadena.length; i++) {
+        for(let x = 0; x < numbers.length; x++) {
+            if(cadena.charAt(i) === numbers.charAt(x)){
+                numeros += cadena.charAt(i);
+                break;
+            }
+        }
+    }
+    return numeros;
 };

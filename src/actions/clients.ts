@@ -1,4 +1,7 @@
 import readXlsxFile from 'read-excel-file';
+import { formatDateLong, formatNumbers, formatString, prepareClients } from '../helpers';
+import { Cliente, Mascota, Recordatorio } from '../interfaces';
+import toast from 'react-hot-toast';
 
 interface Props {
 	e: React.ChangeEvent<HTMLInputElement>;
@@ -8,154 +11,107 @@ export const getClients = async ({e}: Props) => {
     if (!e.target.files || e.target.files.length === 0) {
         throw new Error("No file selected.");
     }
-    const data = await readXlsxFile(e.target.files[0]);
-    const response: string[];
-    let error;
+    
+    const row = await readXlsxFile(e.target.files[0]);
 
     const EvaluarContent = () => {
         const titles = ["CLIENTE","TELÉFONO 1","MASCOTA","TIPO DE RECORDATORIO","VACUNA","PRÓXIMA FECHA"];
 
-        if (data[0][0] !== titles[0] ||
-            data[0][1] !== titles[1] ||
-            data[0][2] !== titles[2] ||
-            data[0][3] !== titles[3] ||
-            data[0][4] !== titles[4] ||
-            data[0][5] !== titles[5]) {
-            error = `Error: La hoja de Excel no contiene la información requerida. (${titles})`;
-        } else if (data.length <= 1) {
-            error = `Error: La hoja de Excel no contiene información`;
+        if (row[0][0] !== titles[0] ||
+            row[0][1] !== titles[1] ||
+            row[0][2] !== titles[2] ||
+            row[0][3] !== titles[3] ||
+            row[0][4] !== titles[4] ||
+            row[0][5] !== titles[5]) {
+            toast.error(`Error: La hoja de Excel no contiene la información requerida. (${titles})`, {
+                position: 'bottom-right',
+            });
+            return [];
+        } else if (row.length <= 1) {
+            toast.error(`Error: La hoja de Excel no contiene información`, {
+                position: 'bottom-right',
+            });
+            return [];
         } else {
-            listarClientes();
+            return ListPets(prepareClients(row));
         }
     }
 
-    const listarClientes = () => {
-        const data = [];
-        let LastClient;
-        let LastPet;
-        try {
-            for(let i = 1; i < data.length; i++) {
-                let currentCliente = upercase(data[i][0]);
-                let currentTelefono = onlyNumbers(data[i][1]);
-                let currentMascota = upercase(data[i][2]);
-                let currentTipo = upercase(data[i][3]);
-                let currentProducto = upercase(data[i][4]);
-                let currentFecha = upercase(data[i][5]);
-
-                if (LastClient !== currentCliente) {
-                    let recordatorio = {
-                        "Tipo": currentTipo,
-                        "Nombre": currentProducto,
-                        "Fecha": currentFecha
-                    };
-                    let mascota = {
-                        "Nombre": currentMascota,
-                        "Recordatorios": [recordatorio]
-                    };
-                    let cliente = {
-                        "Nombre": currentCliente,
-                        "Telefono": currentTelefono,
-                        "Mascotas": [mascota],
-                    };
-                    data.push(cliente)
-                } else {
-                    if (LastPet !== currentMascota) {
-                        let recordatorio = {
-                            "Tipo": currentTipo,
-                            "Nombre": currentProducto,
-                            "Fecha": currentFecha
-                        };
-                        let mascota = {
-                            "Nombre": currentMascota,
-                            "Recordatorios": [recordatorio]
-                        };
-                        data[data.length - 1].Mascotas.push(mascota)
-                    } else {
-                        let recordatorio = {
-                            "Tipo": currentTipo,
-                            "Nombre": currentProducto,
-                            "Fecha": currentFecha
-                        };
-                        data[data.length - 1].Mascotas[data[data.length - 1].Mascotas.length -1].Recordatorios.push(recordatorio)
-                    }
-                }
-                LastClient = currentCliente;
-                LastPet = currentMascota;
-            }
-            ListPets(data);
-        } catch (err) {
-            error = `Error: ${err}, ¡No se cargaron los datos de la hoja de Excel!`;
-        }
-    }
-
-    const ListPets = (clientes) => {
-        let id = 0;
+    const ListPets = (clientes: Cliente[]) => {
 
         clientes.forEach(cliente => {
-            const Pets = cliente.Mascotas;
-            const nombre = cliente.Nombre;
-            const telefono = cliente.Telefono;
-            let Mascotas = "";
-            let Mensaje = "";
+            formatString(cliente.nombre);
+            formatNumbers(cliente.telefono);
+            const mascotas = cliente.mascotas;
         
-            if (Pets.length === 1) {
-                Mascotas += Pets[0].Nombre;
-                Mensaje = "su mascota '" + Pets[0].Nombre + "'," + ListReminders(Pets[0]);
+            if (mascotas.length === 1) {
+                cliente.mensaje = "su mascota '" + formatString(mascotas[0].nombre) + "'," + ListReminders(mascotas[0]);
             } else {
-                Mensaje = "sus mascotas: '";
+                cliente.mensaje = "sus mascotas: '";
             
-                for (let i = 0; i < Pets.length; i++) {
+                for (let i = 0; i < mascotas.length; i++) {
                     if (i === 0) {
-                        Mascotas = Pets[i].Nombre;
-                        Mensaje += Pets[i].Nombre + "'," + ListReminders(Pets[i]);
+                        cliente.mensaje += formatString(mascotas[i].nombre) + "'," + ListReminders(mascotas[i]);
                     } else {
-                        if (i === (Pets.length - 1)) {
-                            Mascotas += " y " + Pets[i].Nombre + ".";
-                            Mensaje += " y '" + Pets[i].Nombre + "'," + ListReminders(Pets[i]);
+                        if (i === (mascotas.length - 1)) {
+                            cliente.mensaje += " y '" + formatString(mascotas[i].nombre) + "'," + ListReminders(mascotas[i]);
                         } else {
-                            Mascotas += ", " + Pets[i].Nombre;
-                            Mensaje += ", '" + Pets[i].Nombre + "'," + ListReminders(Pets[i]);
+                            cliente.mensaje += ", '" + formatString(mascotas[i].nombre) + "'," + ListReminders(mascotas[i]);
                         }
                     }
                 }
             }
-            Mensaje += " el día " + Pets[0].Recordatorios[0].Fecha + ".";
-            let dato = {
-                "key":id,
-                "Nombre": nombre,
-                "Telefono": telefono,
-                "Mascotas": Mascotas,
-                "Mensaje": Mensaje
-            }
-            id ++;
-            response.push(dato);
+            cliente.mensaje += " el día " + formatDateLong(mascotas[0].recordatorios[0].tipos[0].fecha) + ".";
         });
+
+        return clientes;
     }
     
-    const ListReminders = (Pet) => {
-        let Reminder = " tiene pendiente la aplicación de ";
-        let Reminders = Pet.Recordatorios;
-    
-        if (Reminders.length === 1) {
-            Reminder += Reminders[0].Tipo + " (" + Reminders[0].Nombre + ")";
+    const ListReminders = (mascotas: Mascota) => {
+
+        let recordatorio = " tiene pendiente la aplicación de ";
+        const recordatorios = mascotas.recordatorios;
+
+        if (recordatorios.length === 1) {
+            recordatorio += formatString(recordatorios[0].nombre) + ListTypes(recordatorios[0]);
         } else {
-            for (let i = 0; i < Reminders.length; i++) {
+            for (let i = 0; i < recordatorios.length; i++) {
                 if (i === 0) {
-                    Reminder += Reminders[i].Tipo + " (" + Reminders[i].Nombre + ")";
+                    recordatorio += formatString(recordatorios[i].nombre) + ListTypes(recordatorios[0]);
                 } else {
-                    if (i === (Reminders.length - 1)) {
-                        Reminder += " y " + Reminders[i].Tipo + " (" + Reminders[i].Nombre + ")";
+                    if (i === (recordatorios.length - 1)) {
+                        recordatorio += " y " + formatString(recordatorios[i].nombre) + ListTypes(recordatorios[0]);
                     } else {
-                        Reminder += ", " + Reminders[i].Tipo + " (" + Reminders[i].Nombre + ")";
+                        recordatorio += ", " + formatString(recordatorios[i].nombre) + ListTypes(recordatorios[0]);
                     }
                 }
             }
         }
-        return Reminder;
+        return recordatorio;
     }
 
-    EvaluarContent();
+    const ListTypes = (recordatorios: Recordatorio) => {
 
-    return [error, response];
-}
+        let tipo = '';
+        const tipos = recordatorios.tipos;
+    
+        if (tipos.length === 1) {
+            tipo += " (" + formatString(tipos[0].nombre) + ")";
+        } else {
+            for (let i = 0; i < tipos.length; i++) {
+                if (i === 0) {
+                    tipo += " (" + formatString(tipos[i].nombre);
+                } else {
+                    if (i === (tipos.length - 1)) {
+                        tipo += " y " + formatString(tipos[i].nombre) + ")";
+                    } else {
+                        tipo += ", " + formatString(tipos[i].nombre);
+                    }
+                }
+            }
+        }
+        return tipo;
+    }
+
+    return EvaluarContent();
 }
