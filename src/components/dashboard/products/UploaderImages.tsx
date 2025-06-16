@@ -75,11 +75,18 @@ export const UploaderImages = ({
 		<>
 			<input
 				type='file'
+				id='inputfile'
 				accept='image/*'
 				multiple
 				onChange={handleImageChange}
-				className='block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200'
+				hidden
 			/>
+			<label
+				htmlFor="inputfile"
+				className='bg-black w-full text-white flex items-center self-end py-[6px] px-2 rounded-md text-sm gap-1 font-semibold hover:bg-cyan-600'>
+				<span><i className="fa fa-cloud-upload fa-2x"></i></span>
+				<p>Click To Upload File</p>
+            </label>
 
 			<div className='grid grid-cols-4 lg:grid-cols-2 gap-4'>
 				{images.map((image, index) => (

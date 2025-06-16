@@ -56,8 +56,8 @@ export const dashboardLinks = [
 	},
 	{
 		id: 3,
-		title: 'Recordatorios',
-		href: '/dashboard/recordatorios',
+		title: 'Mensajes',
+		href: '/dashboard/mensajes',
 		icon: <TbMessageCircleShare size={25} />,
 	},
 	{

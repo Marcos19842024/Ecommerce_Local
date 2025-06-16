@@ -1,24 +1,23 @@
 import { useState } from "react";
 import { Reminders } from "../../components/dashboard";
-import { Loader } from "../../components/shared/Loader";
 import { useClients } from "../../hooks";
 import { Cliente } from "../../interfaces";
 
 export const DashboardRemindersPage = () => {
-  const [clientes, setClientes] = useState<Cliente[]>();
-  const [info, setInfo] = useState<string | null>();
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [info, setInfo] = useState<string | null>(null);
   const [showIb, setShowIb] = useState(true);
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!clientes) return <Loader />;
     if (e.target.files) {
       const { data } = useClients({ e });
       if ((await data).length > 0) {
         setClientes(await data);
         setInfo(e.target.files[0].name);
         setShowIb(false);
+        console.table(await data);
       } else {
-        setClientes(undefined);
+        setClientes([]);
         e.target.value = "";
       }
     }
@@ -26,56 +25,49 @@ export const DashboardRemindersPage = () => {
 
   return (
     <>
-      {showIb ? (
-        <div className='space-y-5'>
-          <h1 className='text-2xl font-bold'>Envío de mensajes</h1>
-          <div
-            className="lista"
-            id="divInput">
+      {showIb ?
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold">Envío de mensajes</h1>
             <input
               type="file"
               id="inputfile"
               accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-              hidden
               onChange={handleFile}
+              className="file-input file-input-bordered w-full max-w-xs"
+              hidden
             />
             <label
               htmlFor="inputfile"
-              className="uploadlabel">
-              <span><i className="fa fa-cloud-upload fa-3x"></i></span>
+              className='bg-black text-white flex items-center self-end py-[6px] px-2 rounded-md text-sm gap-1 font-semibold hover:bg-cyan-600'>
+              <span><i className="fa fa-cloud-upload fa-2x"></i></span>
               <p>Click To Upload List</p>
             </label>
           </div>
-        </div>
-      ) : (
-        <>
-          <div className="lista">
+        </div> :
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold">Envío de mensajes</h1>
             {info && (
-              <nav className="menuinfo">
-                <section className="menuinfo__container">
-                  <ul className="menuinfo__links">
-                    <li className="menuinfo__item">
-                      <label className="menuinfo__link">
-                        <span>
-                          <i
-                            className="fa fa-file-excel-o fa-1x"
-                            style={{color:"green"}}>
-                          </i>
-                        </span>
-                        <span
-                          className="infolabel"
-                          style={{width:"230px"}}>{`${info} (${clientes?.length ?? 0} Registros)`}
-                        </span>
-                      </label>
-                    </li>
-                  </ul>
-                </section>
-              </nav>
+              <label>
+                <span>
+                  <i
+                    className="fa fa-file-excel-o fa-1x"
+                    style={{color:"green"}}>
+                  </i>
+                </span>
+                <span
+                  className="infolabel"
+                  style={{width:"230px"}}>{`  ${info} (${clientes ? clientes.length : 0} Registros)`}
+                </span>
+              </label>
             )}
           </div>
-          <Reminders clientes={clientes ?? []} />
-        </>
-      )}
+        </div>
+      }
+      <div className="divider bg-gray-200 gap-5 my-5 h-full">
+        <Reminders clientes={clientes} />
+      </div>
     </>
-  );
-};
+  )
+}

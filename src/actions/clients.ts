@@ -1,5 +1,5 @@
 import readXlsxFile from 'read-excel-file';
-import { formatDateLong, formatNumbers, formatString, prepareClients } from '../helpers';
+import { prepareClients } from '../helpers';
 import { Cliente, Mascota, Recordatorio } from '../interfaces';
 import toast from 'react-hot-toast';
 
@@ -33,35 +33,33 @@ export const getClients = async ({e}: Props) => {
             });
             return [];
         } else {
-            return ListPets(prepareClients(row));
+            return ListPets(prepareClients(row.slice(1)));
         }
     }
 
     const ListPets = (clientes: Cliente[]) => {
 
         clientes.forEach(cliente => {
-            formatString(cliente.nombre);
-            formatNumbers(cliente.telefono);
             const mascotas = cliente.mascotas;
         
             if (mascotas.length === 1) {
-                cliente.mensaje = "su mascota '" + formatString(mascotas[0].nombre) + "'," + ListReminders(mascotas[0]);
+                cliente.mensaje = "su mascota '" + mascotas[0].nombre + "'," + ListReminders(mascotas[0]);
             } else {
                 cliente.mensaje = "sus mascotas: '";
             
                 for (let i = 0; i < mascotas.length; i++) {
                     if (i === 0) {
-                        cliente.mensaje += formatString(mascotas[i].nombre) + "'," + ListReminders(mascotas[i]);
+                        cliente.mensaje += mascotas[i].nombre + "'," + ListReminders(mascotas[i]);
                     } else {
                         if (i === (mascotas.length - 1)) {
-                            cliente.mensaje += " y '" + formatString(mascotas[i].nombre) + "'," + ListReminders(mascotas[i]);
+                            cliente.mensaje += " y '" + mascotas[i].nombre + "'," + ListReminders(mascotas[i]);
                         } else {
-                            cliente.mensaje += ", '" + formatString(mascotas[i].nombre) + "'," + ListReminders(mascotas[i]);
+                            cliente.mensaje += ", '" + mascotas[i].nombre + "'," + ListReminders(mascotas[i]);
                         }
                     }
                 }
             }
-            cliente.mensaje += " el día " + formatDateLong(mascotas[0].recordatorios[0].tipos[0].fecha) + ".";
+            cliente.mensaje += " el día " + mascotas[0].recordatorios[0].tipos[0].fecha + ".";
         });
 
         return clientes;
@@ -73,16 +71,16 @@ export const getClients = async ({e}: Props) => {
         const recordatorios = mascotas.recordatorios;
 
         if (recordatorios.length === 1) {
-            recordatorio += formatString(recordatorios[0].nombre) + ListTypes(recordatorios[0]);
+            recordatorio += recordatorios[0].nombre + ListTypes(recordatorios[0]);
         } else {
             for (let i = 0; i < recordatorios.length; i++) {
                 if (i === 0) {
-                    recordatorio += formatString(recordatorios[i].nombre) + ListTypes(recordatorios[0]);
+                    recordatorio += recordatorios[i].nombre + ListTypes(recordatorios[0]);
                 } else {
                     if (i === (recordatorios.length - 1)) {
-                        recordatorio += " y " + formatString(recordatorios[i].nombre) + ListTypes(recordatorios[0]);
+                        recordatorio += " y " + recordatorios[i].nombre + ListTypes(recordatorios[0]);
                     } else {
-                        recordatorio += ", " + formatString(recordatorios[i].nombre) + ListTypes(recordatorios[0]);
+                        recordatorio += ", " + recordatorios[i].nombre + ListTypes(recordatorios[0]);
                     }
                 }
             }
@@ -96,16 +94,16 @@ export const getClients = async ({e}: Props) => {
         const tipos = recordatorios.tipos;
     
         if (tipos.length === 1) {
-            tipo += " (" + formatString(tipos[0].nombre) + ")";
+            tipo += " (" + tipos[0].nombre + ")";
         } else {
             for (let i = 0; i < tipos.length; i++) {
                 if (i === 0) {
-                    tipo += " (" + formatString(tipos[i].nombre);
+                    tipo += " (" + tipos[i].nombre;
                 } else {
                     if (i === (tipos.length - 1)) {
-                        tipo += " y " + formatString(tipos[i].nombre) + ")";
+                        tipo += " y " + tipos[i].nombre + ")";
                     } else {
-                        tipo += ", " + formatString(tipos[i].nombre);
+                        tipo += ", " + tipos[i].nombre;
                     }
                 }
             }

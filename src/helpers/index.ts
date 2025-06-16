@@ -61,30 +61,30 @@ export const prepareClients = (rows: Row[]) => {
 	return rows.reduce(
 		(acc: Cliente[], cell: Row) => {
 			const existingCliente = acc.find(
-				item => item.nombre === cell[0]
+				item => item.nombre === formatString(cell[0].toString())
 			);
 
 			if (!existingCliente) {
 				acc.push({
-					nombre: cell[0].toString(),
-					telefono: cell[1].toString(),
+					nombre: formatString(cell[0].toString()),
+					telefono: formatNumbers(cell[1].toString()),
 					mascotas: [],
 					mensaje: ''
 				});
 
 				acc.find(item => {
-					if (item.nombre === cell[0] && !item.mascotas.find(item => item.nombre === cell[2])) {
-						item.mascotas.push({nombre: cell[2].toString(), recordatorios: []});
+					if (item.nombre === formatString(cell[0].toString()) && !item.mascotas.find(item => item.nombre === formatString(cell[2].toString()))) {
+						item.mascotas.push({nombre: formatString(cell[2].toString()), recordatorios: []});
 					}
 
 					item.mascotas.find(item => {
-						if (item.nombre === cell[2] && !item.recordatorios.find(item => item.nombre === cell[3])) {
-							item.recordatorios.push({nombre: cell[3].toString(), tipos: []});
+						if (item.nombre === formatString(cell[2].toString()) && !item.recordatorios.find(item => item.nombre === formatString(cell[3].toString()))) {
+							item.recordatorios.push({nombre: formatString(cell[3].toString()), tipos: []});
 						}
 
 						item.recordatorios.find(item => {
-							if (item.nombre === cell[3] && !item.tipos.find(item => item.nombre === cell[4])) {
-								item.tipos.push({nombre: cell[4].toString(), fecha: cell[5].toString()});
+							if (item.nombre === formatString(cell[3].toString()) && !item.tipos.find(item => item.nombre === formatString(cell[4].toString()))) {
+								item.tipos.push({nombre: formatString(cell[4].toString()), fecha: cell[5].toString()});
 							}
 						})
 					})
@@ -161,7 +161,12 @@ export const formatString = (cadena: string) => {
 	if (cadena === null || cadena === '') {
 		return '';
 	}
-	return cadena.charAt(0).toUpperCase() + cadena.slice(1).toLowerCase();
+	let oracion = "";
+    oracion = cadena.replace(/[-_]/g, " ");
+    let palabras = oracion.toLowerCase().split(" ").map((palabra) => {
+        return palabra.charAt(0).toUpperCase() + palabra.slice(1);
+    })
+    return palabras.join(" ");
 };
 
 export const formatNumbers = (cadena: string) => {

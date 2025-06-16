@@ -118,7 +118,7 @@ export const router = createBrowserRouter([
 				element: <DashboardOrderPage />,
 			},
 			{
-				path: 'recordatorios',
+				path: 'mensajes',
 				element: <DashboardRemindersPage />,
 			},
 			{
