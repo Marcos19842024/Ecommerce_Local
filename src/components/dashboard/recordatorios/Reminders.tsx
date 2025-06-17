@@ -67,11 +67,19 @@ export const Reminders = ({ clientes }: Props) => {
                     <div className='bg-white border shadow-sm rounded-md flex flex-col gap-2 p-5 h-fit'>
                         <h2 className='font-bold tracking-tight text-xl'>Mensaje</h2>
                         <div
-                            className='w-full p-2 rounded-md text-white bg-gray-800'>
-                            <div className="flex max-w-sm bg-gray-800 py-2">
-                                <div className="wrap-anywhere">
-                                    <p className='text-white bg-green-900 rounded-md p-5'>{sendMesage()}</p>
+                            className='w-full rounded-md text-white bg-gray-800'>
+                            <div className='bg-gray-800 p-5 py-2 items-end flex flex-col gap-2'>
+                                <div className='wrap-anywhere items-end'>
+                                    <p className='text-white bg-green-900 rounded-md p-2'>{`Hola ${clientes[index].nombre}.`}</p>
                                 </div>
+                                <div className='wrap-anywhere items-end'>
+                                    <p className='text-white bg-green-900 rounded-md p-2'>{`La clínica veterinaria Baalak', le informa que ${clientes[index].mensaje}`}</p>
+                                </div>
+                                {msjo && (
+                                    <div className='wrap-anywhere items-end'>
+                                        <p className='text-white bg-green-900 rounded-md p-2'>{msjo}</p>
+                                    </div>
+                                )}
                             </div>
                             <hr className='border-black w-full' />
                             <div className='flex gap-3 items-center justify-between bg-gray-900 w-full p-2 rounded-md'>
@@ -86,6 +94,9 @@ export const Reminders = ({ clientes }: Props) => {
                                         type='checkbox'
                                         onChange={(e) => {
                                             setImo(e.target.checked)
+                                            if (!e.target.checked) {
+                                                setMsjo("");
+                                            }
                                         }}
                                     />{'  Incluir mensaje opcional'}
                                 </label>
@@ -97,7 +108,7 @@ export const Reminders = ({ clientes }: Props) => {
                             </div>
                             {imo && (
                                 <textarea
-                                    className='w-full text-gray-900 p-2 border border-gray-600 rounded-md'
+                                    className='w-full text-gray-900 border border-gray-600 p-2 rounded-md'
                                     value={msjo}
                                     onChange={(e) => {
                                         setMsjo(e.target.value)
@@ -108,7 +119,6 @@ export const Reminders = ({ clientes }: Props) => {
                                 />
                             )}
                         </div>
-                        
                     </div>
                 </form>
                 :
