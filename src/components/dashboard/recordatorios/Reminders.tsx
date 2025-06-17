@@ -68,6 +68,18 @@ export const Reminders = ({ clientes }: Props) => {
                         <h2 className='font-bold tracking-tight text-xl'>Mensaje</h2>
                         <div
                             className='w-full rounded-md text-white bg-gray-800'>
+                            <div className='flex gap-3 items-center justify-between bg-gray-900 w-full p-2 rounded-md'>
+                                <img className="size-7 rounded-full bg-gray-800 text-gray-700" src='/img/user.png' alt='User' />
+                                <div className=''>//faltaponer clases
+                                    <p className='text-white font-medium rounded-md p-2'>{clientes[index].nombre}</p>
+                                    <p className='text-white rounded-md p-2'>{clientes[index].telefono}</p>
+                                </div>
+                                <button
+                                    className='hover:bg-gray-800 rounded-md p-2 shadow-sm transition-all group hover:scale-105'
+                                    type='submit'>
+                                    <VscSend className='hover:bg-gray-800 text-gray-400 rounded-md shadow-sm transition-all group hover:scale-105' />
+                                </button>
+                            </div>
                             <div className='bg-gray-800 p-5 py-2 items-end flex flex-col gap-2'>
                                 <div className='wrap-anywhere items-end'>
                                     <p className='text-white bg-green-900 rounded-md p-2'>{`Hola ${clientes[index].nombre}.`}</p>
