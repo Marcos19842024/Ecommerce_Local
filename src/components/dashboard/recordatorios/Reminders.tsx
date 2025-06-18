@@ -21,6 +21,26 @@ export const Reminders = ({ clientes }: Props) => {
         console.log("Mensaje enviado:", sendMesage());
     }
 
+    const getMascotas = (mascotas: { nombre: string }[]) => {
+        if (mascotas.length === 1) {
+            return `${mascotas[0].nombre}.`;
+        } else {
+            let mascotaList = '';
+            for (let i = 0; i < mascotas.length; i++) {
+                if (i === 0) {
+                    mascotaList += mascotas[i].nombre;
+                } else {
+                    if (i === (mascotas.length - 1)) {
+                        mascotaList += " y " + mascotas[i].nombre + ".";
+                    } else {
+                        mascotaList += ", " + mascotas[i].nombre;
+                    }
+                }
+            }
+            return mascotaList;
+        }
+    }
+
     const sendMesage = () => {
         let msj
 
@@ -60,9 +80,6 @@ export const Reminders = ({ clientes }: Props) => {
                             }
                         </select>
                         <p>Telefono: {clientes[index].telefono}</p>
-                        <p>Mascotas: {clientes[index].mascotas.map(mascota => (
-                            <span key={mascota.nombre}>{mascota.nombre}</span>
-                        ))}</p>
                     </div>
                     <div className='bg-white border w-full shadow-sm rounded-md flex flex-col gap-2 p-5 h-fit lg:col-span-2'>
                         <h2 className='font-bold tracking-tight text-xl'>Mensaje</h2>
@@ -74,9 +91,9 @@ export const Reminders = ({ clientes }: Props) => {
                                     <p className='text-white w-full rounded-md'>{clientes[index].nombre}</p>
                                     <p className='text-gray-400 italic text-sm rounded-md'>{clientes[index].telefono}</p>
                                 </div>
-                                <p className='text-gray-400 w-full items-center text-pretty md:text-balance text-sm rounded-md'>Mascotas: {clientes[index].mascotas.map(mascota => (
-                                    <span className='text-gray-400 text-sm rounded-md' key={mascota.nombre}>{mascota.nombre}</span>
-                                ))}</p>
+                                <p
+                                    className='text-gray-400 w-full items-start text-pretty md:text-balance text-sm rounded-md'>Mascotas: {getMascotas(clientes[index].mascotas)}
+                                </p>
                             </div>
                             <div className='flex flex-col bg-gray-800 rounded-md gap-2 right-0 p-5 h-fit lg:row-span-2'>
                                 <div className='wrap-anywhere flex justify-end'>

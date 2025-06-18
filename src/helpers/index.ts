@@ -71,26 +71,39 @@ export const prepareClients = (rows: Row[]) => {
 					mascotas: [],
 					mensaje: ''
 				});
-
-				acc.find(item => {
-					if (item.nombre === formatString(cell[0].toString()) && !item.mascotas.find(item => item.nombre === formatString(cell[2].toString()))) {
-						item.mascotas.push({nombre: formatString(cell[2].toString()), recordatorios: []});
-					}
-
-					item.mascotas.find(item => {
-						if (item.nombre === formatString(cell[2].toString()) && !item.recordatorios.find(item => item.nombre === formatString(cell[3].toString()))) {
-							item.recordatorios.push({nombre: formatString(cell[3].toString()), tipos: []});
-						}
-
-						item.recordatorios.find(item => {
-							if (item.nombre === formatString(cell[3].toString()) && !item.tipos.find(item => item.nombre === formatString(cell[4].toString()))) {
-								item.tipos.push({nombre: formatString(cell[4].toString()), fecha: cell[5].toString()});
-							}
-						})
-					})
-				});
 			}
-			
+			// Buscar el cliente y agregar la mascota si no existe
+			acc.find(cliente => {
+				if (cliente.nombre === formatString(cell[0].toString()) && !cliente.mascotas.find(mascota => mascota.nombre === formatString(cell[2].toString()))) {
+					cliente.mascotas.push({
+						nombre: formatString(cell[2].toString()),
+						recordatorios: []
+					});
+				}
+				// Buscar la mascota y agregar el recordatorio si no existe
+				if (cliente.nombre === formatString(cell[0].toString()) && cliente.mascotas.find(mascota => mascota.nombre === formatString(cell[2].toString()))) {
+					cliente.mascotas.find(mascota => {
+						if (mascota.nombre === formatString(cell[2].toString()) && !mascota.recordatorios.find(recordatorio => recordatorio.nombre === formatString(cell[3].toString()))) {
+							mascota.recordatorios.push({
+								nombre: formatString(cell[3].toString()),
+								tipos: []
+							});
+						}
+					});
+				}
+				// Buscar la mascota y agregar el tipo de recordatorio si no existe
+				if (cliente.nombre === formatString(cell[0].toString()) && cliente.mascotas.find(mascota => mascota.nombre === formatString(cell[2].toString()))) {
+					cliente.mascotas.find(mascota => mascota.nombre === formatString(cell[2].toString()) && mascota.recordatorios.find(recordatorio => {
+						if (recordatorio.nombre === formatString(cell[3].toString()) && !recordatorio.tipos.find(tipo => tipo.nombre === formatString(cell[4].toString()))) {
+							recordatorio.tipos.push({
+								nombre: formatString(cell[4].toString()),
+								fecha: cell[5].toString()
+							});
+						}
+					}))
+				}
+			});
+
 			return acc;
 		},
 		[]

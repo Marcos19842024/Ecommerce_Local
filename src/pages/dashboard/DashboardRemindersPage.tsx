@@ -15,7 +15,6 @@ export const DashboardRemindersPage = () => {
         setClientes(await data);
         setInfo(e.target.files[0].name);
         setShowIb(false);
-        console.table(await data);
       } else {
         setClientes([]);
         e.target.value = "";

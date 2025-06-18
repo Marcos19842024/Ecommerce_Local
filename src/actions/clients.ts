@@ -11,7 +11,7 @@ export const getClients = async ({e}: Props) => {
     if (!e.target.files || e.target.files.length === 0) {
         throw new Error("No file selected.");
     }
-    
+
     const row = await readXlsxFile(e.target.files[0]);
 
     const EvaluarContent = () => {
@@ -61,7 +61,6 @@ export const getClients = async ({e}: Props) => {
             }
             cliente.mensaje += " el día " + mascotas[0].recordatorios[0].tipos[0].fecha + ".";
         });
-
         return clientes;
     }
     
@@ -75,12 +74,12 @@ export const getClients = async ({e}: Props) => {
         } else {
             for (let i = 0; i < recordatorios.length; i++) {
                 if (i === 0) {
-                    recordatorio += recordatorios[i].nombre + ListTypes(recordatorios[0]);
+                    recordatorio += recordatorios[i].nombre + ListTypes(recordatorios[i]);
                 } else {
                     if (i === (recordatorios.length - 1)) {
-                        recordatorio += " y " + recordatorios[i].nombre + ListTypes(recordatorios[0]);
+                        recordatorio += " y " + recordatorios[i].nombre + ListTypes(recordatorios[i]);
                     } else {
-                        recordatorio += ", " + recordatorios[i].nombre + ListTypes(recordatorios[0]);
+                    recordatorio += ", " + recordatorios[i].nombre + ListTypes(recordatorios[i]);
                     }
                 }
             }
