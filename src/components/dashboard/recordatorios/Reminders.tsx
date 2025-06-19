@@ -9,14 +9,24 @@ interface Props {
 	clientes: Cliente[];
 }
 
+type MessageBubbleProps = {
+    message: string;
+    senderName: string;
+    timestamp: string; // Formato como "10:30 AM"
+    avatarUrl?: string;
+    isOwnMessage?: boolean;
+};
+
 export const Reminders = ({ clientes }: Props) => {
     const [index, setIndex] = useState(0);
     const [msjo, setMsjo] = useState("");
     const [imo, setImo] = useState(false);
     const [fileShow, setFileShow] = useState(false);
+    const [messages, setMessages] = useState<MessageBubbleProps[]>([]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        //logica para enviar al servidor el mensaje
         toast.success("Mensaje enviado correctamente", {
             position: 'bottom-right'
         });
@@ -42,25 +52,28 @@ export const Reminders = ({ clientes }: Props) => {
         }
     }
 
-    const adjustHeight = (e: React.FormEvent<HTMLTextAreaElement>) => {
-        const textarea = e.currentTarget;
-        textarea.style.height = 'auto'; // Resetea la altura para que se ajuste al contenido
-        textarea.style.height = textarea.scrollHeight + 'px'; // Establece la altura a la altura del contenido
-    }
-
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
-            setMsjo(""); // Limpia el mensaje después de enviar
+            newMsg.message = msjo;
+            if (msjo.trim() === "") {
+                toast.error("Por favor, escribe un mensaje antes de enviar.", {
+                    position: 'bottom-right'
+                });
+            } else {
+                setMessages((prev) => [...prev, newMsg]);
+                setMsjo(""); // Limpia el mensaje después de enviar
+                setFileShow(false); // Oculta el uploader de archivos
+            }
         }
     }
 
-    type MessageBubbleProps = {
-        message: string;
-        senderName: string;
-        timestamp: string; // Formato como "10:30 AM"
-        avatarUrl?: string;
-        isOwnMessage?: boolean;
+    const newMsg: MessageBubbleProps = {
+        message: msjo,
+        senderName: `Baalak Veterinaria`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        avatarUrl: '/img/Baalak-logo-banner-small.png',
+        isOwnMessage: true,
     };
 
     const MessageBubble = ({
@@ -68,11 +81,10 @@ export const Reminders = ({ clientes }: Props) => {
         senderName,
         timestamp,
         avatarUrl,
-        isOwnMessage = false,
+        isOwnMessage,
     }: MessageBubbleProps) => {
         const alignment = isOwnMessage ? "justify-end" : "justify-start";
         const bgColor = isOwnMessage ? "bg-green-900" : "bg-gray-800";
-        const textAlign = "text-pretty";
         const flexDirection = isOwnMessage ? "flex-row-reverse" : "flex-row";
 
         return (
@@ -86,18 +98,17 @@ export const Reminders = ({ clientes }: Props) => {
                         />
                     )}
                     <div>
-                        <p className={`text-xs text-gray-400 ${textAlign}`}>
+                        <p className={`text-xs text-gray-400 text-pretty`}>
                             {senderName} • {timestamp}
                         </p>
                         <p
-                            className={`text-white text-sm ${bgColor} rounded-md p-2 mt-1 ${textAlign}`}>{message}
+                            className={`text-white text-sm ${bgColor} rounded-md p-2 mt-1 text-pretty`}>{message}
                         </p>
                     </div>
                 </div>
             </div>
         );
     };
-
 
     return (
         <div className='flex flex-col gap-6 relative'>
@@ -132,39 +143,39 @@ export const Reminders = ({ clientes }: Props) => {
                                     <p className='text-white w-full rounded-md'>{clientes[index].nombre}</p>
                                     <p className='text-gray-400 italic text-sm rounded-md'>{clientes[index].telefono}</p>
                                 </div>
-                                <p
-                                    className='text-gray-400 w-full items-start text-pretty md:text-balance text-sm rounded-md'>Mascotas: {getMascotas(clientes[index].mascotas)}
+                                <p className='text-gray-400 w-full items-start text-pretty md:text-balance text-sm rounded-md'>
+                                    Mascotas: {getMascotas(clientes[index].mascotas)}
                                 </p>
                             </div>
                             <div className='relative flex flex-col bg-gray-800 rounded-md gap-2 right-0 p-5 h-fit lg:row-span-2'>
-                                {MessageBubble({
-                                    message: `Hola ${clientes[index].nombre}.`,
-                                    senderName: "Baalak",
-                                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                                    avatarUrl: '/img/Baalak-logo-banner-small.png',
-                                    isOwnMessage: true,
-                                })}
-                                {MessageBubble({
-                                    message: `La clínica veterinaria Baalak', le informa que ${clientes[index].mensaje}`,
-                                    senderName: "Baalak",
-                                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                                    avatarUrl: '/img/Baalak-logo-banner-small.png',
-                                    isOwnMessage: true,
-                                })}
-                                {MessageBubble({
-                                    message: msjo,
-                                    senderName: "Baalak",
-                                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                                    avatarUrl: '/img/Baalak-logo-banner-small.png',
-                                    isOwnMessage: false,
-                                })}
+                                <MessageBubble
+                                    message={`Hola ${clientes[index].nombre}.`}
+                                    senderName={newMsg.senderName}
+                                    timestamp={newMsg.timestamp}
+                                    avatarUrl={newMsg.avatarUrl}
+                                    isOwnMessage={newMsg.isOwnMessage}
+                                />
+                                <MessageBubble
+                                    message={`La clínica veterinaria Baalak', le informa que ${clientes[index].mensaje}`}
+                                    senderName={newMsg.senderName}
+                                    timestamp={newMsg.timestamp}
+                                    avatarUrl={newMsg.avatarUrl}
+                                    isOwnMessage={newMsg.isOwnMessage}
+                                />
                                 {fileShow && <div className='absolute bottom-0 left-0 bg-gray-900 p-2 rounded-md w-max h-fit'>
                                     <UploaderFiles />
                                 </div>}
-                                {msjo && (
-                                    <div className='wrap-anywhere flex justify-end'>
-                                        <p className='text-white w-auto text-sm text-pretty md:text-balance bg-green-900 rounded-md p-2'>{msjo}</p>
-                                    </div>
+                                {messages && (
+                                    messages.map((msg, index) => (
+                                        <MessageBubble
+                                            key={index}
+                                            message={msg.message}
+                                            senderName={msg.senderName}
+                                            timestamp={msg.timestamp}
+                                            avatarUrl={msg.avatarUrl}
+                                            isOwnMessage={msg.isOwnMessage}
+                                        />
+                                    ))
                                 )}
                             </div>
                             <hr className='border-black w-full' />
@@ -188,7 +199,21 @@ export const Reminders = ({ clientes }: Props) => {
                                                 setMsjo("");
                                             }
                                         }}
-                                    />{'  Incluir mensaje opcional'}
+                                    />{imo? '':'  Incluir mensaje opcional'}
+                                    {imo && (
+                                        <textarea
+                                            className='min-h-[15px] text-gray-400 items-center text-sm w-full flex bg-gray-900 hover:bg-gray-800 rounded-md p-1 transition-all'
+                                            value={msjo}
+                                            placeholder="Escribe un mensaje opcional..."
+                                            onChange={(e) => {
+                                                setMsjo(e.target.value)
+                                            }}
+                                            onKeyDown={handleKeyDown}
+                                            autoComplete='on'
+                                            autoCorrect='on'
+                                            style={{ resize: 'none', height: '28px' }}
+                                        />
+                                    )}
                                 </label>
                                 <button
                                     className='hover:bg-gray-800 rounded-md p-1 shadow-sm transition-all group hover:scale-105'
@@ -196,19 +221,6 @@ export const Reminders = ({ clientes }: Props) => {
                                     <VscSend className='hover:bg-gray-800 text-gray-400 rounded-md shadow-sm transition-all group hover:scale-105' />
                                 </button>
                             </div>
-                            {imo && (
-                                <textarea
-                                    className='w-full text-gray-900 border border-gray-600 p-2 rounded-md'
-                                    value={msjo}
-                                    onChange={(e) => {
-                                        setMsjo(e.target.value)
-                                    }}
-                                    onKeyDown={handleKeyDown}
-                                    autoComplete='on'
-                                    autoCorrect='on'
-                                    onInput={adjustHeight}
-                                />
-                            )}
                         </div>
                     </div>
                 </form>
