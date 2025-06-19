@@ -3,6 +3,7 @@ import { Cliente } from "../../../interfaces";
 import { toast } from "react-hot-toast/headless";
 import { VscSend } from "react-icons/vsc";
 import { PiPaperclipBold } from "react-icons/pi";
+import { UploaderFiles } from "./UploaderFiles";
 
 interface Props {
 	clientes: Cliente[];
@@ -12,13 +13,13 @@ export const Reminders = ({ clientes }: Props) => {
     const [index, setIndex] = useState(0);
     const [msjo, setMsjo] = useState("");
     const [imo, setImo] = useState(false);
+    const [fileShow, setFileShow] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         toast.success("Mensaje enviado correctamente", {
             position: 'bottom-right'
         });
-        console.log("Mensaje enviado:", sendMesage());
     }
 
     const getMascotas = (mascotas: { nombre: string }[]) => {
@@ -41,22 +42,62 @@ export const Reminders = ({ clientes }: Props) => {
         }
     }
 
-    const sendMesage = () => {
-        let msj
-
-        if (imo) {
-            msj = `Hola ${clientes[index].nombre}.\n\nLa clínica veterinaria Baalak', le informa que ${clientes[index].mensaje}\n\n${msjo}`;
-        } else {
-            msj = `Hola ${clientes[index].nombre}.\n\nLa clínica veterinaria Baalak', le informa que ${clientes[index].mensaje}`;
-        }
-        return msj
-    }
-
     const adjustHeight = (e: React.FormEvent<HTMLTextAreaElement>) => {
         const textarea = e.currentTarget;
         textarea.style.height = 'auto'; // Resetea la altura para que se ajuste al contenido
         textarea.style.height = textarea.scrollHeight + 'px'; // Establece la altura a la altura del contenido
     }
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            setMsjo(""); // Limpia el mensaje después de enviar
+        }
+    }
+
+    type MessageBubbleProps = {
+        message: string;
+        senderName: string;
+        timestamp: string; // Formato como "10:30 AM"
+        avatarUrl?: string;
+        isOwnMessage?: boolean;
+    };
+
+    const MessageBubble = ({
+        message,
+        senderName,
+        timestamp,
+        avatarUrl,
+        isOwnMessage = false,
+    }: MessageBubbleProps) => {
+        const alignment = isOwnMessage ? "justify-end" : "justify-start";
+        const bgColor = isOwnMessage ? "bg-green-900" : "bg-gray-800";
+        const textAlign = "text-pretty";
+        const flexDirection = isOwnMessage ? "flex-row-reverse" : "flex-row";
+
+        return (
+            <div className={`flex ${alignment}`}>
+                <div className={`flex ${flexDirection} items-start gap-2 max-w-md`}>
+                    {avatarUrl && (
+                        <img
+                            src={avatarUrl}
+                            alt={senderName}
+                            className="w-8 h-8 rounded-full object-cover"
+                        />
+                    )}
+                    <div>
+                        <p className={`text-xs text-gray-400 ${textAlign}`}>
+                            {senderName} • {timestamp}
+                        </p>
+                        <p
+                            className={`text-white text-sm ${bgColor} rounded-md p-2 mt-1 ${textAlign}`}>{message}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
 
     return (
         <div className='flex flex-col gap-6 relative'>
@@ -95,13 +136,31 @@ export const Reminders = ({ clientes }: Props) => {
                                     className='text-gray-400 w-full items-start text-pretty md:text-balance text-sm rounded-md'>Mascotas: {getMascotas(clientes[index].mascotas)}
                                 </p>
                             </div>
-                            <div className='flex flex-col bg-gray-800 rounded-md gap-2 right-0 p-5 h-fit lg:row-span-2'>
-                                <div className='wrap-anywhere flex justify-end'>
-                                    <p className='text-white w-auto text-sm bg-green-900 rounded-md p-2'>{`Hola ${clientes[index].nombre}.`}</p>
-                                </div>
-                                <div className='wrap-anywhere flex justify-end'>
-                                    <p className='text-white w-auto text-sm bg-green-900 text-pretty md:text-balance rounded-md p-2'>{`La clínica veterinaria Baalak', le informa que ${clientes[index].mensaje}`}</p>
-                                </div>
+                            <div className='relative flex flex-col bg-gray-800 rounded-md gap-2 right-0 p-5 h-fit lg:row-span-2'>
+                                {MessageBubble({
+                                    message: `Hola ${clientes[index].nombre}.`,
+                                    senderName: "Baalak",
+                                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                    avatarUrl: '/img/Baalak-logo-banner-small.png',
+                                    isOwnMessage: true,
+                                })}
+                                {MessageBubble({
+                                    message: `La clínica veterinaria Baalak', le informa que ${clientes[index].mensaje}`,
+                                    senderName: "Baalak",
+                                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                    avatarUrl: '/img/Baalak-logo-banner-small.png',
+                                    isOwnMessage: true,
+                                })}
+                                {MessageBubble({
+                                    message: msjo,
+                                    senderName: "Baalak",
+                                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                    avatarUrl: '/img/Baalak-logo-banner-small.png',
+                                    isOwnMessage: false,
+                                })}
+                                {fileShow && <div className='absolute bottom-0 left-0 bg-gray-900 p-2 rounded-md w-max h-fit'>
+                                    <UploaderFiles />
+                                </div>}
                                 {msjo && (
                                     <div className='wrap-anywhere flex justify-end'>
                                         <p className='text-white w-auto text-sm text-pretty md:text-balance bg-green-900 rounded-md p-2'>{msjo}</p>
@@ -109,13 +168,17 @@ export const Reminders = ({ clientes }: Props) => {
                                 )}
                             </div>
                             <hr className='border-black w-full' />
-                            <div className='flex gap-3 items-center justify-between bg-gray-900 w-full p-2 rounded-md'>
+                            <div className="flex items-center justify-between bg-gray-900 w-full p-2 rounded-md">
                                 <button
-                                    className='hover:bg-gray-800 rounded-md p-2 shadow-sm transition-all group hover:scale-105'
-                                    type='button'>
+                                    className='hover:bg-gray-800 rounded-md p-1 shadow-sm transition-all group hover:scale-105'
+                                    type='button'
+                                    onClick={() => {
+                                        if (fileShow) setFileShow(false);
+                                        else setFileShow(true);
+                                    }}>
                                     <PiPaperclipBold className='hover:bg-gray-800 text-gray-400 rounded-md shadow-sm transition-all group hover:scale-105' />
                                 </button>
-                                <label className='text-gray-400 items-center text-sm w-full flex hover:bg-gray-800 rounded-md p-2 transition-all group hover:scale-105'>
+                                <label className='text-gray-400 items-center text-sm w-full flex hover:bg-gray-800 rounded-md p-1 transition-all group hover:scale-100'>
                                     <input
                                         className='cursor-pointer mr-2'
                                         type='checkbox'
@@ -128,7 +191,7 @@ export const Reminders = ({ clientes }: Props) => {
                                     />{'  Incluir mensaje opcional'}
                                 </label>
                                 <button
-                                    className='hover:bg-gray-800 rounded-md p-2 shadow-sm transition-all group hover:scale-105'
+                                    className='hover:bg-gray-800 rounded-md p-1 shadow-sm transition-all group hover:scale-105'
                                     type='submit'>
                                     <VscSend className='hover:bg-gray-800 text-gray-400 rounded-md shadow-sm transition-all group hover:scale-105' />
                                 </button>
@@ -140,6 +203,7 @@ export const Reminders = ({ clientes }: Props) => {
                                     onChange={(e) => {
                                         setMsjo(e.target.value)
                                     }}
+                                    onKeyDown={handleKeyDown}
                                     autoComplete='on'
                                     autoCorrect='on'
                                     onInput={adjustHeight}
