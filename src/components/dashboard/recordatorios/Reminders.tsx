@@ -235,65 +235,67 @@ export const Reminders = ({ clientes }: Props) => {
     };
 
     return (
-        <div className='flex flex-col gap-3 relative'>
+        <div className='flex flex-col gap-3 relative h-screen'>
             {clientes.length > 0 ?
                 <form
-                    className='grid grid-cols-1 lg:grid-cols-3 gap-1 auto-rows-max flex-1'
+                    className=''
                     onSubmit={handleSubmit}>
-                    <div className='bg-white border border-gray-300 shadow-sm rounded-md flex flex-col gap-1 p-5 h-fit'>
-                        <h2 className='font-bold tracking-tight text-xl'>Clientes</h2>
+                    <div className='grid grid-cols-1 lg:grid-cols-3 auto-rows-max bg-white w-full shadow-sm rounded-md flex flex-col lg:col-span-2'>
+                        <div className='h-fit lg:col-span-3'>
+                            <h2 className='font-bold tracking-tight text-xl'>Clientes</h2>
                             <select
                                 className='p-2 border border-gray-600 rounded-md'
                                 onChange={(e) => {
                                     setIndex(e.target.selectedIndex);
                                 }}> {
-                                clientes && clientes.map(item => (
-                                    <option
-                                        key={item.nombre}
-                                        value={item.nombre}> {item.nombre}
-                                    </option>
-                                ))
-                            }
-                        </select>
-                        <p>Telefono: {clientes[index].telefono}</p>
-                        <div className="w-full max-w-md mx-auto bg-gray-900 border rounded-lg shadow-sm">
-                            {clientes.map((contact, index) => (
-                                <div
-                                    key={index}
-                                    onClick={() => setIndex(index)}
-                                    className="flex items-center px-2 py-3 cursor-pointer hover:bg-gray-800 transition"
-                                >
-                                    <img
-                                        src={'/img/user.png'}
-                                        alt={contact.nombre}
-                                        className="w-12 h-12 rounded-full mr-4"
-                                    />
-                                    <div className="flex-1 border-b pb-2">
-                                        <div className="flex justify-between">
-                                            <span className="font-medium text-white">{contact.nombre}</span>
-                                            <span className="text-sm text-white">
-                                                {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
-                                        </div>
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-sm text-gray-400 truncate w-48">
-                                                {'Ultimo mensaje'}
-                                            </span>
-                                            {messages.length > 0 && (
-                                                <span className="ml-2 bg-green-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                                                    {messages.length > 99 ? "99+" : messages.length}
+                                    clientes && clientes.map(item => (
+                                        <option
+                                            key={item.nombre}
+                                            value={item.nombre}> {item.nombre}
+                                        </option>
+                                    ))
+                                }
+                            </select>
+                            <p>Telefono: {clientes[index].telefono}</p>
+                        </div>
+                        <div
+                            className='bg-white shadow-sm rounded-md flex flex-col h-fit'>
+                            <div className="w-full max-w-md mx-auto h-full bg-gray-900 border border-grey-900 rounded-lg shadow-sm">
+                                {clientes.map((contact, index) => (
+                                    <div
+                                        key={index}
+                                        onClick={() => setIndex(index)}
+                                        className="flex items-center px-2 py-3 cursor-pointer hover:bg-gray-800 transition"
+                                    >
+                                        <img
+                                            src={'/img/user.png'}
+                                            alt={contact.nombre}
+                                            className="w-12 h-12 rounded-full mr-4"
+                                        />
+                                        <div className="flex-1 border-b pb-2">
+                                            <div className="flex justify-between">
+                                                <span className="font-medium text-white">{contact.nombre}</span>
+                                                <span className="text-sm text-white">
+                                                    {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </span>
-                                            )}
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-sm text-gray-400 truncate w-48">
+                                                    {'Ultimo mensaje'}
+                                                </span>
+                                                {messages.length > 0 && (
+                                                    <span className="ml-2 bg-green-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                                                        {messages.length > 99 ? "99+" : messages.length}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                         </div>
-                    </div>
-                    <div className='bg-white border w-full shadow-sm rounded-md flex flex-col gap-2 p-5 h-fit lg:col-span-2'>
-                        <h2 className='font-bold tracking-tight text-xl'>Mensaje</h2>
                         <div
-                            className='w-full rounded-md text-white bg-gray-800'>
+                            className='w-full rounded-md text-white bg-gray-800 h-fit lg:col-span-2'>
                             <div className='flex gap-3 items-center justify-between bg-gray-900 w-full p-2 rounded-md'>
                                 <img className="size-7 rounded-full bg-gray-800 text-gray-700" src='/img/user.png' alt='User'/>
                                 <div className='flex flex-col bg-gray-900 w-full'>
