@@ -174,7 +174,7 @@ export const Reminders = ({ clientes }: Props) => {
     };
     
     const handleDelete = (filename: string) => {
-        fetch(`/delete/${filename}`, { method: "DELETE" })
+        fetch(`http://veterinariabaalak.com/delete/${filename}`, { method: "DELETE" })
         .then(res => res.json())
         .then(res => {
             if (res.err) {
@@ -235,12 +235,12 @@ export const Reminders = ({ clientes }: Props) => {
     };
 
     return (
-        <div className='flex flex-col gap-6 relative'>
+        <div className='flex flex-col gap-3 relative'>
             {clientes.length > 0 ?
                 <form
-                    className='grid grid-cols-1 lg:grid-cols-3 gap-2 auto-rows-max flex-1'
+                    className='grid grid-cols-1 lg:grid-cols-3 gap-1 auto-rows-max flex-1'
                     onSubmit={handleSubmit}>
-                    <div className='bg-white border border-gray-300 shadow-sm rounded-md flex flex-col gap-2 p-5 h-fit'>
+                    <div className='bg-white border border-gray-300 shadow-sm rounded-md flex flex-col gap-1 p-5 h-fit'>
                         <h2 className='font-bold tracking-tight text-xl'>Clientes</h2>
                             <select
                                 className='p-2 border border-gray-600 rounded-md'
@@ -256,6 +256,39 @@ export const Reminders = ({ clientes }: Props) => {
                             }
                         </select>
                         <p>Telefono: {clientes[index].telefono}</p>
+                        <div className="w-full max-w-md mx-auto bg-gray-900 border rounded-lg shadow-sm">
+                            {clientes.map((contact, index) => (
+                                <div
+                                    key={index}
+                                    onClick={() => setIndex(index)}
+                                    className="flex items-center px-2 py-3 cursor-pointer hover:bg-gray-800 transition"
+                                >
+                                    <img
+                                        src={'/img/user.png'}
+                                        alt={contact.nombre}
+                                        className="w-12 h-12 rounded-full mr-4"
+                                    />
+                                    <div className="flex-1 border-b pb-2">
+                                        <div className="flex justify-between">
+                                            <span className="font-medium text-white">{contact.nombre}</span>
+                                            <span className="text-sm text-white">
+                                                {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm text-gray-400 truncate w-48">
+                                                {'Ultimo mensaje'}
+                                            </span>
+                                            {messages.length > 0 && (
+                                                <span className="ml-2 bg-green-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                                                    {messages.length > 99 ? "99+" : messages.length}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                     <div className='bg-white border w-full shadow-sm rounded-md flex flex-col gap-2 p-5 h-fit lg:col-span-2'>
                         <h2 className='font-bold tracking-tight text-xl'>Mensaje</h2>
@@ -361,7 +394,7 @@ export const Reminders = ({ clientes }: Props) => {
                                         <PiPaperclipBold className='hover:bg-gray-800 text-gray-400 rounded-md shadow-sm transition-all group hover:scale-105' />
                                     </button>
                                     {fileCount > 0 && (
-                                        <span className="absolute -top-3 -right-3 text-red-600 text-xs font-bold px-2 py-1 rounded-full">
+                                        <span className="absolute -top-3 -left-3 text-white-600 text-xs px-2 py-1 rounded-full">
                                             {fileCount > 99 ? "99+" : fileCount}
                                         </span>
                                     )}
