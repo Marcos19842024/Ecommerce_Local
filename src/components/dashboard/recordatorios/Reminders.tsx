@@ -3,13 +3,22 @@ import { Cliente } from "../../../interfaces";
 import { toast } from "react-hot-toast/headless";
 import { VscSend } from "react-icons/vsc";
 import { PiPaperclipBold } from "react-icons/pi";
-import { UploaderFiles } from "./UploaderFiles";
+import { Loader } from "../../shared/Loader";
+import { v4 as uuidv4 } from "uuid";
 
 interface Props {
 	clientes: Cliente[];
 }
 
+interface UploadedFile {
+    filename: string;
+    filetype: string;
+    icon: string;
+    color: string;
+}
+
 type MessageBubbleProps = {
+    id: string;
     message: string;
     senderName: string;
     timestamp: string; // Formato como "10:30 AM"
@@ -23,6 +32,9 @@ export const Reminders = ({ clientes }: Props) => {
     const [imo, setImo] = useState(false);
     const [fileShow, setFileShow] = useState(false);
     const [messages, setMessages] = useState<MessageBubbleProps[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [files, setFiles] = useState<UploadedFile[]>([]);
+    const fileCount = files.length;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -69,6 +81,7 @@ export const Reminders = ({ clientes }: Props) => {
     }
 
     const newMsg: MessageBubbleProps = {
+        id: uuidv4(),
         message: msjo,
         senderName: `Baalak Veterinaria`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -76,7 +89,12 @@ export const Reminders = ({ clientes }: Props) => {
         isOwnMessage: true,
     };
 
+    const deleteMessage = (idToDelete: string) => {
+        setMessages((prev) => prev.filter((msg) => msg.id !== idToDelete))
+    }
+
     const MessageBubble = ({
+        id,
         message,
         senderName,
         timestamp,
@@ -105,9 +123,115 @@ export const Reminders = ({ clientes }: Props) => {
                             className={`text-white text-sm ${bgColor} rounded-md p-2 mt-1 text-pretty`}>{message}
                         </p>
                     </div>
+                    <span
+                        className="cursor-pointer text-xl text-red-500"
+                        onClick={() => deleteMessage(id)}
+                    >
+                        &times;
+                    </span>
                 </div>
             </div>
         );
+    };
+
+    const handleUpload = (fileList: FileList | null) => {
+        if (!fileList || fileList.length === 0) return;
+
+        const formData = new FormData();
+        for (let i = 0; i < fileList.length; i++) {
+            formData.append("files", fileList[i]);
+        }
+
+        setLoading(true);
+
+        fetch("http://veterinariabaalak.com/upload", {
+            method: "POST",
+            body: formData,
+        })
+        .then(res => res.json())
+        .then(res => {
+            if (!res.err) {
+                const newFiles: UploadedFile[] = res.statusText.map((filename: string) => {
+                    const ext = filename.split(".").pop() || "";
+                    const [icon, color] = getFileTypes(ext);
+                    return { filename, filetype: ext, icon, color };
+                });
+
+                setFiles(prev => [
+                    ...prev,
+                    ...newFiles.filter(nf => !prev.find(f => f.filename === nf.filename)),
+                ]);
+
+                toast.success("Archivos subidos correctamente", { position: "bottom-right" });
+            } else {
+                toast.error("Error en la respuesta del servidor", { position: "bottom-right" });
+            }
+        })
+        .catch(() => {
+            toast.error("Error al subir los archivos", { position: "bottom-right" });
+        })
+        .finally(() => setLoading(false));
+    };
+    
+    const handleDelete = (filename: string) => {
+        fetch(`/delete/${filename}`, { method: "DELETE" })
+        .then(res => res.json())
+        .then(res => {
+            if (res.err) {
+                toast.error(`Error al eliminar el archivo: ${res.err}`, { position: "bottom-right" });
+            } else {
+                setFiles(prev => prev.filter(file => file.filename !== filename));
+            }
+        })
+        .catch(() => {
+            toast.error("Error al eliminar el archivo", { position: "bottom-right" });
+        });
+    };
+
+    const getFileTypes = (filetype: string): [string, string] => {
+        switch (filetype) {
+            case "xlsx":
+            case "xls":
+            case "xlsm":
+                return ["fa fa-file-excel-o", "green"];
+            case "zip":
+            case "rar":
+            case "7zip":
+                return ["fa fa-file-archive-o", "orange"];
+            case "doc":
+            case "docx":
+                return ["fa fa-file-word-o", "blue"];
+            case "pptx":
+                return ["fa fa-file-powerpoint-o", "red"];
+            case "mp3":
+            case "wav":
+            case "m4a":
+                return ["fa fa-file-sound-o", "blue"];
+            case "mp4":
+            case "mov":
+            case "avi":
+            case "wmv":
+            case "flv":
+            case "3gp":
+                return ["fa fa-file-video-o", "blue"];
+            case "png":
+            case "jpg":
+            case "ico":
+            case "gif":
+            case "jpeg":
+            case "svg":
+                return ["fa fa-file-picture-o", "black"];
+            case "pdf":
+                return ["fa fa-file-pdf-o", "red"];
+            case "css":
+            case "html":
+            case "cs":
+                return ["fa fa-file-code-o", "black"];
+            case "txt":
+                return ["fa fa-file-text-o", "blue"];
+            default:
+                return ["fa fa-file", "black"];
+        }
     };
 
     return (
@@ -149,6 +273,7 @@ export const Reminders = ({ clientes }: Props) => {
                             </div>
                             <div className='relative flex flex-col bg-gray-800 rounded-md gap-2 right-0 p-5 h-fit lg:row-span-2'>
                                 <MessageBubble
+                                    id={newMsg.id}
                                     message={`Hola ${clientes[index].nombre}.`}
                                     senderName={newMsg.senderName}
                                     timestamp={newMsg.timestamp}
@@ -156,6 +281,7 @@ export const Reminders = ({ clientes }: Props) => {
                                     isOwnMessage={newMsg.isOwnMessage}
                                 />
                                 <MessageBubble
+                                    id={newMsg.id}
                                     message={`La clínica veterinaria Baalak', le informa que ${clientes[index].mensaje}`}
                                     senderName={newMsg.senderName}
                                     timestamp={newMsg.timestamp}
@@ -163,12 +289,56 @@ export const Reminders = ({ clientes }: Props) => {
                                     isOwnMessage={newMsg.isOwnMessage}
                                 />
                                 {fileShow && <div className='absolute bottom-0 left-0 bg-gray-900 p-2 rounded-md w-max h-fit'>
-                                    <UploaderFiles />
+                                    <div>
+                                        <div className="wrapper">
+                                            <div className="box">
+                                                <div className="uploadbox">
+                                                    <input
+                                                        type="file"
+                                                        id="upload"
+                                                        hidden
+                                                        multiple
+                                                        onChange={(e) => handleUpload(e.target.files)}
+                                                    />
+                                                    <label htmlFor="upload" className="flex flex-row items-center justify-start cursor-pointer">
+                                                        <span className="mr-2"><i className="fa fa-cloud-upload"></i></span>
+                                                        <p className="text-sm">Click para subir archivos</p>
+                                                    </label>
+                                                </div>
+                                                <div id="filewrapper" className="flex flex-col gap-1 mt-4">
+                                                    {files.map(file => (
+                                                        <div key={file.filename} className="showfilebox flex justify-between items-center border p-2 rounded">
+                                                            <div className="left flex items-center gap-2">
+                                                                <a
+                                                                    href={`/media/${file.filename}`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                >
+                                                                    <i className={file.icon} style={{ color: file.color }}></i>
+                                                                </a>
+                                                                <h5 className="text-xs">{file.filename}</h5>
+                                                            </div>
+                                                            <div className="right">
+                                                                <span
+                                                                    className="cursor-pointer text-xl text-red-500"
+                                                                    onClick={() => handleDelete(file.filename)}
+                                                                >
+                                                                    &times;
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {loading && <div className="loader"><Loader /></div>}
+                                    </div>
                                 </div>}
                                 {messages && (
                                     messages.map((msg, index) => (
                                         <MessageBubble
                                             key={index}
+                                            id={msg.id}
                                             message={msg.message}
                                             senderName={msg.senderName}
                                             timestamp={msg.timestamp}
@@ -180,15 +350,22 @@ export const Reminders = ({ clientes }: Props) => {
                             </div>
                             <hr className='border-black w-full' />
                             <div className="flex items-center justify-between bg-gray-900 w-full p-2 rounded-md">
-                                <button
-                                    className='hover:bg-gray-800 rounded-md p-1 shadow-sm transition-all group hover:scale-105'
-                                    type='button'
-                                    onClick={() => {
-                                        if (fileShow) setFileShow(false);
-                                        else setFileShow(true);
-                                    }}>
-                                    <PiPaperclipBold className='hover:bg-gray-800 text-gray-400 rounded-md shadow-sm transition-all group hover:scale-105' />
-                                </button>
+                                <div className="relative inline-block">
+                                    <button
+                                        className='hover:bg-gray-800 rounded-md p-1 shadow-sm transition-all group hover:scale-105'
+                                        type='button'
+                                        onClick={() => {
+                                            if (fileShow) setFileShow(false);
+                                            else setFileShow(true);
+                                        }}>
+                                        <PiPaperclipBold className='hover:bg-gray-800 text-gray-400 rounded-md shadow-sm transition-all group hover:scale-105' />
+                                    </button>
+                                    {fileCount > 0 && (
+                                        <span className="absolute -top-3 -right-3 text-red-600 text-xs font-bold px-2 py-1 rounded-full">
+                                            {fileCount > 99 ? "99+" : fileCount}
+                                        </span>
+                                    )}
+                                </div>
                                 <label className='text-gray-400 items-center text-sm w-full flex hover:bg-gray-800 rounded-md p-1 transition-all group hover:scale-100'>
                                     <input
                                         className='cursor-pointer mr-2'

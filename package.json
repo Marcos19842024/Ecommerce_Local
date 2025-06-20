@@ -25,6 +25,7 @@
     "react-router-dom": "^6.26.2",
     "read-excel-file": "^5.8.8",
     "redocx": "^1.1.4",
+    "uuid": "^11.1.0",
     "zod": "^3.23.8",
     "zustand": "^4.5.5"
   },
