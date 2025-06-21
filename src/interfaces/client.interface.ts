@@ -18,4 +18,5 @@ export interface Cliente {
     telefono: string;
     mascotas: Mascota[];
     mensaje: string;
+    status: boolean;
 }

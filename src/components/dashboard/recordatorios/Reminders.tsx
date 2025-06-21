@@ -22,14 +22,15 @@ type MessageBubbleProps = {
     message: string;
     senderName: string;
     timestamp: string; // Formato como "10:30 AM"
-    avatarUrl?: string;
-    isOwnMessage?: boolean;
+    avatarUrl: string;
+    isOwnMessage: boolean;
+    editable: boolean;
 };
 
 export const Reminders = ({ clientes }: Props) => {
     const [index, setIndex] = useState(0);
     const [msjo, setMsjo] = useState("");
-    const [imo, setImo] = useState(false);
+    const [x5, setX5] = useState(false);
     const [fileShow, setFileShow] = useState(false);
     const [messages, setMessages] = useState<MessageBubbleProps[]>([]);
     const [loading, setLoading] = useState(false);
@@ -39,6 +40,8 @@ export const Reminders = ({ clientes }: Props) => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         //logica para enviar al servidor el mensaje
+        clientes[index].status = true
+        console.log('enviado')
         toast.success("Mensaje enviado correctamente", {
             position: 'bottom-right'
         });
@@ -87,6 +90,7 @@ export const Reminders = ({ clientes }: Props) => {
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         avatarUrl: '/img/Baalak-logo-banner-small.png',
         isOwnMessage: true,
+        editable: true,
     };
 
     const deleteMessage = (idToDelete: string) => {
@@ -100,6 +104,7 @@ export const Reminders = ({ clientes }: Props) => {
         timestamp,
         avatarUrl,
         isOwnMessage,
+        editable,
     }: MessageBubbleProps) => {
         const alignment = isOwnMessage ? "justify-end" : "justify-start";
         const bgColor = isOwnMessage ? "bg-green-900" : "bg-gray-800";
@@ -123,12 +128,14 @@ export const Reminders = ({ clientes }: Props) => {
                             className={`text-white text-sm ${bgColor} rounded-md p-2 mt-1 text-pretty`}>{message}
                         </p>
                     </div>
-                    <span
-                        className="cursor-pointer text-xl text-red-500"
-                        onClick={() => deleteMessage(id)}
-                    >
-                        &times;
-                    </span>
+                    {editable && (
+                        <span
+                            className="cursor-pointer text-xl text-red-500"
+                            onClick={() => deleteMessage(id)}
+                        >
+                            &times;
+                        </span>
+                    )}
                 </div>
             </div>
         );
@@ -240,8 +247,8 @@ export const Reminders = ({ clientes }: Props) => {
                 <form
                     className=''
                     onSubmit={handleSubmit}>
-                    <div className='grid grid-cols-1 lg:grid-cols-3 auto-rows-max bg-white w-full shadow-sm rounded-md flex flex-col lg:col-span-2'>
-                        <div className='h-fit lg:col-span-3'>
+                    <div className='grid grid-cols-1 lg:grid-cols-5 auto-rows-max bg-white w-full p-3 shadow-sm rounded-md flex flex-col lg:col-span-2'>
+                        {/* <div className='h-fit lg:col-span-5'>
                             <h2 className='font-bold tracking-tight text-xl'>Clientes</h2>
                             <select
                                 className='p-2 border border-gray-600 rounded-md'
@@ -257,10 +264,25 @@ export const Reminders = ({ clientes }: Props) => {
                                 }
                             </select>
                             <p>Telefono: {clientes[index].telefono}</p>
+                        </div> */}
+                        <div className="p-3 h-fit lg:col-span-5 rounded-md flex justify-between items-center px-4 py-2 bg-gray-100 border-b border-gray-300 shadow-sm select-none">
+                            <h2 className='font-bold tracking-tight text-xl'>Contactos</h2>
+                            <div className="flex space-x-2">
+                                <label className='hover:bg-gray-300 justify-between px-2 text-sm w-fit flex rounded-md p-1 transition-all group hover:scale-105'>
+                                    <input
+                                        className='cursor-pointer mr-2'
+                                        type='checkbox'
+                                        onChange={() => setX5(!x5)}
+                                    />Enviar rondas de 5
+                                </label>
+                                <span className="text-sm text-gray-800 py-1 font-medium">
+                                    {`Mensajes enviados: (${clientes.filter(n => n.status === true).length} de ${clientes.length})`}
+                                </span>
+                            </div>
                         </div>
                         <div
-                            className='bg-white shadow-sm rounded-md flex flex-col h-fit'>
-                            <div className="w-full max-w-md mx-auto h-full bg-gray-900 border border-grey-900 rounded-lg shadow-sm">
+                            className='bg-white shadow-sm rounded-md flex flex-col h-screen lg:col-span-2'>
+                            <div className="overflow-y-auto max-h-screen w-full max-w-md mx-auto h-full bg-gray-900 border border-grey-900 rounded-lg shadow-sm">
                                 {clientes.map((contact, index) => (
                                     <div
                                         key={index}
@@ -283,9 +305,10 @@ export const Reminders = ({ clientes }: Props) => {
                                                 <span className="text-sm text-gray-400 truncate w-48">
                                                     {'Ultimo mensaje'}
                                                 </span>
-                                                {messages.length > 0 && (
-                                                    <span className="ml-2 bg-green-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                                                        {messages.length > 99 ? "99+" : messages.length}
+                                                {contact.status && (
+                                                    <span
+                                                        className="ml-2 text-white text-xs font-bold px-2 py-0.5 rounded-full"
+                                                        style={{ color: '#34B7F1' }}>✔✔
                                                     </span>
                                                 )}
                                             </div>
@@ -295,8 +318,8 @@ export const Reminders = ({ clientes }: Props) => {
                             </div>
                         </div>
                         <div
-                            className='w-full rounded-md text-white bg-gray-800 h-fit lg:col-span-2'>
-                            <div className='flex gap-3 items-center justify-between bg-gray-900 w-full p-2 rounded-md'>
+                            className='w-full rounded-md text-white bg-gray-800 h-fit lg:col-span-3'>
+                            <div className='rounded-md flex gap-3 items-center justify-between bg-gray-900 w-full p-2'>
                                 <img className="size-7 rounded-full bg-gray-800 text-gray-700" src='/img/user.png' alt='User'/>
                                 <div className='flex flex-col bg-gray-900 w-full'>
                                     <p className='text-white w-full rounded-md'>{clientes[index].nombre}</p>
@@ -306,7 +329,7 @@ export const Reminders = ({ clientes }: Props) => {
                                     Mascotas: {getMascotas(clientes[index].mascotas)}
                                 </p>
                             </div>
-                            <div className='relative flex flex-col bg-gray-800 rounded-md gap-2 right-0 p-5 h-fit lg:row-span-2'>
+                            <div className='relative rounded-md flex flex-col bg-gray-800 gap-2 right-0 p-5 h-fit'>
                                 <MessageBubble
                                     id={newMsg.id}
                                     message={`Hola ${clientes[index].nombre}.`}
@@ -314,6 +337,7 @@ export const Reminders = ({ clientes }: Props) => {
                                     timestamp={newMsg.timestamp}
                                     avatarUrl={newMsg.avatarUrl}
                                     isOwnMessage={newMsg.isOwnMessage}
+                                    editable={false}
                                 />
                                 <MessageBubble
                                     id={newMsg.id}
@@ -322,6 +346,7 @@ export const Reminders = ({ clientes }: Props) => {
                                     timestamp={newMsg.timestamp}
                                     avatarUrl={newMsg.avatarUrl}
                                     isOwnMessage={newMsg.isOwnMessage}
+                                    editable={false}
                                 />
                                 {fileShow && <div className='absolute bottom-0 left-0 bg-gray-900 p-2 rounded-md w-max h-fit'>
                                     <div>
@@ -379,15 +404,16 @@ export const Reminders = ({ clientes }: Props) => {
                                             timestamp={msg.timestamp}
                                             avatarUrl={msg.avatarUrl}
                                             isOwnMessage={msg.isOwnMessage}
+                                            editable={msg.editable}
                                         />
                                     ))
                                 )}
                             </div>
-                            <hr className='border-black w-full' />
-                            <div className="flex items-center justify-between bg-gray-900 w-full p-2 rounded-md">
+                            <hr className='border-black w-full rounded-md' />
+                            <div className="flex items-center rounded-md justify-between bg-gray-900 w-full p-2">
                                 <div className="relative inline-block">
                                     <button
-                                        className='hover:bg-gray-800 rounded-md p-1 shadow-sm transition-all group hover:scale-105'
+                                        className='hover:bg-gray-800 rounded-md p-1 transition-all group hover:scale-105'
                                         type='button'
                                         onClick={() => {
                                             if (fileShow) setFileShow(false);
@@ -401,32 +427,18 @@ export const Reminders = ({ clientes }: Props) => {
                                         </span>
                                     )}
                                 </div>
-                                <label className='text-gray-400 items-center text-sm w-full flex hover:bg-gray-800 rounded-md p-1 transition-all group hover:scale-100'>
-                                    <input
-                                        className='cursor-pointer mr-2'
-                                        type='checkbox'
-                                        onChange={(e) => {
-                                            setImo(e.target.checked)
-                                            if (!e.target.checked) {
-                                                setMsjo("");
-                                            }
-                                        }}
-                                    />{imo? '':'  Incluir mensaje opcional'}
-                                    {imo && (
-                                        <textarea
-                                            className='min-h-[15px] text-gray-400 items-center text-sm w-full flex bg-gray-900 hover:bg-gray-800 rounded-md p-1 transition-all'
-                                            value={msjo}
-                                            placeholder="Escribe un mensaje opcional..."
-                                            onChange={(e) => {
-                                                setMsjo(e.target.value)
-                                            }}
-                                            onKeyDown={handleKeyDown}
-                                            autoComplete='on'
-                                            autoCorrect='on'
-                                            style={{ resize: 'none', height: '28px' }}
-                                        />
-                                    )}
-                                </label>
+                                <textarea
+                                    className='min-h-[15px] text-gray-400 items-center text-sm w-full flex bg-gray-900 hover:bg-gray-800 rounded-md p-1 transition-all'
+                                    value={msjo}
+                                    placeholder="Escribe un mensaje opcional..."
+                                    onChange={(e) => {
+                                        setMsjo(e.target.value)
+                                    }}
+                                    onKeyDown={handleKeyDown}
+                                    autoComplete='on'
+                                    autoCorrect='on'
+                                    style={{ resize: 'none', height: '28px' }}
+                                />
                                 <button
                                     className='hover:bg-gray-800 rounded-md p-1 shadow-sm transition-all group hover:scale-105'
                                     type='submit'>
