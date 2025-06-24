@@ -96,14 +96,11 @@ export const Reminders = ({ clientes }: Props) => {
 
     const handleUpload = (fileList: FileList | null) => {
         if (!fileList || fileList.length === 0) return;
-
         const formData = new FormData();
         for (let i = 0; i < fileList.length; i++) {
             formData.append("files", fileList[i]);
         }
-
         setLoading(true);
-
         fetch("http://veterinariabaalak.com/upload", {
             method: "POST",
             body: formData,
@@ -116,19 +113,23 @@ export const Reminders = ({ clientes }: Props) => {
                     const [icon, color] = getFileTypes(ext);
                     return { filename, filetype: ext, icon, color };
                 });
-
                 setFiles(prev => [
                     ...prev,
                     ...newFiles.filter(nf => !prev.find(f => f.filename === nf.filename)),
                 ]);
-
-                toast.success("Archivos subidos correctamente", { position: "bottom-right" });
+                toast.success("Archivos subidos correctamente", {
+                    position: "bottom-right"
+                });
             } else {
-                toast.error("Error en la respuesta del servidor", { position: "bottom-right" });
+                toast.error("Error en la respuesta del servidor", {
+                    position: "bottom-right"
+                });
             }
         })
         .catch(() => {
-            toast.error("Error al subir los archivos", { position: "bottom-right" });
+            toast.error("Error al subir los archivos", {
+                position: "bottom-right"
+            });
         })
         .finally(() => setLoading(false));
     };
@@ -184,13 +185,17 @@ export const Reminders = ({ clientes }: Props) => {
         .then(res => res.json())
         .then(res => {
             if (res.err) {
-                toast.error(`Error al eliminar el archivo: ${res.err}`, { position: "bottom-right" });
+                toast.error(`Error al eliminar el archivo: ${res.err}`, {
+                    position: "bottom-right"
+                });
             } else {
                 setFiles(prev => prev.filter(file => file.filename !== filename));
             }
         })
         .catch(() => {
-            toast.error("Error al eliminar el archivo", { position: "bottom-right" });
+            toast.error("Error al eliminar el archivo", {
+                position: "bottom-right"
+            });
         });
     };
 
@@ -217,26 +222,55 @@ export const Reminders = ({ clientes }: Props) => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (x5) {
-            const enviar = clientes.filter((cliente) => {
+            const clientessend = clientes.filter((cliente) => {
                 return cliente.status === false;
             }).slice(0,5);
-            enviar.map((cliente) => (
+            clientessend.map((cliente) => (
                 messages.map((msj) => (
-                    cliente.mensaje.push(msj.message),
-                    handleSend(cliente)
-                ))
+                    cliente.mensaje.push(msj.message)
+                )),
+                handleSend(cliente)
             ))
         } else {
             messages.map((msj) => (
-                clientes[index].mensaje.push(msj.message),
-                handleSend(clientes[index])
+                clientes[index].mensaje.push(msj.message)
             ))
+            handleSend(clientes[index])
         }
+        ///seleccionar el siguiente contacto////
     }
 
-    const handleSend = (cliente: Cliente) => {
-        // aqui va la logica para enviar
-        cliente.status = true
+    const handleSend = async (cliente: Cliente) => {
+        setLoading(true);
+        let data = {
+            "message": cliente.mensaje,
+            "phone": `521${cliente.telefono}`,
+            "pathtofiles": files,
+        };
+        await fetch(`/send/Baalak/9812062582`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+            headers: {
+                'Content-type':'application/json'
+            }
+        })
+        .then(res => res.json())
+        .then(res => {
+            if(!res.err) {
+                cliente.status = true
+                toast.success("Mensaje enviado correctamente", {
+                    position: "bottom-right"
+                });
+            } else {
+                toast.error(`Error ${res.status}: ${res.text}`,{
+                    position: 'bottom-right'
+                });
+            }
+        }).catch((err) => {
+            toast.error(`Error ${err}`,{
+                position: 'bottom-right'
+            });
+        });
     }
 
     return (
