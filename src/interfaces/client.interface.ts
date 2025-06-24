@@ -17,6 +17,23 @@ export interface Cliente {
     nombre: string;
     telefono: string;
     mascotas: Mascota[];
-    mensaje: string;
+    mensaje: string[];
     status: boolean;
+}
+
+export interface UploadedFile {
+    filename: string;
+    filetype: string;
+    icon: string;
+    color: string;
+}
+
+export interface MessageBubbleProps {
+    id: string;
+    message: string;
+    senderName: string;
+    timestamp: string; // Formato como "10:30 AM"
+    avatarUrl: string;
+    isOwnMessage: boolean;
+    editable: boolean;
 }

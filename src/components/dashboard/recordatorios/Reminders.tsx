@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Cliente } from "../../../interfaces";
+import { Cliente, MessageBubbleProps, UploadedFile } from "../../../interfaces";
 import { toast } from "react-hot-toast/headless";
 import { VscSend } from "react-icons/vsc";
 import { PiPaperclipBold } from "react-icons/pi";
@@ -9,23 +9,6 @@ import { v4 as uuidv4 } from "uuid";
 interface Props {
 	clientes: Cliente[];
 }
-
-interface UploadedFile {
-    filename: string;
-    filetype: string;
-    icon: string;
-    color: string;
-}
-
-type MessageBubbleProps = {
-    id: string;
-    message: string;
-    senderName: string;
-    timestamp: string; // Formato como "10:30 AM"
-    avatarUrl: string;
-    isOwnMessage: boolean;
-    editable: boolean;
-};
 
 export const Reminders = ({ clientes }: Props) => {
     const [index, setIndex] = useState(0);
@@ -40,8 +23,8 @@ export const Reminders = ({ clientes }: Props) => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         //logica para enviar al servidor el mensaje
-        clientes[index].status = true
-        console.log('enviado')
+        messages.map((msj) => (clientes[index].mensaje.push(msj.message)))
+        clientes[index].status = true;
         toast.success("Mensaje enviado correctamente", {
             position: 'bottom-right'
         });
@@ -273,17 +256,21 @@ export const Reminders = ({ clientes }: Props) => {
                                         className='cursor-pointer mr-2'
                                         type='checkbox'
                                         onChange={() => setX5(!x5)}
-                                    />Enviar rondas de 5
+                                    />Enviar mensajes de 5 en 5
                                 </label>
-                                <span className="text-sm text-gray-800 py-1 font-medium">
-                                    {`Mensajes enviados: (${clientes.filter(n => n.status === true).length} de ${clientes.length})`}
+                                <span className="text-sm text-gray-800 py-1 font-medium">Mensajes enviados:</span>
+                                <span className="text-sm text-cyan-600 py-1 font-medium">
+                                    {` (Enviados ${clientes.filter(n => n.status === true).length})`}
+                                </span>
+                                <span className="text-sm text-red-500 py-1 font-medium">
+                                    {` (No enviados ${clientes.filter(n => n.status === false).length})`}
                                 </span>
                             </div>
                         </div>
                         <div
                             className='bg-white shadow-sm rounded-md flex flex-col h-screen lg:col-span-2'>
                             <div className="overflow-y-auto max-h-screen w-full max-w-md mx-auto h-full bg-gray-900 border border-grey-900 rounded-lg shadow-sm">
-                                {clientes.map((contact, index) => (
+                                {clientes.map((cliente, index) => (
                                     <div
                                         key={index}
                                         onClick={() => setIndex(index)}
@@ -291,25 +278,27 @@ export const Reminders = ({ clientes }: Props) => {
                                     >
                                         <img
                                             src={'/img/user.png'}
-                                            alt={contact.nombre}
+                                            alt={cliente.nombre}
                                             className="w-12 h-12 rounded-full mr-4"
                                         />
                                         <div className="flex-1 border-b pb-2">
                                             <div className="flex justify-between">
-                                                <span className="font-medium text-white">{contact.nombre}</span>
+                                                <span className="font-medium text-white">{cliente.nombre}</span>
                                                 <span className="text-sm text-white">
                                                     {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </span>
                                             </div>
                                             <div className="flex justify-between items-center">
-                                                <span className="text-sm text-gray-400 truncate w-48">
-                                                    {'Ultimo mensaje'}
-                                                </span>
-                                                {contact.status && (
-                                                    <span
-                                                        className="ml-2 text-white text-xs font-bold px-2 py-0.5 rounded-full"
-                                                        style={{ color: '#34B7F1' }}>✔✔
-                                                    </span>
+                                                {cliente.status && (
+                                                    <>
+                                                        <span className="text-sm text-gray-400 truncate w-48">
+                                                            {cliente.mensaje[cliente.mensaje.length - 1]}
+                                                        </span>
+                                                        <span
+                                                            className="ml-2 text-white text-xs font-bold px-2 py-0.5 rounded-full"
+                                                            style={{ color: '#34B7F1' }}>✔✔
+                                                        </span>
+                                                    </>
                                                 )}
                                             </div>
                                         </div>
@@ -330,24 +319,18 @@ export const Reminders = ({ clientes }: Props) => {
                                 </p>
                             </div>
                             <div className='relative rounded-md flex flex-col bg-gray-800 gap-2 right-0 p-5 h-fit'>
-                                <MessageBubble
-                                    id={newMsg.id}
-                                    message={`Hola ${clientes[index].nombre}.`}
-                                    senderName={newMsg.senderName}
-                                    timestamp={newMsg.timestamp}
-                                    avatarUrl={newMsg.avatarUrl}
-                                    isOwnMessage={newMsg.isOwnMessage}
-                                    editable={false}
-                                />
-                                <MessageBubble
-                                    id={newMsg.id}
-                                    message={`La clínica veterinaria Baalak', le informa que ${clientes[index].mensaje}`}
-                                    senderName={newMsg.senderName}
-                                    timestamp={newMsg.timestamp}
-                                    avatarUrl={newMsg.avatarUrl}
-                                    isOwnMessage={newMsg.isOwnMessage}
-                                    editable={false}
-                                />
+                                {clientes[index].mensaje.map((msg, index) => (
+                                    <MessageBubble
+                                        key={index}
+                                        id={newMsg.id}
+                                        message={msg}
+                                        senderName={newMsg.senderName}
+                                        timestamp={newMsg.timestamp}
+                                        avatarUrl={newMsg.avatarUrl}
+                                        isOwnMessage={newMsg.isOwnMessage}
+                                        editable={false}
+                                    />
+                                ))}
                                 {fileShow && <div className='absolute bottom-0 left-0 bg-gray-900 p-2 rounded-md w-max h-fit'>
                                     <div>
                                         <div className="wrapper">

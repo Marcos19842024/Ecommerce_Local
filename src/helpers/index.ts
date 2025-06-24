@@ -69,7 +69,7 @@ export const prepareClients = (rows: Row[]) => {
 					nombre: formatString(cell[0].toString()),
 					telefono: formatNumbers(cell[1].toString()),
 					mascotas: [],
-					mensaje: '',
+					mensaje: [],
 					status: false
 				});
 			}

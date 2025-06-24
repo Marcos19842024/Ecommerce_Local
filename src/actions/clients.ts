@@ -41,25 +41,28 @@ export const getClients = async ({e}: Props) => {
 
         clientes.forEach(cliente => {
             const mascotas = cliente.mascotas;
-        
+            let mensaje;
+            cliente.mensaje.push(`Hola ${cliente.nombre}.`);
+
             if (mascotas.length === 1) {
-                cliente.mensaje = "su mascota '" + mascotas[0].nombre + "'," + ListReminders(mascotas[0]);
+                mensaje = "su mascota '" + mascotas[0].nombre + "'," + ListReminders(mascotas[0]);
             } else {
-                cliente.mensaje = "sus mascotas: '";
+                mensaje = "sus mascotas: '";
             
                 for (let i = 0; i < mascotas.length; i++) {
                     if (i === 0) {
-                        cliente.mensaje += mascotas[i].nombre + "'," + ListReminders(mascotas[i]);
+                        mensaje += mascotas[i].nombre + "'," + ListReminders(mascotas[i]);
                     } else {
                         if (i === (mascotas.length - 1)) {
-                            cliente.mensaje += " y '" + mascotas[i].nombre + "'," + ListReminders(mascotas[i]);
+                            mensaje += " y '" + mascotas[i].nombre + "'," + ListReminders(mascotas[i]);
                         } else {
-                            cliente.mensaje += ", '" + mascotas[i].nombre + "'," + ListReminders(mascotas[i]);
+                            mensaje += ", '" + mascotas[i].nombre + "'," + ListReminders(mascotas[i]);
                         }
                     }
                 }
             }
-            cliente.mensaje += " el día " + mascotas[0].recordatorios[0].tipos[0].fecha + ".";
+            mensaje += " el día " + mascotas[0].recordatorios[0].tipos[0].fecha + ".";
+            cliente.mensaje.push(`La clínica veterinaria Baalak', le informa que ${mensaje}`)
         });
         return clientes;
     }
