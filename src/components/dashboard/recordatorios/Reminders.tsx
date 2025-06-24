@@ -20,16 +20,6 @@ export const Reminders = ({ clientes }: Props) => {
     const [files, setFiles] = useState<UploadedFile[]>([]);
     const fileCount = files.length;
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        //logica para enviar al servidor el mensaje
-        messages.map((msj) => (clientes[index].mensaje.push(msj.message)))
-        clientes[index].status = true;
-        toast.success("Mensaje enviado correctamente", {
-            position: 'bottom-right'
-        });
-    }
-
     const getMascotas = (mascotas: { nombre: string }[]) => {
         if (mascotas.length === 1) {
             return `${mascotas[0].nombre}.`;
@@ -50,22 +40,6 @@ export const Reminders = ({ clientes }: Props) => {
         }
     }
 
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            newMsg.message = msjo;
-            if (msjo.trim() === "") {
-                toast.error("Por favor, escribe un mensaje antes de enviar.", {
-                    position: 'bottom-right'
-                });
-            } else {
-                setMessages((prev) => [...prev, newMsg]);
-                setMsjo(""); // Limpia el mensaje después de enviar
-                setFileShow(false); // Oculta el uploader de archivos
-            }
-        }
-    }
-
     const newMsg: MessageBubbleProps = {
         id: uuidv4(),
         message: msjo,
@@ -75,10 +49,6 @@ export const Reminders = ({ clientes }: Props) => {
         isOwnMessage: true,
         editable: true,
     };
-
-    const deleteMessage = (idToDelete: string) => {
-        setMessages((prev) => prev.filter((msg) => msg.id !== idToDelete))
-    }
 
     const MessageBubble = ({
         id,
@@ -162,21 +132,6 @@ export const Reminders = ({ clientes }: Props) => {
         })
         .finally(() => setLoading(false));
     };
-    
-    const handleDelete = (filename: string) => {
-        fetch(`http://veterinariabaalak.com/delete/${filename}`, { method: "DELETE" })
-        .then(res => res.json())
-        .then(res => {
-            if (res.err) {
-                toast.error(`Error al eliminar el archivo: ${res.err}`, { position: "bottom-right" });
-            } else {
-                setFiles(prev => prev.filter(file => file.filename !== filename));
-            }
-        })
-        .catch(() => {
-            toast.error("Error al eliminar el archivo", { position: "bottom-right" });
-        });
-    };
 
     const getFileTypes = (filetype: string): [string, string] => {
         switch (filetype) {
@@ -224,30 +179,72 @@ export const Reminders = ({ clientes }: Props) => {
         }
     };
 
+    const handleDelete = (filename: string) => {
+        fetch(`http://veterinariabaalak.com/delete/${filename}`, { method: "DELETE" })
+        .then(res => res.json())
+        .then(res => {
+            if (res.err) {
+                toast.error(`Error al eliminar el archivo: ${res.err}`, { position: "bottom-right" });
+            } else {
+                setFiles(prev => prev.filter(file => file.filename !== filename));
+            }
+        })
+        .catch(() => {
+            toast.error("Error al eliminar el archivo", { position: "bottom-right" });
+        });
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            newMsg.message = msjo;
+            if (msjo.trim() === "") {
+                toast.error("Por favor, escribe un mensaje antes de enviar.", {
+                    position: 'bottom-right'
+                });
+            } else {
+                setMessages((prev) => [...prev, newMsg]);
+                setMsjo(""); // Limpia el mensaje después de enviar
+                setFileShow(false); // Oculta el uploader de archivos
+            }
+        }
+    }
+
+    const deleteMessage = (idToDelete: string) => {
+        setMessages((prev) => prev.filter((msg) => msg.id !== idToDelete))
+    }
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (x5) {
+            const enviar = clientes.filter((cliente) => {
+                return cliente.status === false;
+            }).slice(0,5);
+            enviar.map((cliente) => (
+                messages.map((msj) => (
+                    cliente.mensaje.push(msj.message),
+                    handleSend(cliente)
+                ))
+            ))
+        } else {
+            messages.map((msj) => (
+                clientes[index].mensaje.push(msj.message),
+                handleSend(clientes[index])
+            ))
+        }
+    }
+
+    const handleSend = (cliente: Cliente) => {
+        // aqui va la logica para enviar
+        cliente.status = true
+    }
+
     return (
         <div className='flex flex-col gap-3 relative h-screen'>
             {clientes.length > 0 ?
                 <form
-                    className=''
                     onSubmit={handleSubmit}>
                     <div className='grid grid-cols-1 lg:grid-cols-5 auto-rows-max bg-white w-full p-3 shadow-sm rounded-md flex flex-col lg:col-span-2'>
-                        {/* <div className='h-fit lg:col-span-5'>
-                            <h2 className='font-bold tracking-tight text-xl'>Clientes</h2>
-                            <select
-                                className='p-2 border border-gray-600 rounded-md'
-                                onChange={(e) => {
-                                    setIndex(e.target.selectedIndex);
-                                }}> {
-                                    clientes && clientes.map(item => (
-                                        <option
-                                            key={item.nombre}
-                                            value={item.nombre}> {item.nombre}
-                                        </option>
-                                    ))
-                                }
-                            </select>
-                            <p>Telefono: {clientes[index].telefono}</p>
-                        </div> */}
                         <div className="p-3 h-fit lg:col-span-5 rounded-md flex justify-between items-center px-4 py-2 bg-gray-100 border-b border-gray-300 shadow-sm select-none">
                             <h2 className='font-bold tracking-tight text-xl'>Contactos</h2>
                             <div className="flex space-x-2">
@@ -274,7 +271,7 @@ export const Reminders = ({ clientes }: Props) => {
                                     <div
                                         key={index}
                                         onClick={() => setIndex(index)}
-                                        className="flex items-center px-2 py-3 cursor-pointer hover:bg-gray-800 transition"
+                                        className="flex items-center px-2 py-3 cursor-pointer hover:bg-gray-800 transition focus:bg-cyan-600"
                                     >
                                         <img
                                             src={'/img/user.png'}
@@ -283,7 +280,9 @@ export const Reminders = ({ clientes }: Props) => {
                                         />
                                         <div className="flex-1 border-b pb-2">
                                             <div className="flex justify-between">
-                                                <span className="font-medium text-white">{cliente.nombre}</span>
+                                                <span className="font-medium text-white">
+                                                    {cliente.nombre}
+                                                </span>
                                                 <span className="text-sm text-white">
                                                     {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </span>
