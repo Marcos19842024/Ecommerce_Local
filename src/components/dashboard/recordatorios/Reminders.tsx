@@ -5,6 +5,7 @@ import { VscSend } from "react-icons/vsc";
 import { PiPaperclipBold } from "react-icons/pi";
 import { Loader } from "../../shared/Loader";
 import { v4 as uuidv4 } from "uuid";
+import Pdf from "../pdf/Pdf";
 
 interface Props {
 	clientes: Cliente[];
@@ -251,7 +252,7 @@ export const Reminders = ({ clientes }: Props) => {
         setLoading(true);
         let data = {
             "message": cliente.mensaje,
-            "phone": `521${cliente.telefono}`,
+            "phone": `5219811713636`,
             "pathtofiles": files,
         };
         await fetch(`${url}send/${center}/${cel}9812062582`, {
@@ -295,21 +296,45 @@ export const Reminders = ({ clientes }: Props) => {
                     <div className='grid grid-cols-1 lg:grid-cols-5 auto-rows-max bg-white w-full p-3 shadow-sm rounded-md flex flex-col lg:col-span-2'>
                         <div className="p-3 h-fit lg:col-span-5 rounded-md flex justify-between items-center px-4 py-2 bg-gray-100 border-b border-gray-300 shadow-sm select-none">
                             <h2 className='font-bold tracking-tight text-xl'>Contactos</h2>
-                            <div className="flex space-x-2">
-                                <label className='hover:bg-gray-300 justify-between px-2 text-sm w-fit flex rounded-md p-1 transition-all group hover:scale-105'>
+                            <div className="flex space-x-3">
+                                <div className='items-center hover:bg-cyan-600 text-cyan-600 hover:text-white justify-between px-2 text-sm w-fit flex rounded-md p-1 transition-all group hover:scale-105'>
                                     <input
                                         className='cursor-pointer mr-2'
                                         type='checkbox'
                                         onChange={() => setX5(!x5)}
                                     />Enviar mensajes de 5 en 5
-                                </label>
-                                <span className="text-sm text-gray-800 py-1 font-medium">Mensajes enviados:</span>
-                                <span className="text-sm text-cyan-600 py-1 font-medium">
-                                    {` (Enviados ${clientes.filter(n => n.status === true).length})`}
-                                </span>
-                                <span className="text-sm text-red-500 py-1 font-medium">
-                                    {` (No enviados ${clientes.filter(n => n.status === false).length})`}
-                                </span>
+                                </div>
+                                <div className='space-x-2 text-cyan-600 justify-between px-2 text-sm w-fit flex rounded-md p-1 transition-all group hover:scale-105'>
+                                    <span className="text-sm text-gray-800 py-1 font-medium">Mensajes enviados:</span>
+                                    <span className="text-sm py-1 font-medium">
+                                        {` (Enviados ${clientes.filter(n => n.status === true).length})`}
+                                    </span>
+                                    <span className="text-sm text-red-600 py-1 font-medium">
+                                        {` (No enviados ${clientes.filter(n => n.status === false).length})`}
+                                    </span>
+                                </div>
+                                <button
+                                    className='hover:bg-cyan-600 text-cyan-600 hover:text-white rounded-md p-2 transition-all group hover:scale-105'
+                                    type='button'
+                                    onClick={() => {
+                                        <Pdf
+                                            data1={
+                                                clientes.filter(cliente => {
+                                                    return cliente.status === true
+                                                })
+                                            }
+                                            data2={
+                                                clientes.filter(cliente => {
+                                                    return cliente.status === false
+                                                })
+                                            }
+                                        />
+                                    }}>
+                                    <span
+                                        className="fa fa-download"
+                                        aria-hidden="true"
+                                    />
+                                </button>
                             </div>
                         </div>
                         <div
