@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Cliente, MessageBubbleProps, UploadedFile } from "../../../interfaces";
 import { toast } from "react-hot-toast/headless";
 import { VscSend } from "react-icons/vsc";
@@ -19,6 +19,8 @@ export const Reminders = ({ clientes }: Props) => {
     const [loading, setLoading] = useState(false);
     const [files, setFiles] = useState<UploadedFile[]>([]);
     const fileCount = files.length;
+    const clienteRefs = useRef<(HTMLDivElement | null)[]>([]);
+
 
     const getMascotas = (mascotas: { nombre: string }[]) => {
         if (mascotas.length === 1) {
@@ -196,7 +198,8 @@ export const Reminders = ({ clientes }: Props) => {
             toast.error("Error al eliminar el archivo", {
                 position: "bottom-right"
             });
-        });
+        })
+        .finally(() => setLoading(false));
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -221,23 +224,24 @@ export const Reminders = ({ clientes }: Props) => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (x5) {
-            const clientessend = clientes.filter((cliente) => {
-                return cliente.status === false;
-            }).slice(0,5);
-            clientessend.map((cliente) => (
+        if (!clientes[index].status) {
+            if (x5) {
+                const clientessend = clientes.filter((cliente) => {
+                    return cliente.status === false;
+                }).slice(0,5);
+                clientessend.map((cliente) => (
+                    messages.map((msj) => (
+                        cliente.mensaje.push(msj.message)
+                    )),
+                    handleSend(cliente)
+                ))
+            } else {
                 messages.map((msj) => (
-                    cliente.mensaje.push(msj.message)
-                )),
-                handleSend(cliente)
-            ))
-        } else {
-            messages.map((msj) => (
-                clientes[index].mensaje.push(msj.message)
-            ))
-            handleSend(clientes[index])
+                    clientes[index].mensaje.push(msj.message)
+                ))
+                handleSend(clientes[index])
+            }
         }
-        ///seleccionar el siguiente contacto////
     }
 
     const handleSend = async (cliente: Cliente) => {
@@ -270,6 +274,13 @@ export const Reminders = ({ clientes }: Props) => {
             toast.error(`Error ${err}`,{
                 position: 'bottom-right'
             });
+        })
+        .finally(() => {
+            setLoading(false)
+            const indexsend = clientes.indexOf(cliente)
+            if (clienteRefs.current[indexsend]) {
+                clienteRefs.current[indexsend + 1]?.click()
+            }
         });
     }
 
@@ -304,6 +315,7 @@ export const Reminders = ({ clientes }: Props) => {
                                 {clientes.map((cliente, index) => (
                                     <div
                                         key={index}
+                                        ref={(el) => (clienteRefs.current[index] = el)}
                                         onClick={() => setIndex(index)}
                                         className="flex items-center px-2 py-3 cursor-pointer hover:bg-gray-800 transition focus:bg-cyan-600"
                                     >
@@ -321,19 +333,17 @@ export const Reminders = ({ clientes }: Props) => {
                                                     {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </span>
                                             </div>
-                                            <div className="flex justify-between items-center">
-                                                {cliente.status && (
-                                                    <>
-                                                        <span className="text-sm text-gray-400 truncate w-48">
-                                                            {cliente.mensaje[cliente.mensaje.length - 1]}
-                                                        </span>
-                                                        <span
-                                                            className="ml-2 text-white text-xs font-bold px-2 py-0.5 rounded-full"
-                                                            style={{ color: '#34B7F1' }}>✔✔
-                                                        </span>
-                                                    </>
-                                                )}
-                                            </div>
+                                            {cliente.status && (
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-sm text-gray-400 truncate w-48">
+                                                        {cliente.mensaje[cliente.mensaje.length - 1]}
+                                                    </span>
+                                                    <span
+                                                        className="ml-2 text-white text-xs font-bold px-2 py-0.5 rounded-full"
+                                                        style={{ color: '#34B7F1' }}>✔✔
+                                                    </span>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
