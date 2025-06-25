@@ -20,7 +20,10 @@ export const Reminders = ({ clientes }: Props) => {
     const [files, setFiles] = useState<UploadedFile[]>([]);
     const fileCount = files.length;
     const clienteRefs = useRef<(HTMLDivElement | null)[]>([]);
-
+    const [seleccionado, setSeleccionado] = useState<number | null>(null);
+    const url = 'http://veterinariabaalak.com/';
+    const center = 'Baalak';
+    const cel = '9812062582';
 
     const getMascotas = (mascotas: { nombre: string }[]) => {
         if (mascotas.length === 1) {
@@ -103,7 +106,7 @@ export const Reminders = ({ clientes }: Props) => {
             formData.append("files", fileList[i]);
         }
         setLoading(true);
-        fetch("http://veterinariabaalak.com/upload", {
+        fetch(`${url}upload`, {
             method: "POST",
             body: formData,
         })
@@ -183,7 +186,7 @@ export const Reminders = ({ clientes }: Props) => {
     };
 
     const handleDelete = (filename: string) => {
-        fetch(`http://veterinariabaalak.com/delete/${filename}`, { method: "DELETE" })
+        fetch(`${url}delete/${filename}`, { method: "DELETE" })
         .then(res => res.json())
         .then(res => {
             if (res.err) {
@@ -251,7 +254,7 @@ export const Reminders = ({ clientes }: Props) => {
             "phone": `521${cliente.telefono}`,
             "pathtofiles": files,
         };
-        await fetch(`/send/Baalak/9812062582`, {
+        await fetch(`${url}send/${center}/${cel}9812062582`, {
             method: 'POST',
             body: JSON.stringify(data),
             headers: {
@@ -316,8 +319,11 @@ export const Reminders = ({ clientes }: Props) => {
                                     <div
                                         key={index}
                                         ref={(el) => (clienteRefs.current[index] = el)}
-                                        onClick={() => setIndex(index)}
-                                        className="flex items-center px-2 py-3 cursor-pointer hover:bg-gray-800 transition focus:bg-cyan-600"
+                                        onClick={() => {
+                                            setIndex(index)
+                                            setSeleccionado(index)
+                                        }}
+                                        className={`flex items-center px-2 py-3 cursor-pointer hover:bg-cyan-600 transition focus:bg-cyan-600 ${seleccionado === index ? 'bg-cyan-600 text-white' : 'bg-gray-900'}`}
                                     >
                                         <img
                                             src={'/img/user.png'}
@@ -393,16 +399,16 @@ export const Reminders = ({ clientes }: Props) => {
                                                 </div>
                                                 <div id="filewrapper" className="flex flex-col gap-1 mt-4">
                                                     {files.map(file => (
-                                                        <div key={file.filename} className="showfilebox flex justify-between items-center border p-2 rounded">
-                                                            <div className="left flex items-center gap-2">
+                                                        <div key={file.filename} className="showfilebox flex justify-between items-center border p-2 rounded bg-slate-100">
+                                                            <div className="left flex items-center gap-1">
                                                                 <a
-                                                                    href={`/media/${file.filename}`}
+                                                                    href={`${url}/media/${file.filename}`}
                                                                     target="_blank"
                                                                     rel="noopener noreferrer"
                                                                 >
                                                                     <i className={file.icon} style={{ color: file.color }}></i>
                                                                 </a>
-                                                                <h5 className="text-xs">{file.filename}</h5>
+                                                                <h5 className="text-xs text-cyan-800">{file.filename}</h5>
                                                             </div>
                                                             <div className="right">
                                                                 <span
