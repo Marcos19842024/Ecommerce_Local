@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Document, Text, Page, View, StyleSheet } from "@react-pdf/renderer";
 import { Cliente } from "../../../interfaces";
 
@@ -7,9 +7,15 @@ interface PdfProps {
     data2: Cliente[];
 }
 
-const Pdf: React.FC<PdfProps> = ({ data1, data2 }) => {
-    const sending = data1;
-    const notsending = data2;
+export const Pdf: React.FC<PdfProps> = ({ data1, data2 }) => {
+    const [sending, setSending] = useState<Cliente[]>([]);
+    const [notsending, setNotsending] = useState<Cliente[]>([]);
+    
+    useEffect(() => {
+        setSending(data1);
+        setNotsending(data2);
+        console.log('este es el pdf')
+    },[]);
 
     const styles = StyleSheet.create({
         page: {
@@ -195,5 +201,3 @@ const Pdf: React.FC<PdfProps> = ({ data1, data2 }) => {
         </Document>
     );
 };
-
-export default Pdf;

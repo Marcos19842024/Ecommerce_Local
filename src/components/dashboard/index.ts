@@ -18,3 +18,7 @@ export * from './recordatorios/Reminders';
 
 // TRANSPORTES
 export * from './transportes/Transport';
+
+//PDF
+export * from './pdf/PdfViewer';
+export * from './pdf/Pdf';
