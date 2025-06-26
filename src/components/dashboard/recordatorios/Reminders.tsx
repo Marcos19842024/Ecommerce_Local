@@ -317,6 +317,7 @@ export const Reminders = ({ clientes }: Props) => {
                                 </div>
                                 <button
                                     className='hover:bg-cyan-600 text-cyan-600 hover:text-white rounded-md p-2 transition-all group hover:scale-105'
+                                    type="button"
                                     onClick={() => {
                                         <PdfViewer
                                             data1={
