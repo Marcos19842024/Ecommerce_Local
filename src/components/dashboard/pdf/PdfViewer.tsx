@@ -1,35 +1,24 @@
-import React, { useEffect, useState } from "react";
-import { PDFViewer, BlobProvider } from "@react-pdf/renderer";
-import { saveAs } from "file-saver";
+import { PDFViewer } from "@react-pdf/renderer";
 import { Cliente } from "../../../interfaces";
 import { Pdf } from "./Pdf";
 
 interface PdfViewerProps {
-    data1: Cliente[];
-    data2: Cliente[];
+    sending: Cliente[];
+    notsending: Cliente[];
 }
 
-export const PdfViewer: React.FC<PdfViewerProps> = ({ data1, data2 }) => {
-    const [sending, setSending] = useState<Cliente[]>([]);
-    const [notsending, setNotsending] = useState<Cliente[]>([]);
-
-    useEffect(() => {
-        setSending(data1);
-        setNotsending(data2);
-        console.log('este es el pdf viewer')
-    },[]);
+export const PdfViewer: React.FC<PdfViewerProps> = ({ sending, notsending }) => {
 
     return (
         <div className="flex flex-col items-center gap-4">
-            <h1 className="text-lg font-bold">Vista previa PDF</h1>
             {/* Visor en línea */}
-            <div className="w-full h-[600px] border shadow">
+            <div className="w-full h-screen border shadow">
                 <PDFViewer width="100%" height="100%">
-                    <Pdf data1={sending} data2={notsending} />
+                    <Pdf sending={sending} notsending={notsending} />
                 </PDFViewer>
             </div>
             {/* Botón para descargar PDF */}
-            <BlobProvider document={<Pdf data1={sending} data2={notsending} />}>
+            {/* <BlobProvider document={<Pdf sending={sending} notsending={notsending} />}>
                 {({ blob, loading }) =>
                     loading ? (
                         <button disabled className="bg-gray-400 px-4 py-2 rounded">
@@ -44,7 +33,7 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ data1, data2 }) => {
                         </button>
                     )
                 }
-            </BlobProvider>
+            </BlobProvider> */}
         </div>
     );
 };

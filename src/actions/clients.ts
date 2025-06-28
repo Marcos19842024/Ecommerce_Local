@@ -6,9 +6,12 @@ import toast from 'react-hot-toast';
 interface Props {
 	e: React.ChangeEvent<HTMLInputElement>;
 }
-
+/////falta poner la lista de solo clientes############################
 export const getClients = async ({e}: Props) => {
     if (!e.target.files || e.target.files.length === 0) {
+        toast.error(`No file selected.`, {
+            position: 'top-right',
+        });
         throw new Error("No file selected.");
     }
 
@@ -24,12 +27,12 @@ export const getClients = async ({e}: Props) => {
             row[0][4] !== titles[4] ||
             row[0][5] !== titles[5]) {
             toast.error(`Error: La hoja de Excel no contiene la información requerida. (${titles})`, {
-                position: 'bottom-right',
+                position: 'top-right',
             });
             return [];
         } else if (row.length <= 1) {
             toast.error(`Error: La hoja de Excel no contiene información`, {
-                position: 'bottom-right',
+                position: 'top-right',
             });
             return [];
         } else {

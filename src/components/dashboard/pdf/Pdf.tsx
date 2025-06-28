@@ -1,21 +1,12 @@
-import React, { useEffect, useState } from "react";
 import { Document, Text, Page, View, StyleSheet } from "@react-pdf/renderer";
 import { Cliente } from "../../../interfaces";
 
 interface PdfProps {
-    data1: Cliente[];
-    data2: Cliente[];
+    sending: Cliente[];
+    notsending: Cliente[];
 }
 
-export const Pdf: React.FC<PdfProps> = ({ data1, data2 }) => {
-    const [sending, setSending] = useState<Cliente[]>([]);
-    const [notsending, setNotsending] = useState<Cliente[]>([]);
-    
-    useEffect(() => {
-        setSending(data1);
-        setNotsending(data2);
-        console.log('este es el pdf')
-    },[]);
+export const Pdf: React.FC<PdfProps> = ({ sending, notsending }) => {
 
     const styles = StyleSheet.create({
         page: {
