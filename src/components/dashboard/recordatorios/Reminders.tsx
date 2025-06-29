@@ -1,8 +1,8 @@
 import { useRef, useState } from "react";
 import { Cliente, MessageBubbleProps, UploadedFile } from "../../../interfaces";
-import { toast } from "react-hot-toast/headless";
+import { toast } from "react-hot-toast";
 import { VscSend } from "react-icons/vsc";
-import { PiAppWindowBold, PiPaperclipBold } from "react-icons/pi";
+import { PiAppWindowBold, PiPaperclipBold, PiTerminalWindow } from "react-icons/pi";
 import { v4 as uuidv4 } from "uuid";
 import { PdfViewer } from "../pdf/PdfViewer";
 import { FaWhatsapp } from "react-icons/fa6";
@@ -14,6 +14,7 @@ interface Props {
 
 export const Reminders = ({ clientes }: Props) => {
     const [status, setStatus] = useState("??");
+    const [statusServer, setStatusServer] = useState("??");
     const [index, setIndex] = useState(0);
     const [msjo, setMsjo] = useState("");
     const [x5, setX5] = useState(false);
@@ -23,7 +24,6 @@ export const Reminders = ({ clientes }: Props) => {
     const [files, setFiles] = useState<UploadedFile[]>([]);
     const fileCount = files.length;
     const clienteRefs = useRef<(HTMLDivElement | null)[]>([]);
-    const [seleccionado, setSeleccionado] = useState<number | null>(null);
     const url = 'http://veterinariabaalak.com/';
     const center = 'Baalak';
     const cel = '9812062582';
@@ -54,6 +54,24 @@ export const Reminders = ({ clientes }: Props) => {
         })
         .finally();
     };
+
+    const handleStartServer = () => {
+        fetch(`${url}start`, { method: 'POST' })
+        .then(response => response.text())
+        .then(data => {
+            setStatusServer(data)
+            toast.success(data, {
+                position: "top-right"
+            });
+        })
+        .catch(() => {
+            setStatusServer('Error al ejecutar el script')
+            toast.error('Error al ejecutar el script', {
+                position: "top-right"
+            });
+        })
+        .finally();
+    }
 
     const getMascotas = (mascotas: { nombre: string }[]) => {
         if (mascotas.length === 1) {
@@ -315,7 +333,7 @@ export const Reminders = ({ clientes }: Props) => {
             }
         });
     }
-///falta arreglar la paginacion del pdf#########################
+
     return (
         <>
             {clientes.length > 0 ?
@@ -355,10 +373,18 @@ export const Reminders = ({ clientes }: Props) => {
                                 onClick={handleStatus}>
                                 <FaWhatsapp />
                                 <span className="text-sm font-medium">
-                                    {`Status: ${status}`}
+                                    {status}
                                 </span>
                             </button>
-                            
+                            <button
+                                className='hover:bg-cyan-600 flex justify-between items-center gap-1 py-2 p-3 justify-between w-fit text-cyan-600 hover:text-white rounded-md p-2 transition-all group hover:scale-105'
+                                type="button"
+                                onClick={handleStartServer}>
+                                <PiTerminalWindow />
+                                <span className="text-sm font-medium">
+                                    {statusServer}
+                                </span>
+                            </button>
                         </div>
                     </div>
                     {showPdf ?
@@ -379,16 +405,15 @@ export const Reminders = ({ clientes }: Props) => {
                     :
                         <>
                             <div className="lg:col-span-2 overflow-y-auto overscroll-contain ... h-2/3 w-full max-w-md mx-auto bg-gray-900 border border-grey-900 rounded-md shadow-sm">
-                                <h2 className='font-bold text-white tracking-tight text-xl py-3 px-4'>Chats</h2>
-                                <hr className='border-slate-100 w-full rounded-md' />
-                                {clientes.map((cliente, index) => (
+                                <h2 className='font-bold text-white tracking-tight text-xl py-4 px-4'>Chats</h2>
+                                <hr className='border-slate-600 w-full rounded-md' />
+                                {clientes.map((cliente, i) => (
                                     <div
-                                        className={`flex items-center px-2 py-3 cursor-pointer hover:bg-cyan-600 transition focus:bg-cyan-600 ${seleccionado === index ? 'bg-cyan-600 text-white' : 'bg-gray-900'}`}
-                                        key={index}
-                                        ref={(el) => (clienteRefs.current[index] = el)}
+                                        className={`flex items-center px-2 py-3 cursor-pointer hover:bg-cyan-600 transition focus:bg-cyan-600 ${index === i ? 'bg-cyan-600 text-white' : 'bg-gray-900'}`}
+                                        key={i}
+                                        ref={(el) => (clienteRefs.current[i] = el)}
                                         onClick={() => {
-                                            setIndex(index)
-                                            setSeleccionado(index)
+                                            setIndex(i)
                                         }}
                                     >
                                         <img
@@ -396,7 +421,7 @@ export const Reminders = ({ clientes }: Props) => {
                                             alt={cliente.nombre}
                                             className="w-12 h-12 rounded-full mr-4"
                                         />
-                                        <div className="flex-1 border-b pb-2">
+                                        <div className="flex-1 border-slate-600 border-b pb-2">
                                             <div className="flex justify-between">
                                                 <span className="font-medium text-white">
                                                     {cliente.nombre}
@@ -420,7 +445,7 @@ export const Reminders = ({ clientes }: Props) => {
                                     </div>
                                 ))}
                             </div>
-                            <div className='lg:col-span-3 w-full flex flex-col rounded-md text-white bg-gray-800 h-2/3 lg:col-span-3'>
+                            <div className='relative lg:col-span-3 w-full flex flex-col rounded-md text-white bg-gray-800 h-2/3 lg:col-span-3'>
                                 <div className='rounded-md flex gap-3 items-center justify-between bg-gray-900 w-full p-2'>
                                     <img
                                         className="size-7 rounded-full bg-gray-800 text-gray-700"
@@ -435,7 +460,8 @@ export const Reminders = ({ clientes }: Props) => {
                                         Mascotas: {getMascotas(clientes[index].mascotas)}
                                     </p>
                                 </div>
-                                <div className='overflow-y-auto overscroll-contain rounded-md flex flex-col bg-gray-800 gap-2 right-0 p-5'>
+                                <hr className='border-slate-600 w-full rounded-md' />
+                                <div className='rounded-md flex flex-col bg-gray-800 gap-2 right-0 p-5'>
                                     {clientes[index].mensaje.map((msg, index) => (
                                         <MessageBubble
                                             key={index}
@@ -462,31 +488,29 @@ export const Reminders = ({ clientes }: Props) => {
                                             />
                                         ))
                                     )}
-                                </div>
-                                {fileShow &&
-                                    <div className='bottom-0 bg-gray-900 p-2 rounded-md w-fit h-fit'>
-                                        <div>
-                                            <input
-                                                type="file"
-                                                id="upload"
-                                                hidden
-                                                multiple
-                                                onChange={(e) => handleUpload(e.target.files)}
-                                            />
-                                            <label
-                                                htmlFor="upload"
-                                                className="flex flex-row items-center justify-start cursor-pointer">
-                                                    <span className="mr-2">
-                                                        <i className="fa fa-cloud-upload"> </i>
-                                                    </span>
-                                                <p className="text-sm">Click para subir archivos</p>
-                                            </label>
-                                        </div>
-                                        <div className="flex flex-col gap-1 mt-4">
+                                    {fileShow &&
+                                        <div className='overflow-y-auto overscroll-contain h-fit max-h-64 absolute bottom-12 left-1 bg-gray-900 p-2 rounded-md w-fit'>
+                                            <div className="p-2 items-center justify-center h-fit">
+                                                <input
+                                                    type="file"
+                                                    id="upload"
+                                                    hidden
+                                                    multiple
+                                                    onChange={(e) => handleUpload(e.target.files)}
+                                                />
+                                                <label
+                                                    htmlFor="upload"
+                                                    className="flex flex-row items-center justify-start w-fit cursor-pointer bg-gray-900">
+                                                        <span className="mr-2">
+                                                            <i className="fa fa-cloud-upload"> </i>
+                                                        </span>
+                                                    <p className="text-sm">Click para subir archivos</p>
+                                                </label>
+                                            </div>
                                             {files.map(file => (
                                                 <div
                                                     key={file.filename}
-                                                    className="showfilebox flex justify-between items-center border p-2 rounded bg-slate-100">
+                                                    className="flex justify-between items-center border p-2 rounded bg-slate-100">
                                                     <div className="left flex items-center gap-1">
                                                         <a
                                                             href={`${url}/media/${file.filename}`}
@@ -512,12 +536,12 @@ export const Reminders = ({ clientes }: Props) => {
                                                 </div>
                                             ))}
                                         </div>
-                                    </div>
-                                }
+                                    }
+                                </div>
                                 <div className='mt-auto'>
-                                    <hr className='border-black w-full rounded-md' />
-                                    <div className="flex items-center rounded-md justify-between bg-gray-900 w-full p-2">
-                                        <div className="relative inline-block">
+                                    <hr className='border-slate-600 w-full rounded-md' />
+                                    <div className="flex items-center rounded-md justify-between bg-gray-900 w-full gap-2 p-2">
+                                        <div className="relative inline-block gap-2">
                                             <button
                                                 className='hover:bg-gray-800 rounded-md p-1 transition-all group hover:scale-105'
                                                 type='button'
@@ -525,10 +549,10 @@ export const Reminders = ({ clientes }: Props) => {
                                                     if (fileShow) setFileShow(false);
                                                     else setFileShow(true);
                                                 }}>
-                                                <PiPaperclipBold className='hover:bg-gray-800 text-gray-400 rounded-md shadow-sm transition-all group hover:scale-105' />
+                                                <PiPaperclipBold className='hover:bg-gray-800 gap-2 text-gray-400 rounded-md shadow-sm transition-all group hover:scale-105' />
                                             </button>
                                             {fileCount > 0 && (
-                                                <span className="absolute -top-3 -left-3 text-white-600 text-xs px-2 py-1 rounded-full">
+                                                <span className="absolute -top-3 -left-1 cursor-none text-white-600 text-xs py-1 rounded-full">
                                                     {fileCount > 99 ? "99+" : fileCount}
                                                 </span>
                                             )}

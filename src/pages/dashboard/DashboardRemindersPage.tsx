@@ -23,7 +23,7 @@ export const DashboardRemindersPage = () => {
   }
 
   return (
-    <div className="h-full flex flex-col gap-1">
+    <div className="relative h-full flex flex-col gap-1">
       {showIb ?
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Envío de mensajes</h1>

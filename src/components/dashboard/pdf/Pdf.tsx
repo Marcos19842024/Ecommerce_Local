@@ -2,193 +2,191 @@ import { Document, Text, Page, View, StyleSheet } from "@react-pdf/renderer";
 import { Cliente } from "../../../interfaces";
 
 interface PdfProps {
-    sending: Cliente[];
-    notsending: Cliente[];
+  sending: Cliente[];
+  notsending: Cliente[];
 }
 
-export const Pdf: React.FC<PdfProps> = ({ sending, notsending }) => {
+const PAGE_SIZE = 30;
 
-    const styles = StyleSheet.create({
-        page: {
-            padding: 20,
-            flexDirection: "column",
-            display: "flex",
-        },
-        section: {
-            display: "flex",
-            justifyContent: "center",
-            alignContent: "flex-end",
-            flexDirection: "column",
-        },
-        title: {
-            textAlign: "center",
-            flexDirection: "column",
-            display: "flex",
-            alignItems: "center",
-        },
-        column: {
-            flexDirection: "row",
-            borderBottom: "1px solid #ccc",
-        },
-        table: {
-            width: "50%",
-            padding: 3,
-            fontSize: 10,
-            display: "flex",
-            flexDirection: "column",
-        },
-        rowtable: {
-            flexDirection: "row",
-            backgroundColor: "#4682B4",
-        },
-        row: {
-            flexDirection: "row",
-            borderBottom: "1px solid #ccc",
-            marginTop: 2,
-            padding: 2,
-        },
-        header: {
-            width: "100%",
-            textAlign: "center",
-            fontWeight: 800,
-            color: "#4682B4",
-            marginTop: 3,
-            padding: 3,
-        },
-        headerid: {
-            width: "8%",
-            textAlign: "center",
-            fontWeight: 800,
-            color: "white",
-            marginTop: 2,
-            padding: 2,
-        },
-        headername: {
-            width: "62%",
-            textAlign: "center",
-            fontWeight: 800,
-            color: "white",
-            marginTop: 2,
-            padding: 2,
-        },
-        headertelefono: {
-            width: "30%",
-            textAlign: "center",
-            fontWeight: 800,
-            color: "white",
-            marginTop: 2,
-            padding: 2,
-        },
-        cellid: {
-            width: "8%",
-            textAlign: "center",
-            color: "#4682B4",
-            marginTop: 2,
-            padding: 2,
-        },
-        cellname: {
-            width: "62%",
-            textAlign: "left",
-            color: "#4682B4",
-            marginTop: 2,
-            padding: 2,
-        },
-        celltelefono: {
-            width: "30%",
-            textAlign: "right",
-            color: "#4682B4",
-            marginTop: 2,
-            padding: 2,
-        },
-        footer: {
-            textAlign: "right",
-            display: "flex",
-            borderTop: "1px solid #ccc",
-            marginTop: 2,
-            padding: 2,
-            fontSize: 8,
-        },
+export const Pdf: React.FC<PdfProps> = ({ sending, notsending }) => {
+  const now = new Date().toLocaleString("es-MX");
+
+  // Función para dividir en páginas
+  const paginate = (items: Cliente[], pageSize: number) => {
+    const pages: Cliente[][] = [];
+    for (let i = 0; i < items.length; i += pageSize) {
+      pages.push(items.slice(i, i + pageSize));
+    }
+    return pages;
+  };
+
+  const sendingPages = paginate(sending, PAGE_SIZE);
+  const notsendingPages = paginate(notsending, PAGE_SIZE);
+  const totalPages = Math.max(sendingPages.length, notsendingPages.length);
+
+  const styles = StyleSheet.create({
+    page: {
+      padding: 20,
+      flexDirection: "column",
+      fontSize: 10,
+      fontFamily: "Helvetica",
+    },
+    section: {
+      marginBottom: 10,
+    },
+    title: {
+      textAlign: "center",
+      fontSize: 14,
+      fontWeight: 700,
+      marginBottom: 5,
+    },
+    subtitle: {
+      textAlign: "center",
+      fontSize: 10,
+      marginBottom: 10,
+    },
+    column: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+    },
+    table: {
+      width: "48%",
+      padding: 3,
+      border: "1px solid #ccc",
+      borderRadius: 3,
+      minHeight: 300,
+    },
+    rowtable: {
+      flexDirection: "row",
+      backgroundColor: "#4682B4",
+      paddingVertical: 4,
+      borderTopLeftRadius: 3,
+      borderTopRightRadius: 3,
+    },
+    row: {
+      flexDirection: "row",
+      borderBottom: "1px solid #ccc",
+      marginTop: 2,
+      paddingVertical: 3,
+      paddingHorizontal: 2,
+    },
+    header: {
+      textAlign: "center",
+      fontWeight: 800,
+      color: "#4682B4",
+      marginVertical: 3,
+      fontSize: 12,
+    },
+    headerid: {
+      width: "10%",
+      textAlign: "center",
+      color: "white",
+      fontWeight: 700,
+    },
+    headername: {
+      width: "60%",
+      textAlign: "center",
+      color: "white",
+      fontWeight: 700,
+    },
+    headertelefono: {
+      width: "30%",
+      textAlign: "center",
+      color: "white",
+      fontWeight: 700,
+    },
+    cellid: {
+      width: "10%",
+      textAlign: "center",
+      color: "#4682B4",
+    },
+    cellname: {
+      width: "60%",
+      textAlign: "left",
+      color: "#4682B4",
+    },
+    celltelefono: {
+      width: "30%",
+      textAlign: "right",
+      color: "#4682B4",
+    },
+    totals: {
+      marginTop: 15,
+      fontSize: 10,
+      textAlign: "left",
+    },
+    footer: {
+      textAlign: "right",
+      fontSize: 8,
+      marginTop: 10,
+      borderTop: "1px solid #ccc",
+      paddingTop: 5,
+    },
   });
 
-    return (
-        <Document>
-            <Page size="LETTER" style={styles.page}>
-                <View style={styles.section}>
-                    <Text style={styles.title}>Lista de recordatorios</Text>
+  return (
+    <Document>
+      {Array.from({ length: totalPages }).map((_, pageIndex) => (
+        <Page size="LETTER" style={styles.page} key={pageIndex}>
+          <View style={styles.section}>
+            <Text style={styles.title}>Lista de recordatorios</Text>
+            <Text style={styles.subtitle}>Fecha de creación: {now}</Text>
+          </View>
+
+          <View style={styles.column}>
+            {/* Enviados */}
+            <View style={styles.table}>
+              <Text style={styles.header}>Enviados</Text>
+              <View style={styles.rowtable}>
+                <Text style={styles.headerid}>Id</Text>
+                <Text style={styles.headername}>Nombre</Text>
+                <Text style={styles.headertelefono}>Teléfono</Text>
+              </View>
+              {(sendingPages[pageIndex] || []).map((cliente, index) => (
+                <View key={`sent-${pageIndex}-${index}`} style={styles.row}>
+                  <Text style={styles.cellid}>{pageIndex * PAGE_SIZE + index + 1}</Text>
+                  <Text style={styles.cellname}>{cliente.nombre}</Text>
+                  <Text style={styles.celltelefono}>{cliente.telefono}</Text>
                 </View>
-                <View style={styles.column}>
-                    {/* Enviados */}
-                    <View style={styles.table}>
-                        <View style={styles.row}>
-                            <View style={styles.header}>
-                                <Text>Enviados</Text>
-                            </View>
-                        </View>
-                        <View style={styles.rowtable}>
-                            <View style={styles.headerid}>
-                                <Text>Id</Text>
-                            </View>
-                            <View style={styles.headername}>
-                                <Text>Nombre</Text>
-                            </View>
-                            <View style={styles.headertelefono}>
-                                <Text>Teléfono</Text>
-                            </View>
-                        </View>
-                        {sending?.map((cliente, index) => (
-                            <View key={`sent-${index}`} style={styles.row}>
-                                <View style={styles.cellid}>
-                                    <Text>{index + 1}</Text>
-                                </View>
-                                <View style={styles.cellname}>
-                                    <Text>{cliente.nombre}</Text>
-                                </View>
-                                <View style={styles.celltelefono}>
-                                    <Text>{cliente.telefono}</Text>
-                                </View>
-                            </View>
-                        ))}
-                    </View>
-                    {/* No enviados */}
-                    <View style={styles.table}>
-                        <View style={styles.row}>
-                            <View style={styles.header}>
-                                <Text>No enviados</Text>
-                            </View>
-                        </View>
-                        <View style={styles.rowtable}>
-                            <View style={styles.headerid}>
-                                <Text>Id</Text>
-                            </View>
-                            <View style={styles.headername}>
-                                <Text>Nombre</Text>
-                            </View>
-                            <View style={styles.headertelefono}>
-                                <Text>Teléfono</Text>
-                            </View>
-                        </View>
-                        {notsending?.map((cliente, index) => (
-                            <View key={`notsent-${index}`} style={styles.row}>
-                                <View style={styles.cellid}>
-                                    <Text>{index + 1}</Text>
-                                </View>
-                                <View style={styles.cellname}>
-                                    <Text>{cliente.nombre}</Text>
-                                </View>
-                                <View style={styles.celltelefono}>
-                                    <Text>{cliente.telefono}</Text>
-                                </View>
-                            </View>
-                        ))}
-                    </View>
+              ))}
+            </View>
+
+            {/* No enviados */}
+            <View style={styles.table}>
+              <Text style={styles.header}>No enviados</Text>
+              <View style={styles.rowtable}>
+                <Text style={styles.headerid}>Id</Text>
+                <Text style={styles.headername}>Nombre</Text>
+                <Text style={styles.headertelefono}>Teléfono</Text>
+              </View>
+              {(notsendingPages[pageIndex] || []).map((cliente, index) => (
+                <View key={`notsent-${pageIndex}-${index}`} style={styles.row}>
+                  <Text style={styles.cellid}>{pageIndex * PAGE_SIZE + index + 1}</Text>
+                  <Text style={styles.cellname}>{cliente.nombre}</Text>
+                  <Text style={styles.celltelefono}>{cliente.telefono}</Text>
                 </View>
-                <View style={styles.footer}>
-                    <Text
-                        render={({ pageNumber, totalPages }: { pageNumber: number; totalPages: number }) => `Página ${pageNumber} de ${totalPages}`}
-                        fixed
-                    />
-                </View>
-            </Page>
-        </Document>
-    );
+              ))}
+            </View>
+          </View>
+
+          {pageIndex === totalPages - 1 && (
+            <View style={styles.totals}>
+              <Text>Total enviados: {sending.length}</Text>
+              <Text>Total no enviados: {notsending.length}</Text>
+              <Text>Total general: {sending.length + notsending.length}</Text>
+            </View>
+          )}
+
+          <View style={styles.footer}>
+            <Text
+              render={() =>
+                `Página ${pageIndex + 1} de ${totalPages}`
+              }
+              fixed
+            />
+          </View>
+        </Page>
+      ))}
+    </Document>
+  );
 };
