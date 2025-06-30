@@ -15,6 +15,7 @@ export * from './products/Editor';
 
 // RECORDATORIOS
 export * from './recordatorios/Reminders';
+export * from './recordatorios/Shellinabox';
 
 // TRANSPORTES
 export * from './transportes/Transport';

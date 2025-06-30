@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from "uuid";
 import { PdfViewer } from "../pdf/PdfViewer";
 import { FaWhatsapp } from "react-icons/fa6";
 import { TfiPrinter } from "react-icons/tfi";
+import { Shellinabox } from "./Shellinabox";
 
 interface Props {
 	clientes: Cliente[];
@@ -14,12 +15,12 @@ interface Props {
 
 export const Reminders = ({ clientes }: Props) => {
     const [status, setStatus] = useState("??");
-    const [statusServer, setStatusServer] = useState("??");
     const [index, setIndex] = useState(0);
     const [msjo, setMsjo] = useState("");
     const [x5, setX5] = useState(false);
     const [fileShow, setFileShow] = useState(false);
     const [showPdf, setShowPdf] = useState(false);
+    const [showShell, setShowShell] = useState(false);
     const [messages, setMessages] = useState<MessageBubbleProps[]>([]);
     const [files, setFiles] = useState<UploadedFile[]>([]);
     const fileCount = files.length;
@@ -47,31 +48,14 @@ export const Reminders = ({ clientes }: Props) => {
             }
         })
         .catch(() => {
-            setStatus("Error en la respuesta del servidor")
             toast.error("Error en la respuesta del servidor", {
                 position: "top-right"
             });
+            setStatus("Error en la respuesta del servidor")
+            setTimeout(() => setStatus('??'), 4000)
         })
         .finally();
     };
-
-    const handleStartServer = () => {
-        fetch(`${url}start`, { method: 'POST' })
-        .then(response => response.text())
-        .then(data => {
-            setStatusServer(data)
-            toast.success(data, {
-                position: "top-right"
-            });
-        })
-        .catch(() => {
-            setStatusServer('Error al ejecutar el script')
-            toast.error('Error al ejecutar el script', {
-                position: "top-right"
-            });
-        })
-        .finally();
-    }
 
     const getMascotas = (mascotas: { nombre: string }[]) => {
         if (mascotas.length === 1) {
@@ -336,6 +320,7 @@ export const Reminders = ({ clientes }: Props) => {
 
     return (
         <>
+            {showShell && <Shellinabox/>}
             {clientes.length > 0 ?
                 <form
                     className='h-screen grid grid-cols-1 lg:grid-cols-5 bg-white w-full p-1 rounded-md flex flex-col'
@@ -379,11 +364,8 @@ export const Reminders = ({ clientes }: Props) => {
                             <button
                                 className='hover:bg-cyan-600 flex justify-between items-center gap-1 py-2 p-3 justify-between w-fit text-cyan-600 hover:text-white rounded-md p-2 transition-all group hover:scale-105'
                                 type="button"
-                                onClick={handleStartServer}>
+                                onClick={() => setShowShell(!showShell)}>
                                 <PiTerminalWindow />
-                                <span className="text-sm font-medium">
-                                    {statusServer}
-                                </span>
                             </button>
                         </div>
                     </div>
@@ -445,7 +427,7 @@ export const Reminders = ({ clientes }: Props) => {
                                     </div>
                                 ))}
                             </div>
-                            <div className='relative lg:col-span-3 w-full flex flex-col rounded-md text-white bg-gray-800 h-2/3 lg:col-span-3'>
+                            <div className='relative lg:col-span-3 w-full flex flex-col rounded-md text-white bg-gray-800 h-2/3'>
                                 <div className='rounded-md flex gap-3 items-center justify-between bg-gray-900 w-full p-2'>
                                     <img
                                         className="size-7 rounded-full bg-gray-800 text-gray-700"
