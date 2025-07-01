@@ -20,8 +20,10 @@ import {
 	DashboardOrderPage,
 	DashboardTransportPage,
 	DashboardRemindersPage,
+	DashboardFeedbackPage,
 	TermsPage,
 	PrivacyNoticePage,
+	FeedBackPage,
 } from '../pages';
 
 export const router = createBrowserRouter([
@@ -60,6 +62,10 @@ export const router = createBrowserRouter([
 			{
 				path: 'registro',
 				element: <RegisterPage />,
+			},
+			{
+				path: 'feedback',
+				element: <FeedBackPage />,
 			},
 			{
 				path: 'account',
@@ -124,6 +130,10 @@ export const router = createBrowserRouter([
 			{
 				path: 'transportes',
 				element: <DashboardTransportPage />,
+			},
+			{
+				path: 'feedback',
+				element: <DashboardFeedbackPage />,
 			},
 		],
 	},

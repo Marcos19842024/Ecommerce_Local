@@ -22,7 +22,7 @@ export const AboutPage = () => {
 			</h2>
 
 			<img
-				src='/img/background-about.png'
+				src='/img/Background-about.png'
 				alt='background-about'
 				className='h-[600px] w-full object-cover'
 			/>

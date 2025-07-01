@@ -1,6 +1,7 @@
 import { FaBoxOpen, FaCartShopping, FaFacebookF, FaInstagram, FaTruckPickup } from 'react-icons/fa6';
 import { FaWhatsapp } from "react-icons/fa";
 import { TbMessageCircleShare } from 'react-icons/tb';
+import { VscFeedback } from 'react-icons/vsc';
 
 export const navbarLinks = [
 	{
@@ -17,6 +18,11 @@ export const navbarLinks = [
 		id: 3,
 		title: 'Sobre Nosotros',
 		href: '/nosotros',
+	},
+	{
+		id: 4,
+		title: 'Feedback',
+		href: '/feedback',
 	},
 ];
 
@@ -65,5 +71,11 @@ export const dashboardLinks = [
 		title: 'Transportes',
 		href: '/dashboard/transportes',
 		icon: <FaTruckPickup size={25} />,
+	},
+	{
+		id: 5,
+		title: 'Feedback',
+		href: '/dashboard/feedback',
+		icon: <VscFeedback size={25} />,
 	},
 ];

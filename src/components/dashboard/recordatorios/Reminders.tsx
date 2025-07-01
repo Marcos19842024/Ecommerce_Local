@@ -2,60 +2,28 @@ import { useRef, useState } from "react";
 import { Cliente, MessageBubbleProps, UploadedFile } from "../../../interfaces";
 import { toast } from "react-hot-toast";
 import { VscSend } from "react-icons/vsc";
-import { PiAppWindowBold, PiPaperclipBold, PiTerminalWindow } from "react-icons/pi";
+import { PiAppWindowBold, PiPaperclipBold } from "react-icons/pi";
 import { v4 as uuidv4 } from "uuid";
 import { PdfViewer } from "../pdf/PdfViewer";
-import { FaWhatsapp } from "react-icons/fa6";
 import { TfiPrinter } from "react-icons/tfi";
-import { Shellinabox } from "./Shellinabox";
 
 interface Props {
 	clientes: Cliente[];
+    url: string;
+    center: string;
+    cel: string;
 }
 
-export const Reminders = ({ clientes }: Props) => {
-    const [status, setStatus] = useState("??");
+export const Reminders = ({ clientes, url, center, cel }: Props) => {
     const [index, setIndex] = useState(0);
     const [msjo, setMsjo] = useState("");
     const [x5, setX5] = useState(false);
     const [fileShow, setFileShow] = useState(false);
     const [showPdf, setShowPdf] = useState(false);
-    const [showShell, setShowShell] = useState(false);
     const [messages, setMessages] = useState<MessageBubbleProps[]>([]);
     const [files, setFiles] = useState<UploadedFile[]>([]);
     const fileCount = files.length;
     const clienteRefs = useRef<(HTMLDivElement | null)[]>([]);
-    const url = 'http://veterinariabaalak.com/';
-    const center = 'Baalak';
-    const cel = '9812062582';
-
-    const handleStatus = () => {
-        fetch(`${url}status/${center}/${cel}`, {
-            method: "GET",
-        })
-        .then(res => res.json())
-        .then(res => {
-            if (!res.err) {
-                setStatus(res.statusText)
-                toast.success(res.statusText, {
-                    position: "top-right"
-                });
-            } else {
-                setStatus(res.statusText)
-                toast.error(`Error ${res.status}: ${res.statusText}`, {
-                    position: "top-right"
-                });
-            }
-        })
-        .catch(() => {
-            toast.error("Error en la respuesta del servidor", {
-                position: "top-right"
-            });
-            setStatus("Error en la respuesta del servidor")
-            setTimeout(() => setStatus('??'), 4000)
-        })
-        .finally();
-    };
 
     const getMascotas = (mascotas: { nombre: string }[]) => {
         if (mascotas.length === 1) {
@@ -320,7 +288,6 @@ export const Reminders = ({ clientes }: Props) => {
 
     return (
         <>
-            {showShell && <Shellinabox/>}
             {clientes.length > 0 ?
                 <form
                     className='h-screen grid grid-cols-1 lg:grid-cols-5 bg-white w-full p-1 rounded-md flex flex-col'
@@ -351,21 +318,6 @@ export const Reminders = ({ clientes }: Props) => {
                                 type="button"
                                 onClick={() => setShowPdf(!showPdf)}>
                                 {showPdf ? <PiAppWindowBold /> : <TfiPrinter />}
-                            </button>
-                            <button
-                                className='hover:bg-cyan-600 flex justify-between items-center gap-1 py-2 p-3 justify-between w-fit text-cyan-600 hover:text-white rounded-md p-2 transition-all group hover:scale-105'
-                                type="button"
-                                onClick={handleStatus}>
-                                <FaWhatsapp />
-                                <span className="text-sm font-medium">
-                                    {status}
-                                </span>
-                            </button>
-                            <button
-                                className='hover:bg-cyan-600 flex justify-between items-center gap-1 py-2 p-3 justify-between w-fit text-cyan-600 hover:text-white rounded-md p-2 transition-all group hover:scale-105'
-                                type="button"
-                                onClick={() => setShowShell(!showShell)}>
-                                <PiTerminalWindow />
                             </button>
                         </div>
                     </div>
@@ -399,7 +351,7 @@ export const Reminders = ({ clientes }: Props) => {
                                         }}
                                     >
                                         <img
-                                            src={'/img/user.png'}
+                                            src={'/img/User.png'}
                                             alt={cliente.nombre}
                                             className="w-12 h-12 rounded-full mr-4"
                                         />
