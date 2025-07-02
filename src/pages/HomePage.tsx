@@ -15,8 +15,8 @@ export const HomePage = () => {
 		<div>
 			<FeatureGrid />
 
-			<div className='flex flex-col lg:flex-row gap-1 my-2'>
-				<div className='lg:w-8/12 xl:w-9/12 mx-auto flex flex-col gap-5'>
+			<div className='flex flex-col lg:flex-row gap-1 w-full my-2'>
+				<div className='lg:w-10/12 xl:w-10/12 mx-auto flex flex-col gap-5'>
 					{isLoading ? (<ProductGridSkeleton numberOfProducts={4}/>) : (
 						<ProductGrid
 							title='Nuevos Productos'
@@ -32,7 +32,7 @@ export const HomePage = () => {
 					}
 				</div>
 			
-				<div className='items-center lg:w-4/12 xl:w-4/12 mx-auto flex flex-col gap-5 p-4 bg-gray-950 rounded-lg'>
+				<div className='items-center w-96 mx-auto flex flex-col gap-1 p-1 bg-gray-950 rounded-md'>
 					<PluginFeedFacebook />
 
 					<Brands />

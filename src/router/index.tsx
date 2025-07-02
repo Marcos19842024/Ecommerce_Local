@@ -20,7 +20,6 @@ import {
 	DashboardOrderPage,
 	DashboardTransportPage,
 	DashboardRemindersPage,
-	DashboardFeedbackPage,
 	TermsPage,
 	PrivacyNoticePage,
 	FeedBackPage,
@@ -130,10 +129,6 @@ export const router = createBrowserRouter([
 			{
 				path: 'transportes',
 				element: <DashboardTransportPage />,
-			},
-			{
-				path: 'feedback',
-				element: <DashboardFeedbackPage />,
 			},
 		],
 	},
