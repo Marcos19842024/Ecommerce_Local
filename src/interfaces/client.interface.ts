@@ -37,3 +37,20 @@ export interface MessageBubbleProps {
     isOwnMessage: boolean;
     editable: boolean;
 }
+
+export interface MessageBubbleFileProps {
+    id: string;
+    file: FileWithPreview;
+    senderName: string;
+    timestamp: string; // Formato como "10:30 AM"
+    avatarUrl: string;
+    isOwnMessage: boolean;
+    editable: boolean;
+}
+
+export interface FileWithPreview {
+    id: string
+    file: File;
+    url: string;
+    type: string;
+}

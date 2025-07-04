@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 interface Props {
 	e: React.ChangeEvent<HTMLInputElement>;
 }
-/////falta poner la lista de solo clientes############################
+
 export const getClients = async ({e}: Props) => {
     if (!e.target.files || e.target.files.length === 0) {
         toast.error(`No file selected.`, {

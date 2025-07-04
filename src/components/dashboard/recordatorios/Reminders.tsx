@@ -1,11 +1,12 @@
 import { useRef, useState } from "react";
-import { Cliente, MessageBubbleProps, UploadedFile } from "../../../interfaces";
+import { Cliente, FileWithPreview, MessageBubbleFileProps, MessageBubbleProps, UploadedFile } from "../../../interfaces";
 import { toast } from "react-hot-toast";
 import { VscSend } from "react-icons/vsc";
 import { PiAppWindowBold, PiPaperclipBold } from "react-icons/pi";
 import { v4 as uuidv4 } from "uuid";
 import { PdfViewer } from "../pdf/PdfViewer";
 import { TfiPrinter } from "react-icons/tfi";
+import { FileViewer } from "../file/FileViewer";
 
 interface Props {
 	clientes: Cliente[];
@@ -21,7 +22,8 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
     const [fileShow, setFileShow] = useState(false);
     const [showPdf, setShowPdf] = useState(false);
     const [messages, setMessages] = useState<MessageBubbleProps[]>([]);
-    const [files, setFiles] = useState<UploadedFile[]>([]);
+    const [filesSend, setFilesSend] = useState<UploadedFile[]>([]);
+    const [files, setFiles] = useState<FileWithPreview[]>([]);
     const fileCount = files.length;
     const clienteRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -99,6 +101,51 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
         );
     };
 
+    const MessageBubbleFile = ({
+        id,
+        file,
+        senderName,
+        timestamp,
+        avatarUrl,
+        isOwnMessage,
+        editable,
+    }: MessageBubbleFileProps) => {
+        const alignment = isOwnMessage ? "justify-end" : "justify-start";
+        const bgColor = isOwnMessage ? "bg-green-900" : "bg-gray-800";
+        const flexDirection = isOwnMessage ? "flex-row-reverse" : "flex-row";
+
+        return (
+            <div className={`flex ${alignment}`}>
+                <div className={`flex ${flexDirection} items-start gap-2 max-w-md`}>
+                    {avatarUrl && (
+                        <img
+                            src={avatarUrl}
+                            alt={senderName}
+                            className="w-8 h-8 rounded-full object-cover"
+                        />
+                    )}
+                    <div>
+                        <p className={`text-xs text-gray-400 text-pretty`}>
+                            {senderName} • {timestamp}
+                        </p>
+                        <p
+                            className={`text-white text-sm ${bgColor} rounded-md p-2 mt-1 text-pretty`}>
+                            <FileViewer file={file} />
+                        </p>
+                    </div>
+                    {editable && (
+                        <span
+                            className="cursor-pointer text-xl text-red-500"
+                            onClick={() => deleteMessage(id)}
+                        >
+                            &times;
+                        </span>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
     const handleUpload = (fileList: FileList | null) => {
         if (!fileList || fileList.length === 0) return;
         const formData = new FormData();
@@ -112,14 +159,24 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
         .then(res => res.json())
         .then(res => {
             if (!res.err) {
-                const newFiles: UploadedFile[] = res.statusText.map((filename: string) => {
+                const newFilesSend: UploadedFile[] = res.statusText.map((filename: string) => {
                     const ext = filename.split(".").pop() || "";
                     const [icon, color] = getFileTypes(ext);
                     return { filename, filetype: ext, icon, color };
                 });
+                setFilesSend(prev => [
+                    ...prev,
+                    ...newFilesSend.filter(nf => !prev.find(f => f.filename === nf.filename)),
+                ]);
+                const newFiles = Array.from(fileList || []).map(file => ({
+                    id: uuidv4(),
+                    file,
+                    url: URL.createObjectURL(file),
+                    type: file.type,
+                }));
                 setFiles(prev => [
                     ...prev,
-                    ...newFiles.filter(nf => !prev.find(f => f.filename === nf.filename)),
+                    ...newFiles.filter(nf => !prev.find(f => f.file.name === nf.file.name)),
                 ]);
                 toast.success("Archivos subidos correctamente", {
                     position: "top-right"
@@ -192,7 +249,7 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
                 toast.success("Archivo eliminado correctamente", {
                     position: "top-right"
                 });
-                setFiles(prev => prev.filter(file => file.filename !== filename));
+                setFilesSend(prev => prev.filter(file => file.filename !== filename));
             } else {
                 toast.error(`Error al eliminar el archivo: ${res.err}`, {
                     position: "top-right"
@@ -251,7 +308,7 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
     const handleSend = async (cliente: Cliente) => {
         let data = {
             "message": cliente.mensaje,
-            "phone": `5219811713636`,
+            "phone": `521${cliente.telefono}`,
             "pathtofiles": files,
         };
         await fetch(`${url}send/${center}/${cel}`, {
@@ -352,7 +409,6 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
                                     >
                                         <img
                                             src={'/img/User.png'}
-                                            alt={cliente.nombre}
                                             className="w-12 h-12 rounded-full mr-4"
                                         />
                                         <div className="flex-1 border-slate-600 border-b pb-2">
@@ -383,16 +439,18 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
                                 <div className='rounded-md flex gap-3 items-center justify-between bg-gray-900 w-full p-2'>
                                     <img
                                         className="size-7 rounded-full bg-gray-800 text-gray-700"
-                                        src='/img/user.png'
+                                        src='/img/User.png'
                                         alt='User'
                                     />
                                     <div className='flex flex-col bg-gray-900 w-full'>
                                         <p className='text-white w-full rounded-md'>{clientes[index].nombre}</p>
                                         <p className='text-gray-400 italic text-sm rounded-md'>{clientes[index].telefono}</p>
                                     </div>
-                                    <p className='text-gray-400 w-full items-start text-pretty md:text-balance text-sm rounded-md'>
-                                        Mascotas: {getMascotas(clientes[index].mascotas)}
-                                    </p>
+                                    {clientes[index].mascotas.length > 0 &&
+                                        <p className='text-gray-400 w-full items-start text-pretty md:text-balance text-sm rounded-md'>
+                                            Mascotas: {getMascotas(clientes[index].mascotas)}
+                                        </p>
+                                    }
                                 </div>
                                 <hr className='border-slate-600 w-full rounded-md' />
                                 <div className='rounded-md flex flex-col bg-gray-800 gap-2 right-0 p-5'>
@@ -422,6 +480,20 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
                                             />
                                         ))
                                     )}
+                                    {files && (
+                                        files.map((file, index) => (
+                                            <MessageBubbleFile
+                                                key={index}
+                                                id={file.id}
+                                                file={file}
+                                                senderName={""}
+                                                timestamp={""}
+                                                avatarUrl={""}
+                                                isOwnMessage={true}
+                                                editable={true}
+                                            />
+                                        ))
+                                    )}
                                     {fileShow &&
                                         <div className='overflow-y-auto overscroll-contain h-fit max-h-64 absolute bottom-12 left-1 bg-gray-900 p-2 rounded-md w-fit'>
                                             <div className="p-2 items-center justify-center h-fit">
@@ -441,7 +513,7 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
                                                     <p className="text-sm">Click para subir archivos</p>
                                                 </label>
                                             </div>
-                                            {files.map(file => (
+                                            {filesSend.map(file => (
                                                 <div
                                                     key={file.filename}
                                                     className="flex justify-between items-center border p-2 rounded bg-slate-100">

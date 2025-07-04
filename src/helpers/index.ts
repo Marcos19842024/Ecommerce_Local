@@ -1,5 +1,5 @@
 import { Row } from 'read-excel-file';
-import { Product, VariantProduct, Target, Cliente } from '../interfaces';
+import { Product, VariantProduct, Target, Cliente, ContactItem } from '../interfaces';
 
 // Función para formatear el precio a dólares
 export const formatPrice = (price: number) => {
@@ -111,6 +111,29 @@ export const prepareClients = (rows: Row[]) => {
 	);
 };
 
+// Función para preparar los contactos
+export const prepareContacts = (contacts: ContactItem[]) => {
+	const result = contacts.reduce(
+		(acc: Cliente[], contact: ContactItem) => {
+			if (contact.isMyContact && contact.id.server === 'c.us') {
+				acc.push({
+					nombre: contact.name,
+					telefono: contact.number.slice(-10),
+					mascotas: [],
+					mensaje: [],
+					status: false
+				});
+			}
+			return acc;
+		},
+		[]
+	);
+	// Ordenar alfabéticamente por nombre
+	result.sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+	return result;
+};
+
 // Función para formatear la fecha a formato 3 de enero de 2022
 export const formatDateLong = (date: string): string => {
 	const dateObject = new Date(date);
@@ -183,6 +206,7 @@ export const formatString = (cadena: string) => {
     return palabras.join(" ");
 };
 
+// Función para extraer solo números
 export const formatNumbers = (cadena: string) => {
     const numbers = "0123456789";
     let numeros = "";
