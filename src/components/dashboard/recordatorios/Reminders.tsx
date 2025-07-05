@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Cliente, FileWithPreview, MessageBubbleFileProps, MessageBubbleProps, UploadedFile } from "../../../interfaces";
+import { Cliente, FileWithPreview, MessageBubbleFileProps, MessageBubbleProps } from "../../../interfaces";
 import { toast } from "react-hot-toast";
 import { VscSend } from "react-icons/vsc";
 import { PiAppWindowBold, PiPaperclipBold } from "react-icons/pi";
@@ -22,9 +22,7 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
     const [fileShow, setFileShow] = useState(false);
     const [showPdf, setShowPdf] = useState(false);
     const [messages, setMessages] = useState<MessageBubbleProps[]>([]);
-    const [filesSend, setFilesSend] = useState<UploadedFile[]>([]);
     const [files, setFiles] = useState<FileWithPreview[]>([]);
-    const fileCount = files.length;
     const clienteRefs = useRef<(HTMLDivElement | null)[]>([]);
 
     const getMascotas = (mascotas: { nombre: string }[]) => {
@@ -102,7 +100,6 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
     };
 
     const MessageBubbleFile = ({
-        id,
         file,
         senderName,
         timestamp,
@@ -129,14 +126,29 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
                             {senderName} • {timestamp}
                         </p>
                         <p
-                            className={`text-white text-sm ${bgColor} rounded-md p-2 mt-1 text-pretty`}>
+                            className={`text-white text-xs ${bgColor} rounded-md p-2 mt-1 text-pretty`}>
                             <FileViewer file={file} />
+                            <div className="flex justify-between items-center border p-2 rounded bg-slate-100">
+                                <a
+                                    className="left flex items-center gap-1"
+                                    href={file.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    <i
+                                        className={file.icon}
+                                        style={{ color: file.color }}
+                                    >
+                                    </i>
+                                    <h5 className="text-xs text-cyan-800">{file.name}</h5>
+                                </a>
+                            </div>
                         </p>
                     </div>
                     {editable && (
                         <span
                             className="cursor-pointer text-xl text-red-500"
-                            onClick={() => deleteMessage(id)}
+                            onClick={() => deleteMessage('',file)}
                         >
                             &times;
                         </span>
@@ -159,24 +171,21 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
         .then(res => res.json())
         .then(res => {
             if (!res.err) {
-                const newFilesSend: UploadedFile[] = res.statusText.map((filename: string) => {
+                const newFiles: FileWithPreview[] = res.statusText.map((filename: string) => {
                     const ext = filename.split(".").pop() || "";
                     const [icon, color] = getFileTypes(ext);
-                    return { filename, filetype: ext, icon, color };
+                    return {
+                        id: uuidv4(),
+                        name: filename,
+                        type: ext,
+                        icon,
+                        color,
+                        url: `${url}/media/${filename}`,
+                    };
                 });
-                setFilesSend(prev => [
-                    ...prev,
-                    ...newFilesSend.filter(nf => !prev.find(f => f.filename === nf.filename)),
-                ]);
-                const newFiles = Array.from(fileList || []).map(file => ({
-                    id: uuidv4(),
-                    file,
-                    url: URL.createObjectURL(file),
-                    type: file.type,
-                }));
                 setFiles(prev => [
                     ...prev,
-                    ...newFiles.filter(nf => !prev.find(f => f.file.name === nf.file.name)),
+                    ...newFiles.filter(nf => !prev.find(f => f.name === nf.name)),
                 ]);
                 toast.success("Archivos subidos correctamente", {
                     position: "top-right"
@@ -249,7 +258,7 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
                 toast.success("Archivo eliminado correctamente", {
                     position: "top-right"
                 });
-                setFilesSend(prev => prev.filter(file => file.filename !== filename));
+                setFiles(prev => prev.filter(file => file.name !== filename));
             } else {
                 toast.error(`Error al eliminar el archivo: ${res.err}`, {
                     position: "top-right"
@@ -279,8 +288,12 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
         }
     }
 
-    const deleteMessage = (idToDelete: string) => {
-        setMessages((prev) => prev.filter((msg) => msg.id !== idToDelete))
+    const deleteMessage = (idMessageToDelete?: string, fileToDelete?: FileWithPreview) => {
+        if (idMessageToDelete)setMessages((prev) => prev.filter((msg) => msg.id !== idMessageToDelete))
+        if (fileToDelete) {
+            setFiles((prev) => prev.filter((file) => file.id !== fileToDelete?.id))
+            handleDelete(fileToDelete.name)
+        }
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -453,7 +466,7 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
                                     }
                                 </div>
                                 <hr className='border-slate-600 w-full rounded-md' />
-                                <div className='rounded-md flex flex-col bg-gray-800 gap-2 right-0 p-5'>
+                                <div className='overflow-y-auto overscroll-contain rounded-md flex flex-col bg-gray-800 gap-2 right-0 p-5'>
                                     {clientes[index].mensaje.map((msg, index) => (
                                         <MessageBubble
                                             key={index}
@@ -486,9 +499,9 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
                                                 key={index}
                                                 id={file.id}
                                                 file={file}
-                                                senderName={""}
-                                                timestamp={""}
-                                                avatarUrl={""}
+                                                senderName={newMsg.senderName}
+                                                timestamp={newMsg.timestamp}
+                                                avatarUrl={newMsg.avatarUrl}
                                                 isOwnMessage={true}
                                                 editable={true}
                                             />
@@ -513,56 +526,24 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
                                                     <p className="text-sm">Click para subir archivos</p>
                                                 </label>
                                             </div>
-                                            {filesSend.map(file => (
-                                                <div
-                                                    key={file.filename}
-                                                    className="flex justify-between items-center border p-2 rounded bg-slate-100">
-                                                    <div className="left flex items-center gap-1">
-                                                        <a
-                                                            href={`${url}/media/${file.filename}`}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                        >
-                                                            <i
-                                                                className={file.icon}
-                                                                style={{ color: file.color }}
-                                                            >
-                                                            </i>
-                                                        </a>
-                                                        <h5 className="text-xs text-cyan-800">{file.filename}</h5>
-                                                    </div>
-                                                    <div className="right">
-                                                        <span
-                                                            className="p-2 hover:bg-slate-300 rounded-md cursor-pointer text-xl text-red-500"
-                                                            onClick={() => handleDelete(file.filename)}
-                                                        >
-                                                            &times;
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            ))}
                                         </div>
                                     }
                                 </div>
                                 <div className='mt-auto'>
                                     <hr className='border-slate-600 w-full rounded-md' />
                                     <div className="flex items-center rounded-md justify-between bg-gray-900 w-full gap-2 p-2">
-                                        <div className="relative inline-block gap-2">
-                                            <button
-                                                className='hover:bg-gray-800 rounded-md p-1 transition-all group hover:scale-105'
-                                                type='button'
-                                                onClick={() => {
-                                                    if (fileShow) setFileShow(false);
-                                                    else setFileShow(true);
-                                                }}>
-                                                <PiPaperclipBold className='hover:bg-gray-800 gap-2 text-gray-400 rounded-md shadow-sm transition-all group hover:scale-105' />
-                                            </button>
-                                            {fileCount > 0 && (
-                                                <span className="absolute -top-3 -left-1 cursor-none text-white-600 text-xs py-1 rounded-full">
-                                                    {fileCount > 99 ? "99+" : fileCount}
-                                                </span>
-                                            )}
-                                        </div>
+                                        <input
+                                            type="file"
+                                            id="upload"
+                                            hidden
+                                            multiple
+                                            onChange={(e) => handleUpload(e.target.files)}
+                                        />
+                                        <label
+                                            className="hover:bg-gray-800 rounded-md p-1 shadow-sm transition-all group hover:scale-105"
+                                            htmlFor="upload">
+                                            <PiPaperclipBold className='hover:bg-gray-800 gap-2 text-gray-400 rounded-md shadow-sm transition-all group hover:scale-105' />
+                                        </label>
                                         <textarea
                                             className='min-h-[15px] text-gray-400 items-center text-sm w-full flex bg-gray-900 hover:bg-gray-800 rounded-md p-1 transition-all'
                                             value={msjo}

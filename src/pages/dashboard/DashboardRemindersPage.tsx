@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Reminders, Shellinabox } from "../../components/dashboard";
 import { useClients } from "../../hooks";
 import { Cliente, ContactResponse } from "../../interfaces";
@@ -17,6 +17,10 @@ export const DashboardRemindersPage = () => {
   const url = 'http://veterinariabaalak.com/';
   const center = 'Baalak';
   const cel = '9812062582';
+
+  useEffect(() => {
+    handleStatus()
+  }, []);
 
   const handleStatus = () => {
     fetch(`${url}status/${center}/${cel}`, {

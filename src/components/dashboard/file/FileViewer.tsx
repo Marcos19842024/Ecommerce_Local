@@ -4,74 +4,61 @@ import { FileWithPreview } from "../../../interfaces";
 export const FileViewer: React.FC<{ file: FileWithPreview }> = ({ file }) => {
     const { url, type } = file;
 
-    if (type.startsWith("image/")) {
-        return (
-            <img
-                src={url}
-                alt="preview"
-                className="max-w-full h-auto rounded"
-            />
-        );
-    }
-
-    if (type === "application/pdf") {
-        return (
-            <iframe
-                src={url}
-                title="PDF Viewer"
-                className="w-full h-[500px] border rounded"
-            />
-        );
-    }
-
-    if (type.startsWith("text/")) {
-        return (
-            <iframe
-                src={url}
-                title="Text Viewer"
-                className="w-full h-[400px] border rounded bg-white text-black"
-            />
-        );
-    }
-
-    if (type.startsWith("video/")) {
-        return (
-            <video
-                controls
-                className="w-full h-auto rounded">
-                <source
+    switch (type) {
+        case "pdf":
+        case "pptx":
+        case "txt":
+            return (
+                <iframe
                     src={url}
-                    type={type}
+                    title="preview"
+                    className="w-full h-[400px] border rounded bg-white text-black"
                 />
-                Tu navegador no soporta el video.
-            </video>
-        );
-    }
-
-    if (type.startsWith("audio/")) {
-        return (
-            <audio
-                controls
-                className="w-full">
-                <source
+            );
+        case "mp3":
+        case "wav":
+        case "m4a":
+        case "ogg":
+            return (
+                <audio
+                    controls
+                    className="w-full rounded-md">
+                    <source
+                        src={url}
+                    />
+                    Tu navegador no soporta el audio.
+                </audio>
+            );
+        case "mp4":
+        case "mov":
+        case "avi":
+        case "wmv":
+        case "flv":
+        case "3gp":
+            return (
+                <video
+                    controls
+                    className="w-full h-auto rounded">
+                    <source
+                        src={url}
+                    />
+                    Tu navegador no soporta el video.
+                </video>
+            );
+        case "png":
+        case "jpg":
+        case "ico":
+        case "gif":
+        case "jpeg":
+        case "svg":
+            return (
+                <img
                     src={url}
-                    type={type}
+                    alt="preview"
+                    className="max-w-full h-auto rounded"
                 />
-                Tu navegador no soporta el audio.
-            </audio>
-        );
+            );
+        default:
+            return
     }
-
-    return (
-        <div
-            className="p-4 border rounded bg-gray-100">
-            <p>No se puede previsualizar este archivo.</p>
-            <a
-                href={url}
-                download
-                className="text-blue-500 underline">
-                Descargar archivo
-            </a>
-        </div>
-    );
 };

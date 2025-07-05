@@ -21,13 +21,6 @@ export interface Cliente {
     status: boolean;
 }
 
-export interface UploadedFile {
-    filename: string;
-    filetype: string;
-    icon: string;
-    color: string;
-}
-
 export interface MessageBubbleProps {
     id: string;
     message: string;
@@ -51,6 +44,9 @@ export interface MessageBubbleFileProps {
 export interface FileWithPreview {
     id: string
     file: File;
+    name: string;
     url: string;
     type: string;
+    icon: string;
+    color: string;
 }
