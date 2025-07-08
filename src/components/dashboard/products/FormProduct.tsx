@@ -182,7 +182,7 @@ export const FormProduct = ({ titleForm }: Props) => {
 
 				<div className='flex gap-3 absolute top-0 right-0'>
 					<button
-						className='btn-secondary bg-black rounded-md text-white hover:bg-red-500'
+						className='btn-secondary bg-black p-2 rounded-md text-white hover:bg-red-500'
 						type='button'
 						onClick={() => navigate(-1)}>Cancelar
 					</button>

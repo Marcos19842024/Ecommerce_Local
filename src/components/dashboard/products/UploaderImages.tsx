@@ -83,8 +83,8 @@ export const UploaderImages = ({
 			/>
 			<label
 				htmlFor="inputfile"
-				className='bg-black w-full text-white flex items-center self-end py-[6px] px-2 rounded-md text-sm gap-1 font-semibold hover:bg-cyan-600'>
-				<span><i className="fa fa-cloud-upload fa-2x"></i></span>
+				className='bg-black w-full text-white flex items-center justify-center self-end py-[6px] px-2 rounded-md text-sm gap-1 font-semibold hover:bg-cyan-600'>
+				<span><i className="fa fa-cloud-upload fa-2x px-2"></i></span>
 				<p>Click To Upload File</p>
             </label>
 

@@ -11,7 +11,7 @@ export const Shellinabox: React.FC = () => {
         <div className='flex bg-gray-200 rounded-md'>
             <iframe
                 className='w-full h-96 rounded-md p-2 gap-2'
-                src='https://veterinariabaalak.com:443/'
+                src='https://veterinariabaalak.com:3002'
                 title='Shellinabox'
                 style={{ border: 'none', overflow: 'hidden' }}
                 allowFullScreen={true}

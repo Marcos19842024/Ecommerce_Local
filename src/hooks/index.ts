@@ -32,3 +32,4 @@ export * from './orders/useOrderAdmin';
 /*               CLIENTS               */
 /* ********************************** */
 export * from './clients/useClients';
+export * from './clients/useClientsTransport';

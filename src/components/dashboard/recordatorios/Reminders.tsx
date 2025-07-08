@@ -19,7 +19,6 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
     const [index, setIndex] = useState(0);
     const [msjo, setMsjo] = useState("");
     const [x5, setX5] = useState(false);
-    const [fileShow, setFileShow] = useState(false);
     const [showPdf, setShowPdf] = useState(false);
     const [messages, setMessages] = useState<MessageBubbleProps[]>([]);
     const [files, setFiles] = useState<FileWithPreview[]>([]);
@@ -180,7 +179,7 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
                         type: ext,
                         icon,
                         color,
-                        url: `${url}/media/${filename}`,
+                        url: `${url}media/${filename}`,
                     };
                 });
                 setFiles(prev => [
@@ -275,15 +274,15 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.key === "Enter" && !e.shiftKey) {
-            newMsg.message = msjo;
+            e.preventDefault()
             if (msjo.trim() === "") {
                 toast.error("Por favor, escribe un mensaje antes de enviar.", {
                     position: 'top-right'
                 });
             } else {
+                newMsg.message = msjo;
                 setMessages((prev) => [...prev, newMsg]);
-                setMsjo("");
-                setFileShow(false);
+                setMsjo("")
             }
         }
     }
@@ -304,15 +303,11 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
                     return cliente.status === false;
                 }).slice(0,5);
                 clientessend.map((cliente) => (
-                    messages.map((msj) => (
-                        cliente.mensaje.push(msj.message)
-                    )),
+                    cliente.mensaje.push(...messages.map((msj) => msj.message)),
                     handleSend(cliente)
                 ))
             } else {
-                messages.map((msj) => (
-                    clientes[index].mensaje.push(msj.message)
-                ))
+                clientes[index].mensaje.push(...messages.map((msj) => msj.message))
                 handleSend(clientes[index])
             }
         }
@@ -322,7 +317,7 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
         let data = {
             "message": cliente.mensaje,
             "phone": `521${cliente.telefono}`,
-            "pathtofiles": files,
+            "pathtofiles": files.map(file => file.name),
         };
         await fetch(`${url}send/${center}/${cel}`, {
             method: 'POST',
@@ -507,27 +502,6 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
                                             />
                                         ))
                                     )}
-                                    {fileShow &&
-                                        <div className='overflow-y-auto overscroll-contain h-fit max-h-64 absolute bottom-12 left-1 bg-gray-900 p-2 rounded-md w-fit'>
-                                            <div className="p-2 items-center justify-center h-fit">
-                                                <input
-                                                    type="file"
-                                                    id="upload"
-                                                    hidden
-                                                    multiple
-                                                    onChange={(e) => handleUpload(e.target.files)}
-                                                />
-                                                <label
-                                                    htmlFor="upload"
-                                                    className="flex flex-row items-center justify-start w-fit cursor-pointer bg-gray-900">
-                                                        <span className="mr-2">
-                                                            <i className="fa fa-cloud-upload"> </i>
-                                                        </span>
-                                                    <p className="text-sm">Click para subir archivos</p>
-                                                </label>
-                                            </div>
-                                        </div>
-                                    }
                                 </div>
                                 <div className='mt-auto'>
                                     <hr className='border-slate-600 w-full rounded-md' />
@@ -548,9 +522,7 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
                                             className='min-h-[15px] text-gray-400 items-center text-sm w-full flex bg-gray-900 hover:bg-gray-800 rounded-md p-1 transition-all'
                                             value={msjo}
                                             placeholder="Escribe un mensaje opcional..."
-                                            onChange={(e) => {
-                                                setMsjo(e.target.value)
-                                            }}
+                                            onChange={(e) => setMsjo(e.target.value)}
                                             onKeyDown={handleKeyDown}
                                             autoComplete='on'
                                             autoCorrect='on'
