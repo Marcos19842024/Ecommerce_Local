@@ -21,12 +21,6 @@ export const AboutPage = () => {
 				Dos culturas, dos idiomas, una sola conciencia y un solo compromiso con el Bienestar animal.
 			</h2>
 
-			<img
-				src='/img/Background-about.png'
-				alt='background-about'
-				className='h-[600px] w-full object-cover'
-			/>
-
 			<div className='flex flex-col gap-4 tracking-tighter leading-7 text-sm font-medium text-slate-800'>
 				<p
 					className='text-3xl font-semibold tracking-tighh mt-8 mb-4'>
@@ -39,7 +33,7 @@ export const AboutPage = () => {
 				</p>
 
 				<p
-					className='text-cyan-600 font-bold'>baalak.cv@gmail.com	o llamado al 981 206 2582
+					className='text-cyan-600 font-bold'>baalak.atencionaclientes@gmail.com	o llamado al 981 206 2582
 				</p>
 			</div>
 		</div>

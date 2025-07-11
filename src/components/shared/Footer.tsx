@@ -62,7 +62,7 @@ export const Footer = () => {
 				</p>
 				<nav className='flex flex-col gap-2 text-xs font-medium'>
 					<span className='text-slate-300 hover:text-white'>
-						baalak.cv@gmail.com
+						baalak.atencionaclientes@gmail.com
 					</span>
 					<span className='text-slate-300 hover:text-white'>
 						981 811 7853
