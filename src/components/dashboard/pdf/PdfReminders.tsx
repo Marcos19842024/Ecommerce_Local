@@ -8,7 +8,7 @@ interface PdfProps {
 
 const PAGE_SIZE = 30;
 
-export const Pdf: React.FC<PdfProps> = ({ sending, notsending }) => {
+export const PdfReminders: React.FC<PdfProps> = ({ sending, notsending }) => {
   const now = new Date().toLocaleString("es-MX");
 
   // Función para dividir en páginas

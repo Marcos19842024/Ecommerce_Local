@@ -102,7 +102,7 @@ export const DashboardRemindersPage = () => {
       <div className="flex items-center justify-between">
         <div className="flex justify-between items-center">
           <button
-            className='hover:bg-cyan-600 flex justify-between items-center gap-1 py-2 p-3 justify-between w-fit text-cyan-600 hover:text-white rounded-md p-2 transition-all group hover:scale-105'
+            className='flex justify-between items-center gap-1 py-2 w-fit text-cyan-600 rounded-md p-2 transition-all group hover:bg-cyan-600 hover:text-white hover:scale-105'
             type="button"
             onClick={handleStatus}>
             <FaWhatsapp />
@@ -111,7 +111,7 @@ export const DashboardRemindersPage = () => {
             </span>
           </button>
           <button
-            className='hover:bg-cyan-600 flex justify-between items-center gap-1 py-2 p-3 justify-between w-fit text-cyan-600 hover:text-white rounded-md p-2 transition-all group hover:scale-105'
+            className='hover:bg-cyan-600 flex justify-between items-center gap-1 py-2 w-fit text-cyan-600 hover:text-white rounded-md p-2 transition-all group hover:scale-105'
             type="button"
             onClick={() => setShowShell(!showShell)}>
             <PiTerminalWindow />

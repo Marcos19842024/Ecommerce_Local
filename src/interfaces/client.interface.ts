@@ -59,8 +59,7 @@ export interface Fechas {
 export interface ClienteTransporte {
     hora: string;
     nombre: string;
-    status: boolean;
-    observaciones: string;
+    status: string;
     mascotas: MascotaTransporte[];
 }
 

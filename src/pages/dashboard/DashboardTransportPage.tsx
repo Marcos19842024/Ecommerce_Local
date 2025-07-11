@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Transport } from "../../components/dashboard";
-import { ClienteTransporte } from "../../interfaces";
+import { Fechas } from "../../interfaces";
 import { useClientsTransport } from "../../hooks";
 
 export const DashboardTransportPage = () => {
-    const [transportClient, setTransportClient] = useState<ClienteTransporte[]>([]);
+    const [fechas, setFechas] = useState<Fechas[]>([]);
     const [info, setInfo] = useState<string | null>(null);
     const [showIb, setShowIb] = useState(true);
 
@@ -12,11 +12,11 @@ export const DashboardTransportPage = () => {
         if (e.target.files) {
             const { data } = useClientsTransport({ e });
             if ((await data).length > 0) {
-                setTransportClient(await data);
+                setFechas(await data);
                 setInfo(e.target.files[0].name);
                 setShowIb(false);
             } else {
-                setTransportClient([]);
+                setFechas([]);
                 e.target.value = "";
             }
         }
@@ -50,12 +50,12 @@ export const DashboardTransportPage = () => {
                         style={{color:"green"}}>
                         </i>
                         <span
-                            className='w-fit'>{`  ${info} (${transportClient ? transportClient.length : 0} Registros)`}
+                            className='w-fit'>{`  ${info} (${fechas ? fechas.reduce((total,fecha) => {return total + fecha.clientes.length},0) : 0} Registros)`}
                         </span>
                     </div>
                 }
             </div>
-            <Transport data={transportClient} />
+            <Transport fechas={fechas} />
         </>
     );
 }

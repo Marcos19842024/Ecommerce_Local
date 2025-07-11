@@ -1,5 +1,5 @@
 import { Row } from 'read-excel-file';
-import { Product, VariantProduct, Target, Cliente, ContactItem, ClienteTransporte, Fechas } from '../interfaces';
+import { Product, VariantProduct, Target, Cliente, ContactItem, Fechas } from '../interfaces';
 
 // Función para formatear el precio a dólares
 export const formatPrice = (price: number) => {
@@ -57,113 +57,108 @@ export const prepareProducts = (products: Product[]) => {
 
 // Función para preparar los clientes
 export const prepareClients = (rows: Row[]) => {
-	// Agrupar los filas por cliente
-	return rows.reduce(
-		(acc: Cliente[], cell: Row) => {
-			const existingCliente = acc.find(
-				item => item.nombre === formatString(cell[0].toString())
-			);
+	return rows.reduce((acc: Cliente[], cell: Row) => {
+		const nombreCliente = formatString(cell[0].toString());
+		const telefono = formatNumbers(cell[1].toString());
+		const nombreMascota = formatString(cell[2].toString());
+		const nombreRecordatorio = formatString(cell[3].toString());
+		const tipoRecordatorio = formatString(cell[4].toString());
+		const fecha = cell[5].toString();
 
-			if (!existingCliente) {
-				acc.push({
-					nombre: formatString(cell[0].toString()),
-					telefono: formatNumbers(cell[1].toString()),
-					mascotas: [],
-					mensaje: [],
-					status: false
-				});
-			}
-			// Buscar el cliente y agregar la mascota si no existe
-			acc.find(cliente => {
-				if (cliente.nombre === formatString(cell[0].toString()) && !cliente.mascotas.find(mascota => mascota.nombre === formatString(cell[2].toString()))) {
-					cliente.mascotas.push({
-						nombre: formatString(cell[2].toString()),
-						recordatorios: []
-					});
-				}
-				// Buscar la mascota y agregar el recordatorio si no existe
-				if (cliente.nombre === formatString(cell[0].toString()) && cliente.mascotas.find(mascota => mascota.nombre === formatString(cell[2].toString()))) {
-					cliente.mascotas.find(mascota => {
-						if (mascota.nombre === formatString(cell[2].toString()) && !mascota.recordatorios.find(recordatorio => recordatorio.nombre === formatString(cell[3].toString()))) {
-							mascota.recordatorios.push({
-								nombre: formatString(cell[3].toString()),
-								tipos: []
-							});
-						}
-					});
-				}
-				// Buscar la mascota y agregar el tipo de recordatorio si no existe
-				if (cliente.nombre === formatString(cell[0].toString()) && cliente.mascotas.find(mascota => mascota.nombre === formatString(cell[2].toString()))) {
-					cliente.mascotas.find(mascota => mascota.nombre === formatString(cell[2].toString()) && mascota.recordatorios.find(recordatorio => {
-						if (recordatorio.nombre === formatString(cell[3].toString()) && !recordatorio.tipos.find(tipo => tipo.nombre === formatString(cell[4].toString()))) {
-							recordatorio.tipos.push({
-								nombre: formatString(cell[4].toString()),
-								fecha: cell[5].toString()
-							});
-						}
-					}))
-				}
+		// Buscar o crear el cliente
+		let cliente = acc.find(c => c.nombre === nombreCliente);
+		if (!cliente) {
+			cliente = {
+				nombre: nombreCliente,
+				telefono,
+				mascotas: [],
+				mensaje: [],
+				status: false
+			};
+			acc.push(cliente);
+		}
+
+		// Buscar o crear la mascota
+		let mascota = cliente.mascotas.find(m => m.nombre === nombreMascota);
+		if (!mascota) {
+			mascota = {
+				nombre: nombreMascota,
+				recordatorios: []
+			};
+			cliente.mascotas.push(mascota);
+		}
+
+		// Buscar o crear el recordatorio
+		let recordatorio = mascota.recordatorios.find(r => r.nombre === nombreRecordatorio);
+		if (!recordatorio) {
+			recordatorio = {
+				nombre: nombreRecordatorio,
+				tipos: []
+			};
+			mascota.recordatorios.push(recordatorio);
+		}
+
+		// Agregar el tipo de recordatorio si no existe
+		const existeTipo = recordatorio.tipos.some(t => t.nombre === tipoRecordatorio && t.fecha === fecha);
+		if (!existeTipo) {
+			recordatorio.tipos.push({
+				nombre: tipoRecordatorio,
+				fecha
 			});
+		}
 
-			return acc;
-		},
-		[]
-	);
+		return acc;
+	}, []);
 };
 
 // Función para preparar los clientes
 export const prepareClientsTransport = (rows: Row[]) => {
-	// Agrupar los filas por cliente
-	return rows.reduce(
-		(acc: Fechas[], cell: Row) => {
-			const existingFecha = acc.find(
-				item => item.fecha === formatString(cell[0].toString())
-			);
+	return rows.reduce((acc: Fechas[], cell: Row) => {
+		const fecha = formatString(cell[0].toString());
+		const hora = formatString(cell[1].toString());
+		const nombreCliente = formatString(cell[2].toString());
+		const nombreMascota = formatString(cell[3].toString());
+		const razaMascota = formatString(cell[4].toString());
+		const asunto = formatString(cell[5].toString());
 
-			if (!existingFecha) {
-				acc.push({
-					fecha: formatString(cell[0].toString()),
-					clientes: [],
-				});
-			}
-			// Buscar el fecha y agregar el cliente si no existe
-			acc.find(item => {
-				if (item.fecha === formatString(cell[0].toString()) && !item.clientes.find(cliente => cliente.hora === formatString(cell[2].toString()))) {
-					item.clientes.push({
-						hora: formatString(cell[2].toString()),
-						nombre: formatString(cell[3].toString()),
-						status: formatString(cell[4].toString()),
+		// Buscar o crear la fecha
+		let fechaItem = acc.find(item => item.fecha === fecha);
+		if (!fechaItem) {
+			fechaItem = { fecha, clientes: [] };
+			acc.push(fechaItem);
+		}
 
-					});
-				}
-				// Buscar la mascota y agregar el recordatorio si no existe
-				if (cliente.nombre === formatString(cell[0].toString()) && cliente.mascotas.find(mascota => mascota.nombre === formatString(cell[2].toString()))) {
-					cliente.mascotas.find(mascota => {
-						if (mascota.nombre === formatString(cell[2].toString()) && !mascota.recordatorios.find(recordatorio => recordatorio.nombre === formatString(cell[3].toString()))) {
-							mascota.recordatorios.push({
-								nombre: formatString(cell[3].toString()),
-								tipos: []
-							});
-						}
-					});
-				}
-				// Buscar la mascota y agregar el tipo de recordatorio si no existe
-				if (cliente.nombre === formatString(cell[0].toString()) && cliente.mascotas.find(mascota => mascota.nombre === formatString(cell[2].toString()))) {
-					cliente.mascotas.find(mascota => mascota.nombre === formatString(cell[2].toString()) && mascota.recordatorios.find(recordatorio => {
-						if (recordatorio.nombre === formatString(cell[3].toString()) && !recordatorio.tipos.find(tipo => tipo.nombre === formatString(cell[4].toString()))) {
-							recordatorio.tipos.push({
-								nombre: formatString(cell[4].toString()),
-								fecha: cell[5].toString()
-							});
-						}
-					}))
-				}
+		// Buscar cliente por nombre
+		let cliente = fechaItem.clientes.find(c => c.nombre === nombreCliente);
+
+		if (!cliente) {
+			cliente = {
+				hora,
+				nombre: nombreCliente,
+				status: '',
+				mascotas: [],
+			};
+			fechaItem.clientes.push(cliente);
+		}
+
+		// Buscar si ya existe la mascota por nombre
+		let mascota = cliente.mascotas.find(m => m.nombre === nombreMascota);
+
+		if (!mascota) {
+			cliente.mascotas.push({
+				nombre: nombreMascota,
+				raza: razaMascota,
+				asunto: asunto,
 			});
+		} else {
+			// Acumular el asunto si no está incluido
+			if (!mascota.asunto.includes(asunto)) {
+				mascota.asunto += `, ${asunto}`;
+			}
+		}
 
-			return acc;
-		},
-		[]
-	);
+		return acc;
+	}, []);
 };
 
 // Función para preparar los contactos

@@ -1,6 +1,5 @@
 import readXlsxFile from 'read-excel-file';
-import { prepareClients } from '../helpers';
-import { Cliente, Mascota, Recordatorio } from '../interfaces';
+import { prepareClientsTransport } from '../helpers';
 import toast from 'react-hot-toast';
 
 interface Props {
@@ -36,84 +35,8 @@ export const getClientsTransport = async ({e}: Props) => {
             });
             return [];
         } else {
-            return ListPets(prepareClientsTransport(row.slice(1)));
+            return prepareClientsTransport(row.slice(1));
         }
-    }
-
-    const ListPets = (clientes: Cliente[]) => {
-
-        clientes.forEach(cliente => {
-            const mascotas = cliente.mascotas;
-            let mensaje;
-            cliente.mensaje.push(`Hola ${cliente.nombre}.`);
-
-            if (mascotas.length === 1) {
-                mensaje = "su mascota '" + mascotas[0].nombre + "'," + ListReminders(mascotas[0]);
-            } else {
-                mensaje = "sus mascotas: '";
-            
-                for (let i = 0; i < mascotas.length; i++) {
-                    if (i === 0) {
-                        mensaje += mascotas[i].nombre + "'," + ListReminders(mascotas[i]);
-                    } else {
-                        if (i === (mascotas.length - 1)) {
-                            mensaje += " y '" + mascotas[i].nombre + "'," + ListReminders(mascotas[i]);
-                        } else {
-                            mensaje += ", '" + mascotas[i].nombre + "'," + ListReminders(mascotas[i]);
-                        }
-                    }
-                }
-            }
-            mensaje += " el día " + mascotas[0].recordatorios[0].tipos[0].fecha + ".";
-            cliente.mensaje.push(`La clínica veterinaria Baalak', le informa que ${mensaje}`)
-        });
-        return clientes;
-    }
-    
-    const ListReminders = (mascotas: Mascota) => {
-
-        let recordatorio = " tiene pendiente la aplicación de ";
-        const recordatorios = mascotas.recordatorios;
-
-        if (recordatorios.length === 1) {
-            recordatorio += recordatorios[0].nombre + ListTypes(recordatorios[0]);
-        } else {
-            for (let i = 0; i < recordatorios.length; i++) {
-                if (i === 0) {
-                    recordatorio += recordatorios[i].nombre + ListTypes(recordatorios[i]);
-                } else {
-                    if (i === (recordatorios.length - 1)) {
-                        recordatorio += " y " + recordatorios[i].nombre + ListTypes(recordatorios[i]);
-                    } else {
-                    recordatorio += ", " + recordatorios[i].nombre + ListTypes(recordatorios[i]);
-                    }
-                }
-            }
-        }
-        return recordatorio;
-    }
-
-    const ListTypes = (recordatorios: Recordatorio) => {
-
-        let tipo = '';
-        const tipos = recordatorios.tipos;
-    
-        if (tipos.length === 1) {
-            tipo += " (" + tipos[0].nombre + ")";
-        } else {
-            for (let i = 0; i < tipos.length; i++) {
-                if (i === 0) {
-                    tipo += " (" + tipos[i].nombre;
-                } else {
-                    if (i === (tipos.length - 1)) {
-                        tipo += " y " + tipos[i].nombre + ")";
-                    } else {
-                        tipo += ", " + tipos[i].nombre;
-                    }
-                }
-            }
-        }
-        return tipo;
     }
 
     return EvaluarContent();
