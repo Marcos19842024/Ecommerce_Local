@@ -54,7 +54,7 @@ export const CheckoutPage = () => {
 						</p>
 						<Link
 							to='/products'
-							className='py-4 bg-black rounded-full text-white px-7 text-xs uppercase tracking-widest font-semibold'
+							className='py-4 bg-cyan-600 hover:bg-yellow-500 rounded-md text-white px-7 text-xs uppercase tracking-widest font-semibold'
 						>
 							Empezar a comprar
 						</Link>

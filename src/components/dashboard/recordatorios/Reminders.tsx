@@ -79,7 +79,7 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
                     Enviados: {enviados.length} | No enviados: {noEnviados.length}
                 </div>
                 <button
-                    className="gap-1 p-2 w-fit rounded-md text-cyan-600 transition-all group hover:bg-cyan-600 hover:text-white hover:scale-105"
+                    className="gap-1 p-2 w-fit rounded-md text-white transition-all group bg-cyan-600 hover:bg-yellow-500 hover:scale-105"
                     type="button"
                     onClick={() => setShowPdf(!showPdf)}>
                     {showPdf ? <PiAppWindowBold /> : <TfiPrinter />}
@@ -93,8 +93,10 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
             ) : (
                 <>
                     <div className="lg:col-span-2 overflow-y-auto overscroll-contain h-2/3 w-full max-w-md mx-auto bg-gray-900 rounded p-4">
-                        <h2 className='font-bold justify-between text-white tracking-tight text-xl py-4 px-4'>Chats</h2>
-                        <hr className='border-slate-100 w-full rounded-md' />
+                        <div className="sticky top-0 bg-gray-900">
+                            <h2 className='font-bold justify-between text-white tracking-tight text-xl py-4 px-4'>Chats</h2>
+                            <hr className='border-slate-100 w-full rounded-md' />
+                        </div>
                         {clientes.map((cliente, i) => (
                             <div
                                 key={i}

@@ -93,7 +93,7 @@ export const Transport = ({ fechas }: TransportProps) => {
                 </div>
                 <div className="col-span-1 flex justify-end items-center p-2">
                     <button
-                        className="gap-1 p-2 w-fit rounded-md text-cyan-600 transition-all group hover:bg-cyan-600 hover:text-white hover:scale-105"
+                        className="ggap-1 p-2 w-fit rounded-md text-white transition-all group bg-cyan-600 hover:bg-yellow-500 hover:scale-105"
                         type="button"
                         onClick={() => setShowPdf(!showPdf)}
                     >

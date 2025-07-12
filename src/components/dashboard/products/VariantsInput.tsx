@@ -137,7 +137,7 @@ export const VariantsInput = ({
 			<button
 				type='button'
 				onClick={addVariant}
-				className='px-4 py-2 text-slate-800 rounded-md text-sm font-semibold tracking-tight flex items-center gap-1 self-center hover:bg-slate-100'
+				className='px-4 py-2 text-white rounded-md text-sm font-semibold tracking-tight flex items-center gap-1 self-center bg-cyan-600 hover:bg-yellow-500'
 			>
 				<IoIosAddCircleOutline size={16} />
 				Añadir Variante

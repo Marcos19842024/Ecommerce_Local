@@ -63,7 +63,7 @@ export const Cart = () => {
 					</p>
 					<Link
 						to='/products'
-						className='py-4 bg-black rounded-full text-white px-7 text-xs uppercase tracking-widest font-semibold'
+						className='py-4 bg-cyan-600 hover:bg-yellow-500 rounded-full text-white px-7 text-xs uppercase tracking-widest font-semibold'
 						onClick={closeSheet}
 					>
 						Empezar a comprar

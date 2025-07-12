@@ -1,6 +1,6 @@
 import { FaBoxOpen, FaCartShopping, FaFacebookF, FaInstagram, FaTruckPickup } from 'react-icons/fa6';
 import { FaWhatsapp } from "react-icons/fa";
-import { TbMessageCircleShare } from 'react-icons/tb';
+import { TbMessageCircleShare, TbReportMoney } from 'react-icons/tb';
 
 export const navbarLinks = [
 	{
@@ -70,5 +70,11 @@ export const dashboardLinks = [
 		title: 'Transportes',
 		href: '/dashboard/transportes',
 		icon: <FaTruckPickup size={25} />,
+	},
+	{
+		id: 5,
+		title: 'Reporte',
+		href: '/dashboard/reporte',
+		icon: <TbReportMoney size={25} />,
 	},
 ];

@@ -14,7 +14,7 @@ export const Sidebar = () => {
 				className='w-full'
 				to='/'>
 				<button
-					className='border w-full rounded-md py-2 border-slate-200 px-5 flex items-center justify-center gap-2 text-xs font-medium uppercase tracking-widest hover:bg-cyan-600 transition-all'>
+					className='border w-full rounded-md py-2 border-slate-200 px-5 flex items-center justify-center gap-2 text-xs font-medium uppercase tracking-widest hover:bg-yellow-500 transition-all'>
 					<IoChevronBack size={20} />Volver
 				</button>
 			</Link>
@@ -25,10 +25,10 @@ export const Sidebar = () => {
 						key={link.id}
 						to={link.href}
 						className={({ isActive }) =>
-							`flex items-center justify-center gap-3 pl-0 py-3 transition-all duration-300 rounded-md ${
+							`flex items-center justify-center hover:bg-yellow-500 gap-3 pl-0 py-3 transition-all duration-300 rounded-md ${
 								isActive
 									? 'text-white bg-cyan-600'
-									: 'hover:text-white hover:bg-cyan-600'
+									: 'hover:bg-yellow-500'
 							} lg:pl-5 lg:justify-start`
 						}>
 						{link.icon}
@@ -38,7 +38,7 @@ export const Sidebar = () => {
 			</nav>
 
 			<button
-				className='bg-red-500 w-full py-[10px] rounded-md flex items-center justify-center gap-2 font-semibold text-sm hover:bg-cyan-600'
+				className='bg-red-500 w-full py-[10px] rounded-md flex items-center justify-center gap-2 font-semibold text-sm hover:bg-yellow-500'
 				onClick={handleLogout}>
 				<span className='hidden lg:block'>Cerrar sesión</span>
 				<IoLogOutOutline

@@ -30,7 +30,7 @@ export const ClientLayout = () => {
 			{/* Menú */}
 			<div className='flex justify-end'>
 				<button
-					className='bg-cyan-600 py-[10px] rounded-md flex justify-center gap-2 font-semibold text-sm hover:bg-red-500'
+					className='bg-red-500 py-[10px] p-2 text-white rounded-md flex justify-center gap-2 hover:bg-yellow-500'
 					onClick={handleLogout}>
 					<span className='hidden lg:block'>Cerrar sesión</span>
 					<IoLogOutOutline

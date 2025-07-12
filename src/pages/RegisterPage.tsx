@@ -100,7 +100,7 @@ export const RegisterPage = () => {
 							</p>
 						)}
 
-						<button className='bg-black text-white uppercase font-semibold tracking-widest text-xs py-4 rounded-full mt-5 w-full'>
+						<button className='bg-cyan-600 hover:bg-yellow-500 text-white uppercase font-semibold tracking-widest text-xs py-4 rounded-full mt-5 w-full'>
 							Registrarme
 						</button>
 					</form>

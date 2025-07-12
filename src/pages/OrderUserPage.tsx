@@ -19,7 +19,7 @@ export const OrderUserPage = () => {
 		<div>
 			<div className='flex flex-col justify-between items-center gap-5 md:flex-row md:gap-0'>
 				<button
-					className='border rounded-full py-2 border-slate-200 px-5 flex items-center justify-center gap-2 text-xs font-medium uppercase tracking-widest hover:bg-stone-100 transition-all'
+					className='border rounded-full py-2 border-slate-200 px-5 flex items-center justify-center gap-2 text-xs font-medium uppercase tracking-widest hover:bg-yellow-500 transition-all'
 					onClick={() => navigate(-1)}
 				>
 					<IoChevronBack size={16} />

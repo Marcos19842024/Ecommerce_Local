@@ -6,6 +6,8 @@ import { PiTerminalWindow } from "react-icons/pi";
 import { FaWhatsapp } from "react-icons/fa6";
 import toast from "react-hot-toast";
 import { prepareContacts } from "../../helpers";
+import { GrDocumentUpload } from "react-icons/gr";
+import { RiMobileDownloadLine } from "react-icons/ri";
 
 export const DashboardRemindersPage = () => {
   const [showShell, setShowShell] = useState(false);
@@ -100,24 +102,18 @@ export const DashboardRemindersPage = () => {
       {showShell && <Shellinabox/>}
       <h1 className="text-2xl font-bold">Envío de mensajes</h1>
       <div className="flex items-center justify-between">
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center gap-2">
           <button
-            className='flex justify-between items-center gap-1 py-2 w-fit text-cyan-600 rounded-md p-2 transition-all group hover:bg-cyan-600 hover:text-white hover:scale-105'
+            className='flex justify-between items-center gap-1 w-fit text-white rounded-md p-2 transition-all group bg-cyan-600 hover:bg-yellow-500 hover:scale-105'
             type="button"
             onClick={handleStatus}>
-            <FaWhatsapp />
-            <span className="text-sm font-medium">
-              {status}
-            </span>
+            <FaWhatsapp />{status}
           </button>
           <button
-            className='hover:bg-cyan-600 flex justify-between items-center gap-1 py-2 w-fit text-cyan-600 hover:text-white rounded-md p-2 transition-all group hover:scale-105'
+            className='flex justify-between items-center gap-1 w-fit text-white rounded-md p-2 transition-all group bg-cyan-600 hover:bg-yellow-500 hover:scale-105'
             type="button"
             onClick={() => setShowShell(!showShell)}>
-            <PiTerminalWindow />
-            <span className="text-sm font-medium">
-                Acceder al Servidor
-            </span>
+            <PiTerminalWindow />Acceder al Servidor
           </button>
         </div>
         {showIb ?
@@ -130,17 +126,15 @@ export const DashboardRemindersPage = () => {
               className="file-input file-input-bordered w-full max-w-xs"
               hidden
             />
-            <label
-              className='bg-black text-white flex items-center m-1 self-end py-[6px] px-2 rounded-md text-sm gap-1 font-semibold hover:bg-cyan-600 hover:scale-105'
+            <button
+              className='flex justify-between items-center gap-1 w-fit text-white rounded-md p-2 transition-all group bg-cyan-600 hover:bg-yellow-500 hover:scale-105'
               onClick={getContact}>
-              <span><i className="fa fa-cloud-download fa-2x"></i></span>
-              <p>Click To Download Contacts</p>
-            </label>
+              <RiMobileDownloadLine />Click To Download Contacts
+            </button>
             <label
               htmlFor="inputfile"
-              className='bg-black text-white flex items-center m-1 self-end py-[6px] px-2 rounded-md text-sm gap-1 font-semibold hover:bg-cyan-600 hover:scale-105'>
-              <span><i className="fa fa-cloud-upload fa-2x"></i></span>
-              <p>Click To Upload List</p>
+              className='bg-cyan-600 text-white flex items-center m-2 p-2 rounded-md gap-2 hover:bg-yellow-500 hover:scale-105'>
+              <GrDocumentUpload />Click To Upload List
             </label>
           </div>
         :

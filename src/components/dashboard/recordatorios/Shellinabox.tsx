@@ -24,13 +24,10 @@ export const Shellinabox: React.FC = () => {
                     alt='Qr Code'>
                 </img>
                 <button
-                    className='hover:bg-cyan-600 flex justify-between items-center gap-1 py-2 p-3 justify-between w-fit text-cyan-600 hover:text-white rounded-md p-2 transition-all group hover:scale-105'
+                    className='flex justify-between items-center gap-1 py-2 w-fit text-white rounded-md p-2 transition-all group bg-cyan-600 hover:bg-yellow-500 hover:scale-105'
                     type="button"
                     onClick={reloadQr}>
-                    <IoReload className='font-medium text-sm'/>
-                    <span className="text-sm font-medium">
-                        Reload
-                    </span>
+                    <IoReload className='font-medium text-sm'/>Reload
                 </button>
             </div>
         </div>

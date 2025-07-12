@@ -23,6 +23,7 @@ import {
 	TermsPage,
 	PrivacyNoticePage,
 	FeedBackPage,
+	DashboardExpenseReportPage,
 } from '../pages';
 
 export const router = createBrowserRouter([
@@ -129,6 +130,10 @@ export const router = createBrowserRouter([
 			{
 				path: 'transportes',
 				element: <DashboardTransportPage />,
+			},
+			{
+				path: 'reporte',
+				element: <DashboardExpenseReportPage />,
 			},
 		],
 	},

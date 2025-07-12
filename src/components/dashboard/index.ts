@@ -25,3 +25,6 @@ export * from './transportes/Transport';
 //PDF
 export * from './pdf/PdfViewer';
 export * from './pdf/PdfReminders';
+
+//REPORTE DE GASTOS
+export * from './reporte de gastos/ExpenseReport';
