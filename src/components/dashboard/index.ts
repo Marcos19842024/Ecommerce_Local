@@ -27,4 +27,4 @@ export * from './pdf/PdfViewer';
 export * from './pdf/PdfReminders';
 
 //REPORTE DE GASTOS
-export * from './reporte de gastos/ExpenseReport';
+export * from './reporte de gastos/ExpenseReport2';

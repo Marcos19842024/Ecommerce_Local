@@ -120,18 +120,15 @@ export const Transport = ({ fechas }: TransportProps) => {
                                 >
                                     <div className="flex justify-between items-center border-slate-600 border-b pb-2">
                                         <span className="font-medium">{fecha.fecha}</span>
-                                        <button
-                                            className="text-red-400 text-sm hover:underline"
+                                        <MdDeleteOutline
+                                            className="text-yellow-500 hover:text-red-500 cursor-pointer"
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 handleEliminarFecha(fecha.fecha);
                                             }}
-                                            >
-                                            <MdDeleteOutline
-                                                className="text-yellow-400 hover:text-red-500 cursor-pointer"
-                                                size={20}
-                                            />
-                                        </button>
+                                            title="Eliminar Fecha"
+                                            size={20}
+                                        />
                                     </div>
                                 </div>
                             ))}
@@ -150,18 +147,15 @@ export const Transport = ({ fechas }: TransportProps) => {
                                 >
                                     <div className="flex justify-between items-center border-slate-600 border-b pb-2">
                                         <span className="font-medium">{cliente.hora} - {cliente.nombre}</span>
-                                        <button
-                                            className="text-red-400 text-sm hover:underline"
+                                        <MdDeleteOutline
+                                            className="text-yellow-500 hover:text-red-500 cursor-pointer"
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 handleEliminarCliente(fechasState[index].fecha, cliente.nombre);
                                             }}
-                                            >
-                                            <MdDeleteOutline
-                                                className="text-yellow-400 hover:text-red-500 cursor-pointer"
-                                                size={20}
-                                            />
-                                        </button>
+                                            title="Eliminar Cliente"
+                                            size={20}
+                                        />
                                     </div>
                                 </div>
                             ))}
@@ -187,9 +181,10 @@ export const Transport = ({ fechas }: TransportProps) => {
                                             >
                                                 <td className="flex gap-2 p-2">
                                                     <FiEdit
-                                                        className="text-yellow-400 hover:text-green-500 cursor-pointer"
-                                                        size={20}
+                                                        className="text-yellow-500 hover:text-green-500 cursor-pointer"
                                                         onClick={() => openEditModal(mascota, currentCliente)}
+                                                        title="Editar Mascota"
+                                                        size={20}
                                                     />
                                                     {mascota.nombre}
                                                 </td>
@@ -218,50 +213,58 @@ export const Transport = ({ fechas }: TransportProps) => {
                         <h2 className="text-lg font-bold mb-4">Editar Registro</h2>
                         <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
                             <div>
-                                <label className="block text-sm font-medium">Nombre</label>
-                                <input
-                                    type="text"
-                                    name="nombre"
-                                    value={formValues.nombre}
-                                    onChange={handleFormChange}
-                                    className="w-full border border-gray-300 rounded px-3 py-2"
-                                    required
-                                />
+                                <label 
+                                    className="block text-sm font-medium">Nombre
+                                    <input
+                                        type="text"
+                                        name="nombre"
+                                        value={formValues.nombre}
+                                        onChange={handleFormChange}
+                                        className="w-full border border-gray-300 rounded px-3 py-2"
+                                        required
+                                    />
+                                </label>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium">Raza</label>
-                                <input
-                                    type="text"
-                                    name="raza"
-                                    value={formValues.raza}
-                                    onChange={handleFormChange}
-                                    className="w-full border border-gray-300 rounded px-3 py-2"
-                                />
+                                <label
+                                    className="block text-sm font-medium">Raza
+                                    <input
+                                        type="text"
+                                        name="raza"
+                                        value={formValues.raza}
+                                        onChange={handleFormChange}
+                                        className="w-full border border-gray-300 rounded px-3 py-2"
+                                    />
+                                </label>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium">Asunto</label>
-                                <input
-                                    type="text"
-                                    name="asunto"
-                                    value={formValues.asunto}
-                                    onChange={handleFormChange}
-                                    className="w-full border border-gray-300 rounded px-3 py-2"
-                                />
+                                <label
+                                    className="block text-sm font-medium">Asunto
+                                    <input
+                                        type="text"
+                                        name="asunto"
+                                        value={formValues.asunto}
+                                        onChange={handleFormChange}
+                                        className="w-full border border-gray-300 rounded px-3 py-2"
+                                    />
+                                </label>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium">Observaciones</label>
-                                <input
-                                    type="text"
-                                    name="status"
-                                    value={formValues.status}
-                                    onChange={handleFormChange}
-                                    className="w-full border border-gray-300 rounded px-3 py-2"
-                                />
+                                <label
+                                    className="block text-sm font-medium">Observaciones
+                                    <input
+                                        type="text"
+                                        name="status"
+                                        value={formValues.status}
+                                        onChange={handleFormChange}
+                                        className="w-full border border-gray-300 rounded px-3 py-2"
+                                    />
+                                </label>
                             </div>
                             <div className="flex justify-end space-x-2">
                                 <button
                                     type="submit"
-                                    className="px-4 py-2 bg-black text-white rounded hover:bg-cyan-600"
+                                    className="px-4 py-2 bg-cyan-600 text-white rounded hover:bg-yellow-500"
                                     >
                                     Guardar
                                 </button>

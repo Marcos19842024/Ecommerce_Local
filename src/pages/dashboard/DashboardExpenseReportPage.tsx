@@ -1,5 +1,5 @@
 //import { useState } from 'react';
-//import { ExpenseReport } from '../../components/dashboard';
+import { ExpenseReport2 } from '../../components/dashboard';
 //import { RiBillLine } from 'react-icons/ri';
 
 export const DashboardExpenseReportPage = () => {
@@ -20,9 +20,9 @@ export const DashboardExpenseReportPage = () => {
 
   return (
     <>
-      <div className="flex items-center justify-between">
+      {/* <div className="flex items-center justify-between">
         <h1 className='text-2xl font-bold'>Reporte de gastos</h1>
-        {/* <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between">
           <input
             type="file"
             id="inputfile"
@@ -36,9 +36,9 @@ export const DashboardExpenseReportPage = () => {
             className='bg-cyan-600 text-white flex items-center m-2 p-2 rounded-md gap-2 hover:bg-yellow-500 hover:scale-105'>
             <RiBillLine />Click To Upload Pdf
           </label>
-        </div> */}
-      </div>
-      {/* {file && info && <ExpenseReport file={file} info={info} />} */}
+        </div>
+      </div> */}
+      {/* {file && info && <ExpenseReport file={file} info={info} />} */}<ExpenseReport2/>
     </>
   );
 };
