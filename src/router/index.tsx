@@ -24,7 +24,9 @@ import {
 	PrivacyNoticePage,
 	FeedBackPage,
 	DashboardExpenseReportPage,
+	DashboardReadBillPage,
 } from '../pages';
+import { DashboardProfilePage } from '../pages/dashboard/DashboardProfilePage';
 
 export const router = createBrowserRouter([
 	{
@@ -134,6 +136,14 @@ export const router = createBrowserRouter([
 			{
 				path: 'reporte',
 				element: <DashboardExpenseReportPage />,
+			},
+			{
+				path: 'facturas',
+				element: <DashboardReadBillPage />,
+			},
+			{
+				path: 'usuarios',
+				element: <DashboardProfilePage />,
 			},
 		],
 	},

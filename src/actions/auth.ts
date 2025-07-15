@@ -25,7 +25,7 @@ export const signUp = async ({
 			password,
 		});
 
-		if (error) {
+		if (error) {console.log(error);
 			throw new Error(error.message);
 		}
 
@@ -143,4 +143,27 @@ export const getUserRole = async (userId: string) => {
 	}
 
 	return data.role;
+};
+
+export const getUsersList = async () => {
+	const { data: { users }, error } = await supabase.auth.admin.listUsers({
+        page: 1,
+        perPage: 1000
+    });
+	if (error) {
+		console.log(error);
+		throw new Error('Error al obtener la lista de usuarios');
+	}
+
+	return users;
+};
+
+export const getUserDelete = async (userId: string) => {
+	const { data, error } = await supabase.auth.admin.deleteUser(userId);
+	if (error) {
+		console.log(error);
+		throw new Error('Error al eliminar el usuario');
+	}
+
+	return data.user;
 };

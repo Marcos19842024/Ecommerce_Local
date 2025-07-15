@@ -32,3 +32,5 @@ export * from "./dashboard/DashboardOrderPage";
 export * from './dashboard/DashboardRemindersPage';
 export * from './dashboard/DashboardTransportPage';
 export * from './dashboard/DashboardExpenseReportPage';
+export * from './dashboard/DashboardReadBillPage';
+export * from './dashboard/DashboardProfilePage';

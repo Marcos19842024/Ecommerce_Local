@@ -87,8 +87,8 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
             </div>
 
             {showPdf ? (
-                <div className="lg:col-span-5 transition-all group hover:bg-cyan-600 hover:text-white hover:scale-105">
-                    <PdfViewer sending={enviados} notsending={noEnviados} fechas={[]} />
+                <div className="lg:col-span-5">
+                    <PdfViewer sending={enviados} notsending={noEnviados} />
                 </div>
             ) : (
                 <>

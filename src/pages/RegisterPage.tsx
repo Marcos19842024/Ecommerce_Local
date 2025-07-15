@@ -27,7 +27,12 @@ export const RegisterPage = () => {
 	const onRegister = handleSubmit(data => {
 		const { email, password, fullName, phone } = data;
 
-		mutate({ email, password, fullName, phone });
+		mutate({
+			email,
+			password,
+			fullName,
+			phone,
+		});
 	});
 
 	if (isLoading) return <Loader />;

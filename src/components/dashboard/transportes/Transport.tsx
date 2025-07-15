@@ -103,7 +103,7 @@ export const Transport = ({ fechas }: TransportProps) => {
 
                 {showPdf ? (
                     <div className="w-full col-span-5">
-                        <PdfViewer fechas={fechasState} sending={[]} notsending={[]} />
+                        <PdfViewer fechas={fechasState} />
                     </div>
                 ) : (
                     <div className="h-screen w-full flex col-span-5 gap-2">
