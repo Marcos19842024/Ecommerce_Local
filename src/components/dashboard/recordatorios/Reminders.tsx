@@ -64,134 +64,105 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
     return (
         <form
             onSubmit={handleSubmit}
-            className="grid grid-cols-1 lg:grid-cols-5 gap-4 p-4 h-screen"
-            >
-            <div className="lg:col-span-5 flex justify-between items-center">
-                <label className="flex items-center gap-2 p-2 w-fit rounded-md text-cyan-600 transition-all group hover:bg-cyan-600 hover:text-white hover:scale-105">
-                    <input
-                        type="checkbox"
-                        checked={x5}
-                        onChange={() => setX5(!x5)}
-                    />{" "}
+            className="grid grid-cols-1 lg:grid-cols-5 gap-4 p-4 min-h-screen"
+        >
+            {/* Controles superiores */}
+            <div className="lg:col-span-5 flex flex-wrap justify-between items-center gap-4">
+                <label className="flex items-center gap-2 p-2 rounded-md text-cyan-600 transition-all group hover:bg-cyan-600 hover:text-white hover:scale-105">
+                    <input type="checkbox" checked={x5} onChange={() => setX5(!x5)} />
                     Enviar 5 en 5
                 </label>
-                <div>
+
+                <div className="text-sm">
                     Enviados: {enviados.length} | No enviados: {noEnviados.length}
                 </div>
+
                 <button
-                    className="gap-1 p-2 w-fit rounded-md text-white transition-all group bg-cyan-600 hover:bg-yellow-500 hover:scale-105"
+                    className="flex items-center gap-1 p-2 rounded-md text-white bg-cyan-600 hover:bg-yellow-500 hover:scale-105 transition-all"
                     type="button"
-                    onClick={() => setShowPdf(!showPdf)}>
+                    onClick={() => setShowPdf(!showPdf)}
+                >
                     {showPdf ? <PiAppWindowBold /> : <TfiPrinter />}
                 </button>
             </div>
 
+            {/* Vista PDF o Vista Conversación */}
             {showPdf ? (
                 <div className="lg:col-span-5">
                     <PdfViewer sending={enviados} notsending={noEnviados} />
                 </div>
             ) : (
                 <>
-                    <div className="lg:col-span-2 overflow-y-auto overscroll-contain h-2/3 w-full max-w-md mx-auto bg-gray-900 rounded p-4">
-                        <div className="sticky top-0 bg-gray-900">
-                            <h2 className='font-bold justify-between text-white tracking-tight text-xl py-4 px-4'>Chats</h2>
-                            <hr className='border-slate-100 w-full rounded-md' />
+                    {/* Lista de clientes/chat */}
+                    <div className="lg:col-span-2 overflow-y-auto max-h-[70vh] w-full mx-auto bg-gray-900 rounded p-4">
+                        <div className="sticky top-0 z-10 bg-gray-900 pb-2">
+                            <h2 className="font-bold text-white tracking-tight text-xl py-2 px-2">Chats</h2>
+                            <hr className="border-slate-100 rounded-md" />
                         </div>
+
                         {clientes.map((cliente, i) => (
-                            <div
-                                key={i}
-                                ref={(el) => (clienteRefs.current[i] = el)}
-                                onClick={() => setIndex(i)}
-                                className={`p-2 cursor-pointer rounded ${
+                        <div
+                            key={i}
+                            ref={(el) => (clienteRefs.current[i] = el)}
+                            onClick={() => setIndex(i)}
+                            className={`flex items-center gap-2 p-2 cursor-pointer rounded ${
                                 index === i ? "bg-cyan-600 text-white" : "text-white"
-                                }`}
-                            >
-                                <img
-                                    src={'/img/User.png'}
-                                    className="w-12 h-12 rounded-full mr-4"
-                                />
-                                <div className="flex-1 border-slate-600 border-b pb-2">
-                                    <div className="flex justify-between">
-                                        <span className="font-medium text-white">
-                                            {cliente.nombre}
-                                        </span>
-                                        <span className="text-sm text-white">
-                                            {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </span>
-                                    </div>
-                                    {cliente.status && (
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-sm text-gray-400 truncate w-48">
-                                                {cliente.mensaje[cliente.mensaje.length - 1]}
-                                            </span>
-                                            <span
-                                                className="ml-2 text-white text-xs font-bold px-2 py-0.5 rounded-full"
-                                                style={{ color: '#34B7F1' }}>✔✔
-                                            </span>
-                                        </div>
-                                    )}
+                            }`}
+                        >
+                            <img src="/img/User.png" className="w-12 h-12 rounded-full" />
+                            <div className="flex-1 border-b border-slate-600 pb-2">
+                                <div className="flex justify-between">
+                                    <span className="font-medium">{cliente.nombre}</span>
+                                    <span className="text-sm">{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                 </div>
+                                {cliente.status && (
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="text-gray-400 truncate w-48">{cliente.mensaje.at(-1)}</span>
+                                        <span className="text-cyan-400 text-xs font-bold px-2">✔✔</span>
+                                    </div>
+                                )}
                             </div>
+                        </div>
                         ))}
                     </div>
 
-                    <div className="h-2/3 lg:col-span-3 flex flex-col bg-gray-800 rounded p-4">
+                    {/* Conversación actual */}
+                    <div className="lg:col-span-3 flex flex-col bg-gray-800 rounded p-4 max-h-[70vh]">
                         <div className="mb-4">
                             <h2 className="text-white font-bold text-xl">{clientes[index].nombre}</h2>
                             <p className="text-gray-400">{clientes[index].telefono}</p>
-                            {clientes[index].mascotas.length > 0 && (
+                            {clientes[index].mascotas?.length > 0 && (
                                 <p className="text-sm text-gray-400">
                                     Mascotas: {getMascotas(clientes[index].mascotas)}
                                 </p>
                             )}
                         </div>
 
-                        <div className="flex-1 overflow-y-auto overscroll-contain w-full space-y-2">
+                        <div className="flex-1 overflow-y-auto space-y-2">
                             {clientes[index].mensaje.map((msg, idx) => (
-                                <MessageBubble
-                                    key={`cmsg-${idx}`}
-                                    {...createNewMsg(msg)}
-                                    editable={false}
-                                />
+                                <MessageBubble key={`msg-${idx}`} {...createNewMsg(msg)} editable={false} />
                             ))}
                             {messages.map((msg) => (
-                                <MessageBubble
-                                    key={msg.id}
-                                    {...msg}
-                                    editable={true}
-                                    onDelete={() => deleteMessage(msg.id)}
-                                />
+                                <MessageBubble key={msg.id} {...msg} editable onDelete={() => deleteMessage(msg.id)} />
                             ))}
                             {files.map((file) => (
-                                <MessageBubbleFile
-                                    key={file.id}
-                                    file={file}
-                                    {...createNewMsg("")}
-                                    editable={true}
-                                    onDelete={() => deleteMessage('',file)}
-                                />
+                                <MessageBubbleFile key={file.id} file={file} {...createNewMsg("")} editable onDelete={() => deleteMessage('', file)} />
                             ))}
                         </div>
 
-                        <div className="mt-4 flex gap-2 items-center">
+                        <div className="mt-4 flex items-center gap-2">
                             <label htmlFor="upload" className="cursor-pointer">
                                 <PiPaperclipBold className="text-white" />
                             </label>
-                            <input
-                                id="upload"
-                                type="file"
-                                multiple
-                                hidden
-                                onChange={(e) => handleUpload(e.target.files)}
-                            />
-                            <textarea
-                                className="flex-1 p-2 rounded bg-gray-900 text-white overflow-hidden"
-                                value={msjo}
-                                onChange={(e) => setMsjo(e.target.value)}
-                                onKeyDown={(e) => handleKeyDown(e, createNewMsg(msjo))}
-                                placeholder="Escribe un mensaje..."
-                                style={{ resize: 'none', height: '28px' }}
-                            />
+                            <input id="upload" type="file" multiple hidden onChange={(e) => handleUpload(e.target.files)} />
+                                <textarea
+                                    className="flex-1 p-2 rounded bg-gray-900 text-white resize-none"
+                                    value={msjo}
+                                    onChange={(e) => setMsjo(e.target.value)}
+                                    onKeyDown={(e) => handleKeyDown(e, createNewMsg(msjo))}
+                                    placeholder="Escribe un mensaje..."
+                                    style={{ height: '28px' }}
+                                />
                             <button type="submit" className="text-white">
                                 <VscSend />
                             </button>

@@ -87,13 +87,14 @@ export const Transport = ({ fechas }: TransportProps) => {
 
     return (
         <>
-            <div className="flex grid grid-col-5 gap-2 p-2 h-screen">
-                <div className="col-span-4 flex justify-center items-center p-2 text-cyan-600">
-                    Clientes: {fechasState.reduce((total,fecha) => {return total + fecha.clientes.length},0)}
+            <div className="flex flex-col lg:grid lg:grid-cols-5 gap-2 p-2 min-h-screen">
+                {/* Header Info */}
+                <div className="lg:col-span-4 flex justify-center items-center p-2 text-cyan-600">
+                    Clientes: {fechasState.reduce((total, fecha) => total + fecha.clientes.length, 0)}
                 </div>
-                <div className="col-span-1 flex justify-end items-center p-2">
+                <div className="lg:col-span-1 flex justify-end items-center p-2">
                     <button
-                        className="ggap-1 p-2 w-fit rounded-md text-white transition-all group bg-cyan-600 hover:bg-yellow-500 hover:scale-105"
+                        className="p-2 w-fit rounded-md text-white transition-all group bg-cyan-600 hover:bg-yellow-500 hover:scale-105"
                         type="button"
                         onClick={() => setShowPdf(!showPdf)}
                     >
@@ -106,9 +107,10 @@ export const Transport = ({ fechas }: TransportProps) => {
                         <PdfViewer fechas={fechasState} />
                     </div>
                 ) : (
-                    <div className="h-screen w-full flex col-span-5 gap-2">
-                        <div className="col-span-1 overflow-y-auto overscroll-contain font-medium text-white h-fit h-max-1/3 w-2/5 mx-auto bg-gray-900 rounded p-2">
-                            <div className="sticky top-0 bg-gray-900">
+                    <div className="flex flex-col lg:flex-row w-full col-span-5 gap-2">
+                        {/* Columna Fechas */}
+                        <div className="overflow-y-auto font-medium text-white w-full lg:w-1/3 bg-gray-900 rounded p-2 h-[170px] lg:h-fit">
+                            <div className="sticky top-0 bg-gray-900 z-10">
                                 <h2 className="font-bold text-white text-xl py-4 px-4">Fechas</h2>
                                 <hr className="border-slate-100 w-full rounded-md" />
                             </div>
@@ -119,7 +121,7 @@ export const Transport = ({ fechas }: TransportProps) => {
                                     className={`p-2 cursor-pointer rounded ${index === i ? "bg-cyan-600 text-white" : "text-white"}`}
                                 >
                                     <div className="flex justify-between items-center border-slate-600 border-b pb-2">
-                                        <span className="font-medium">{fecha.fecha}</span>
+                                        <span>{fecha.fecha}</span>
                                         <MdDeleteOutline
                                             className="text-yellow-500 hover:text-red-500 cursor-pointer"
                                             onClick={(e) => {
@@ -134,8 +136,9 @@ export const Transport = ({ fechas }: TransportProps) => {
                             ))}
                         </div>
 
-                        <div className="col-span-2 overflow-y-auto overscroll-contain font-medium text-white h-2/3 h-max-2/3 w-full mx-auto bg-gray-900 rounded p-2">
-                            <div className="sticky top-0 bg-gray-900">
+                        {/* Columna Clientes */}
+                        <div className="overflow-y-auto font-medium text-white w-full lg:w-1/3 bg-gray-900 rounded p-2 h-[310px] lg:h-1/3 ">
+                            <div className="sticky top-0 bg-gray-900 z-10">
                                 <h2 className="font-bold text-white text-xl py-4 px-4">Clientes</h2>
                                 <hr className="border-slate-100 w-full rounded-md" />
                             </div>
@@ -146,7 +149,7 @@ export const Transport = ({ fechas }: TransportProps) => {
                                     className={`p-2 cursor-pointer rounded ${idc === i ? "bg-cyan-600 text-white" : "text-white"}`}
                                 >
                                     <div className="flex justify-between items-center border-slate-600 border-b pb-2">
-                                        <span className="font-medium">{cliente.hora} - {cliente.nombre}</span>
+                                        <span>{cliente.hora} - {cliente.nombre}</span>
                                         <MdDeleteOutline
                                             className="text-yellow-500 hover:text-red-500 cursor-pointer"
                                             onClick={(e) => {
@@ -161,10 +164,11 @@ export const Transport = ({ fechas }: TransportProps) => {
                             ))}
                         </div>
 
-                        <div className="col-span-2 overflow-y-auto overscroll-contain font-medium text-white h-fit h-max-1/3 w-full mx-auto bg-gray-900 rounded p-2">
-                            <div>{currentCliente?.hora} Hrs.</div>
-                            <span>{currentCliente?.nombre}</span>
-                            <div className="w-full m-2 rounded-md bg-gray-800">
+                        {/* Columna Detalles */}
+                        <div className="overflow-y-auto font-medium text-white w-full lg:w-1/3 bg-gray-900 rounded p-2 h-fit">
+                            <div className="p-2">{currentCliente?.hora} Hrs.</div>
+                            <span className="p-2">{currentCliente?.nombre}</span>
+                            <div className="w-full m-2 rounded-md bg-gray-800 overflow-x-auto">
                                 <table className="w-full text-sm text-white">
                                     <thead>
                                         <tr className="bg-gray-700 text-left">
@@ -175,10 +179,7 @@ export const Transport = ({ fechas }: TransportProps) => {
                                     </thead>
                                     <tbody>
                                         {currentCliente?.mascotas.map((mascota, i) => (
-                                            <tr
-                                                key={i}
-                                                className="cursor-pointer hover:bg-gray-600"
-                                            >
+                                            <tr key={i} className="cursor-pointer hover:bg-gray-600">
                                                 <td className="flex gap-2 p-2">
                                                     <FiEdit
                                                         className="text-yellow-500 hover:text-green-500 cursor-pointer"
@@ -195,77 +196,68 @@ export const Transport = ({ fechas }: TransportProps) => {
                                     </tbody>
                                 </table>
                             </div>
-                            <span>Observaciones: {currentCliente?.status}</span>
+                            <span className="p-2">Observaciones: {currentCliente?.status}</span>
                         </div>
                     </div>
                 )}
             </div>
-
             {modalOpen && (
                 <div
-                    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+                    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2"
                     onClick={() => setModalOpen(false)}
-                    >
+                >
                     <div
-                        className="bg-white text-black p-6 rounded-lg w-96"
+                        className="bg-white text-black p-6 rounded-lg w-full max-w-md mx-4"
                         onClick={handleModalContainerClick}
                     >
                         <h2 className="text-lg font-bold mb-4">Editar Registro</h2>
                         <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
                             <div>
-                                <label 
-                                    className="block text-sm font-medium">Nombre
-                                    <input
-                                        type="text"
-                                        name="nombre"
-                                        value={formValues.nombre}
-                                        onChange={handleFormChange}
-                                        className="w-full border border-gray-300 rounded px-3 py-2"
-                                        required
-                                    />
-                                </label>
+                                <label className="block text-sm font-medium mb-1">Nombre</label>
+                                <input
+                                    type="text"
+                                    name="nombre"
+                                    value={formValues.nombre}
+                                    onChange={handleFormChange}
+                                    className="w-full border border-gray-300 rounded px-3 py-2"
+                                    required
+                                />
                             </div>
                             <div>
-                                <label
-                                    className="block text-sm font-medium">Raza
-                                    <input
-                                        type="text"
-                                        name="raza"
-                                        value={formValues.raza}
-                                        onChange={handleFormChange}
-                                        className="w-full border border-gray-300 rounded px-3 py-2"
-                                    />
-                                </label>
+                                <label className="block text-sm font-medium mb-1">Raza</label>
+                                <input
+                                    type="text"
+                                    name="raza"
+                                    value={formValues.raza}
+                                    onChange={handleFormChange}
+                                    className="w-full border border-gray-300 rounded px-3 py-2"
+                                />
                             </div>
                             <div>
-                                <label
-                                    className="block text-sm font-medium">Asunto
-                                    <input
-                                        type="text"
-                                        name="asunto"
-                                        value={formValues.asunto}
-                                        onChange={handleFormChange}
-                                        className="w-full border border-gray-300 rounded px-3 py-2"
-                                    />
-                                </label>
+                                <label className="block text-sm font-medium mb-1">Asunto</label>
+                                <input
+                                    type="text"
+                                    name="asunto"
+                                    value={formValues.asunto}
+                                    onChange={handleFormChange}
+                                    className="w-full border border-gray-300 rounded px-3 py-2"
+                                />
                             </div>
                             <div>
-                                <label
-                                    className="block text-sm font-medium">Observaciones
-                                    <input
-                                        type="text"
-                                        name="status"
-                                        value={formValues.status}
-                                        onChange={handleFormChange}
-                                        className="w-full border border-gray-300 rounded px-3 py-2"
-                                    />
-                                </label>
+                                <label className="block text-sm font-medium mb-1">Observaciones</label>
+                                <input
+                                    type="text"
+                                    name="status"
+                                    value={formValues.status}
+                                    onChange={handleFormChange}
+                                    className="w-full border border-gray-300 rounded px-3 py-2"
+                                />
                             </div>
                             <div className="flex justify-end space-x-2">
                                 <button
                                     type="submit"
                                     className="px-4 py-2 bg-cyan-600 text-white rounded hover:bg-yellow-500"
-                                    >
+                                >
                                     Guardar
                                 </button>
                             </div>

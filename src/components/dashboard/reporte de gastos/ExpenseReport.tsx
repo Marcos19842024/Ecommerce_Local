@@ -156,61 +156,72 @@ export const ExpenseReport = () => {
                 </div>
             ) : (
                 <>
-                    <div className="grid grid-cols-5 justify-center items-center gap-2 p-2">
-                        <label htmlFor="tipoPago" className="col-span-1 text-center">Tipo de pago</label>
-                        <label htmlFor="mes" className="col-span-1 text-center">Mes</label>
-                        <label htmlFor="anio" className="col-span-1 text-center">Año</label>
-                        <span className="col-span-2 text-center">Acciones</span>
-                        <select
-                            name="tipoPago"
-                            value={selectValues.tipoPago}
-                            onChange={handleFormChangeSelect}
-                            required
-                            className={`col-span-1 border ${errores.tipoPago ? "border-red-500" : "border-white"} text-cyan-600 rounded p-1`}
-                        >
-                            <option value="">Selecciona</option>
-                            <option value="Efectivo">Efectivo</option>
-                            <option value="TC">Tarjeta Crédito</option>
-                            <option value="TD">Tarjeta Débito</option>
-                        </select>
-                        <select
-                            name="mes"
-                            value={selectValues.mes}
-                            onChange={handleFormChangeSelect}
-                            required
-                            className={`col-span-1 border ${errores.mes ? "border-red-500" : "border-white"} text-cyan-600 rounded p-1`}
-                        >
-                            <option value="">Selecciona</option>
-                            {meses.map((mes) => (
-                                <option key={mes} value={mes}>{mes}</option>
-                            ))}
-                        </select>
-                        <select
-                            name="anio"
-                            value={selectValues.anio ?? ""}
-                            onChange={handleFormChangeSelect}
-                            required
-                            className={`col-span-1 border ${errores.anio ? "border-red-500" : "border-white"} text-cyan-600 rounded p-1`}
-                        >
-                            <option value="">Selecciona</option>
-                            {years.map((y) => (
-                                <option key={y} value={y}>{y}</option>
-                            ))}
-                        </select>
-                        <span
-                            className="w-fit text-cyan-600 text-center">
-                            Registros: {rows.length}
-                        </span>
-                        <button
-                            onClick={() => {
-                                resetForm();
-                                handleSelectSave();
-                            }}
-                            className="col-span-1 bg-cyan-600 text-white rounded hover:bg-yellow-500 p-2"
-                        >
-                            Agregar factura
-                        </button>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2 p-2">
+                        <div className="flex flex-col">
+                            <label htmlFor="tipoPago" className="text-sm font-medium">Tipo de pago</label>
+                            <select
+                                name="tipoPago"
+                                value={selectValues.tipoPago}
+                                onChange={handleFormChangeSelect}
+                                required
+                                className={`border ${errores.tipoPago ? "border-red-500" : "border-white"} text-cyan-600 rounded p-1`}
+                            >
+                                <option value="">Tipo de pago...</option>
+                                <option value="Efectivo">Efectivo</option>
+                                <option value="TC">Tarjeta Crédito</option>
+                                <option value="TD">Tarjeta Débito</option>
+                            </select>
+                        </div>
+
+                        <div className="flex flex-col">
+                            <label htmlFor="mes" className="text-sm font-medium">Mes</label>
+                            <select
+                                name="mes"
+                                value={selectValues.mes}
+                                onChange={handleFormChangeSelect}
+                                required
+                                className={`border ${errores.mes ? "border-red-500" : "border-white"} text-cyan-600 rounded p-1`}
+                            >
+                                <option value="">Mes...</option>
+                                {meses.map((mes) => (
+                                    <option key={mes} value={mes}>{mes}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="flex flex-col">
+                            <label htmlFor="anio" className="text-sm font-medium">Año</label>
+                            <select
+                                name="anio"
+                                value={selectValues.anio ?? ""}
+                                onChange={handleFormChangeSelect}
+                                required
+                                className={`border ${errores.anio ? "border-red-500" : "border-white"} text-cyan-600 rounded p-1`}
+                            >
+                                <option value="">Año...</option>
+                                {years.map((y) => (
+                                    <option key={y} value={y}>{y}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="flex flex-col justify-end text-center text-cyan-600">
+                            <span>Registros: {rows.length}</span>
+                        </div>
+
+                        <div className="flex flex-col justify-end">
+                            <button
+                                onClick={() => {
+                                    resetForm();
+                                    handleSelectSave();
+                                }}
+                                className="bg-cyan-600 text-white rounded hover:bg-yellow-500 p-2"
+                            >
+                                Agregar factura
+                            </button>
+                        </div>
                     </div>
+
                     {showForm && (
                         <div
                             className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-start z-50"
@@ -320,75 +331,77 @@ export const ExpenseReport = () => {
                         </div>
                     )}
                     {rows.length > 0 && (
-                        <div className="overflow-x-auto max-h-[80vh] rounded-md border">
-                            <table className="table-auto min-w-full text-sm text-white bg-gray-800">
-                                <thead className="bg-gray-800 sticky top-0 z-10">
-                                    <tr>
-                                        <th className="px-2 py-2 text-left whitespace-nowrap">Fecha</th>
-                                        <th className="px-2 py-2 text-left whitespace-nowrap">Factura</th>
-                                        <th className="px-2 py-2 text-left">Proveedor</th>
-                                        <th className="px-2 py-2 text-left">Concepto</th>
-                                        <th className="px-2 py-2 text-right whitespace-nowrap">Subtotal</th>
-                                        <th className="px-2 py-2 text-right whitespace-nowrap">Descuento</th>
-                                        <th className="px-2 py-2 text-right whitespace-nowrap">IVA</th>
-                                        <th className="px-2 py-2 text-right whitespace-nowrap">Total</th>
-                                        <th className="px-2 py-2 text-center whitespace-nowrap">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {rows.map((row, index) => (
-                                        <tr key={index} className="border-t border-gray-500 bg-gray-900 hover:bg-gray-700">
-                                            <td className="px-2 py-2">{row.fecha}</td>
-                                            <td className="px-2 py-2">{row.factura}</td>
-                                            <td className="px-2 py-2">{row.proveedor}</td>
-                                            <td className="px-2 py-2">{row.concepto}</td>
-                                            <td className="px-2 py-2 text-right">{formatCurrency(row.subtotal ?? 0)}</td>
-                                            <td className="px-2 py-2 text-right">{formatCurrency(row.descuento ?? 0)}</td>
-                                            <td className="px-2 py-2 text-right">{formatCurrency(row.iva ?? 0)}</td>
-                                            <td className="px-2 py-2 text-right">{formatCurrency(row.total ?? 0)}</td>
-                                            <td className="px-2 py-2 text-center">
-                                                <div className="flex justify-center gap-2">
-                                                    <FiEdit
-                                                        onClick={() => {
-                                                        handleEdit(index);
-                                                        handleSelectSave();
-                                                        }}
-                                                        className="text-yellow-500 hover:text-green-500 cursor-pointer"
-                                                        title="Editar"
-                                                        size={18}
-                                                    />
-                                                    <MdDeleteOutline
-                                                        onClick={() => handleDelete(index)}
-                                                        className="text-yellow-500 hover:text-red-500 cursor-pointer"
-                                                        title="Eliminar"
-                                                        size={20}
-                                                    />
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                                {rows.length > 0 && (
-                                    <tfoot className="bg-gray-800 border-t border-gray-500 sticky bottom-0 z-10 font-bold">
+                        <div className="flex-1 overflow-y-auto overflow-x-auto rounded-md border max-h-[calc(100vh-300px)]">
+                            <div className="flex flex-col h-full max-h-[calc(100vh-200px)] overflow-y-auto">
+                                <table className="table-auto min-w-full text-sm text-white bg-gray-800">
+                                    <thead className="bg-gray-800 sticky top-0 z-10">
                                         <tr>
-                                            <td colSpan={4} className="px-2 py-2 text-right">Totales:</td>
-                                            <td className="px-2 py-2 text-right">
-                                                {formatCurrency(rows.reduce((acc, r) => acc + (r.subtotal ?? 0), 0))}
-                                            </td>
-                                            <td className="px-2 py-2 text-right">
-                                                {formatCurrency(rows.reduce((acc, r) => acc + (r.descuento ?? 0), 0))}
-                                            </td>
-                                            <td className="px-2 py-2 text-right">
-                                                {formatCurrency(rows.reduce((acc, r) => acc + (r.iva ?? 0), 0))}
-                                            </td>
-                                            <td className="px-2 py-2 text-right">
-                                                {formatCurrency(rows.reduce((acc, r) => acc + (r.total ?? 0), 0))}
-                                            </td>
-                                            <td></td>
+                                            <th className="px-2 py-2 text-left whitespace-nowrap">Fecha</th>
+                                            <th className="px-2 py-2 text-left whitespace-nowrap">Factura</th>
+                                            <th className="px-2 py-2 text-left">Proveedor</th>
+                                            <th className="px-2 py-2 text-left">Concepto</th>
+                                            <th className="px-2 py-2 text-right whitespace-nowrap">Subtotal</th>
+                                            <th className="px-2 py-2 text-right whitespace-nowrap">Descuento</th>
+                                            <th className="px-2 py-2 text-right whitespace-nowrap">IVA</th>
+                                            <th className="px-2 py-2 text-right whitespace-nowrap">Total</th>
+                                            <th className="px-2 py-2 text-center whitespace-nowrap">Acciones</th>
                                         </tr>
-                                    </tfoot>
-                                )}
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                        {rows.map((row, index) => (
+                                            <tr key={index} className="border-t border-gray-500 bg-gray-900 hover:bg-gray-700">
+                                                <td className="px-2 py-2">{row.fecha}</td>
+                                                <td className="px-2 py-2">{row.factura}</td>
+                                                <td className="px-2 py-2">{row.proveedor}</td>
+                                                <td className="px-2 py-2">{row.concepto}</td>
+                                                <td className="px-2 py-2 text-right">{formatCurrency(row.subtotal ?? 0)}</td>
+                                                <td className="px-2 py-2 text-right">{formatCurrency(row.descuento ?? 0)}</td>
+                                                <td className="px-2 py-2 text-right">{formatCurrency(row.iva ?? 0)}</td>
+                                                <td className="px-2 py-2 text-right">{formatCurrency(row.total ?? 0)}</td>
+                                                <td className="px-2 py-2 text-center">
+                                                    <div className="flex justify-center gap-2">
+                                                        <FiEdit
+                                                            onClick={() => {
+                                                            handleEdit(index);
+                                                            handleSelectSave();
+                                                            }}
+                                                            className="text-yellow-500 hover:text-green-500 cursor-pointer"
+                                                            title="Editar"
+                                                            size={18}
+                                                        />
+                                                        <MdDeleteOutline
+                                                            onClick={() => handleDelete(index)}
+                                                            className="text-yellow-500 hover:text-red-500 cursor-pointer"
+                                                            title="Eliminar"
+                                                            size={20}
+                                                        />
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                    {rows.length > 0 && (
+                                        <tfoot className="bg-gray-800 border-t border-gray-500 sticky bottom-0 z-10 font-bold">
+                                            <tr>
+                                                <td colSpan={4} className="px-2 py-2 text-right">Totales:</td>
+                                                <td className="px-2 py-2 text-right">
+                                                    {formatCurrency(rows.reduce((acc, r) => acc + (r.subtotal ?? 0), 0))}
+                                                </td>
+                                                <td className="px-2 py-2 text-right">
+                                                    {formatCurrency(rows.reduce((acc, r) => acc + (r.descuento ?? 0), 0))}
+                                                </td>
+                                                <td className="px-2 py-2 text-right">
+                                                    {formatCurrency(rows.reduce((acc, r) => acc + (r.iva ?? 0), 0))}
+                                                </td>
+                                                <td className="px-2 py-2 text-right">
+                                                    {formatCurrency(rows.reduce((acc, r) => acc + (r.total ?? 0), 0))}
+                                                </td>
+                                                <td></td>
+                                            </tr>
+                                        </tfoot>
+                                    )}
+                                </table>
+                            </div>
                         </div>
                     )}
                 </>

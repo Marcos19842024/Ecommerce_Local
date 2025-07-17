@@ -91,4 +91,10 @@ export const dashboardLinks = [
 		href: '/dashboard/usuarios',
 		icon: <LuUsers size={25} />,
 	},
+	{
+		id: 8,
+		title: 'Planogramas',
+		href: '/dashboard/planogramas',
+		icon: <LuUsers size={25} />,
+	},
 ];

@@ -95,36 +95,54 @@ export const FormProduct = ({ titleForm }: Props) => {
 	if (isPending || isUpdatePending || isLoading) return <Loader />;
 
 	return (
-		<div className='flex flex-col gap-6 relative'>
-			<div className='flex justify-between items-center'>
-				<div className='flex items-center gap-3'>
+		<div className="flex flex-col gap-6 relative px-4 sm:px-6 lg:px-0">
+			{/* Header */}
+			<div className="flex justify-between items-center flex-wrap gap-3">
+				<div className="flex items-center gap-3">
 					<button
-						className='bg-white p-1.5 rounded-md shadow-sm border border-slate-200 transition-all group hover:scale-105'
+						className="bg-white p-2 rounded-md shadow-sm border border-slate-200 transition-all group hover:scale-105"
 						onClick={() => navigate(-1)}
 					>
-						<IoIosArrowBack
-							size={18}
-							className='transition-all group-hover:scale-125'
-						/>
+						<IoIosArrowBack size={18} className="transition-all group-hover:scale-125" />
 					</button>
-					<h2 className='font-bold tracking-tight text-2xl capitalize'>
+					<h2 className="font-bold tracking-tight text-xl sm:text-2xl capitalize">
 						{titleForm}
 					</h2>
 				</div>
+
+				{/* Botones móviles se mueven aquí */}
+				<div className="flex gap-2 mt-2 sm:mt-0 sm:absolute sm:top-0 sm:right-0">
+					<button
+						className="btn-secondary bg-red-500 px-3 py-1.5 rounded-md text-white hover:bg-yellow-500 text-sm"
+						type="button"
+						onClick={() => navigate(-1)}
+					>
+						Cancelar
+					</button>
+					<button
+						className="bg-cyan-600 hover:bg-yellow-500 px-3 py-1.5 rounded-md text-white text-sm"
+						type="submit"
+						form="form-producto"
+					>
+						Guardar Producto
+					</button>
+				</div>
 			</div>
 
+			{/* Formulario */}
 			<form
-				className='grid grid-cols-1 lg:grid-cols-3 gap-8 auto-rows-max flex-1'
+				id="form-producto"
+				className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-max"
 				onSubmit={onSubmit}
 			>
 				<SectionFormProduct
-					titleSection='Detalles del Producto'
-					className='lg:col-span-2 lg:row-span-2'
+					titleSection="Detalles del Producto"
+					className="lg:col-span-2 lg:row-span-2"
 				>
 					<InputForm
-						type='text'
-						label='nombre'
-						name='name'
+						type="text"
+						label="Nombre"
+						name="name"
 						register={register}
 						errors={errors}
 						required
@@ -133,17 +151,17 @@ export const FormProduct = ({ titleForm }: Props) => {
 
 				<SectionFormProduct>
 					<InputForm
-						type='text'
-						label='Slug'
-						name='slug'
+						type="text"
+						label="Slug"
+						name="slug"
 						register={register}
 						errors={errors}
 					/>
 
 					<InputForm
-						type='text'
-						label='Marca'
-						name='brand'
+						type="text"
+						label="Marca"
+						name="brand"
 						register={register}
 						errors={errors}
 						required
@@ -151,27 +169,19 @@ export const FormProduct = ({ titleForm }: Props) => {
 				</SectionFormProduct>
 
 				<SectionFormProduct
-					titleSection='Variantes del Producto'
-					className='lg:col-span-2 h-fit'
+					titleSection="Variantes del Producto"
+					className="lg:col-span-2 h-fit"
 				>
-					<VariantsInput
-						control={control}
-						errors={errors}
-						register={register}
-					/>
+					<VariantsInput control={control} errors={errors} register={register} />
 				</SectionFormProduct>
 
-				<SectionFormProduct titleSection='Imágenes del producto'>
-					<UploaderImages
-						errors={errors}
-						setValue={setValue}
-						watch={watch}
-					/>
+				<SectionFormProduct titleSection="Imágenes del producto">
+					<UploaderImages errors={errors} setValue={setValue} watch={watch} />
 				</SectionFormProduct>
 
 				<SectionFormProduct
-					titleSection='Descripción del producto'
-					className='col-span-full'
+					titleSection="Descripción del producto"
+					className="col-span-full"
 				>
 					<Editor
 						setValue={setValue}
@@ -179,18 +189,6 @@ export const FormProduct = ({ titleForm }: Props) => {
 						initialContent={product?.description as JSONContent}
 					/>
 				</SectionFormProduct>
-
-				<div className='flex gap-3 absolute top-0 right-0'>
-					<button
-						className='btn-secondary bg-red-500 p-2 rounded-md text-white hover:bg-yellow-500'
-						type='button'
-						onClick={() => navigate(-1)}>Cancelar
-					</button>
-					<button
-						className='bg-cyan-600 hover:bg-yellow-500 p-2 rounded-md text-white'
-						type='submit'>Guardar Producto
-					</button>
-				</div>
 			</form>
 		</div>
 	);

@@ -25,10 +25,11 @@ export const DashboardTransportPage = () => {
 
     return (
         <>
-            <div className="flex items-center justify-between">
-                <h1 className='text-2xl font-bold'>Lista de transportes</h1>
-                {showIb ?
-                    <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full">
+                <h1 className="text-2xl font-bold">Lista de transportes</h1>
+
+                {showIb ? (
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                         <input
                             type="file"
                             id="inputfile"
@@ -39,22 +40,21 @@ export const DashboardTransportPage = () => {
                         />
                         <label
                             htmlFor="inputfile"
-                            className='bg-cyan-600 text-white flex items-center m-2 p-2 rounded-md gap-2 hover:bg-yellow-500 hover:scale-105'>
-                            <GrDocumentUpload />Click To Upload List
+                            className="bg-cyan-600 text-white flex items-center p-2 rounded-md gap-2 hover:bg-yellow-500 hover:scale-105 transition-all"
+                        >
+                            <GrDocumentUpload /> Click To Upload List
                         </label>
                     </div>
-                :
-                    <div className="flex w-fit items-center justify-between gap-1 text-cyan-600">
-                        <i
-                        className="fa fa-file-excel-o fa-1x"
-                        style={{color:"green"}}>
-                        </i>
-                        <span
-                            className='w-fit'>{`  ${info} (${fechas ? fechas.reduce((total,fecha) => {return total + fecha.clientes.length},0) : 0} Registros)`}
+                ) : (
+                    <div className="flex items-center gap-2 text-cyan-600">
+                        <i className="fa fa-file-excel-o fa-1x" style={{ color: "green" }} />
+                        <span className="text-sm">
+                            {`${info} (${fechas ? fechas.reduce((total, fecha) => total + fecha.clientes.length, 0) : 0} Registros)`}
                         </span>
                     </div>
-                }
+                )}
             </div>
+
             <Transport fechas={fechas} />
         </>
     );

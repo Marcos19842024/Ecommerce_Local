@@ -52,18 +52,15 @@ export const ReadBill: React.FC<PdfReaderFacturaProps> = ({ file, info }) => {
 
     return (
         <div className="p-4">
-            <h2 className="font-bold text-lg mb-2">Datos extraídos de la factura:</h2>
-            <div className="flex w-fit items-center justify-between gap-1 text-cyan-600">
-                <i
-                    className="fa fa-file-pdf-o fa-1x"
-                    style={{color:"red"}}>
-                </i>
-                <span
-                    className='w-fit'>{`  ${info}`}
-                </span>
+            <h2 className="font-bold text-lg mb-4">Datos extraídos de la factura:</h2>
+
+            <div className="flex flex-wrap items-center gap-2 text-cyan-600 mb-4">
+                <i className="fa fa-file-pdf-o fa-lg" style={{ color: "red" }} />
+                <span className="break-words">{info}</span>
             </div>
+
             {datos ? (
-                <ul className="list-disc ml-6 space-y-1">
+                <ul className="list-disc pl-5 space-y-1 text-sm sm:text-base">
                     <li><strong>Empresa:</strong> {datos.empresa ?? "No encontrada"}</li>
                     <li><strong>Folio:</strong> {datos.folio ?? "No encontrado"}</li>
                     <li><strong>Fecha:</strong> {datos.fecha ?? "No encontrada"}</li>
@@ -73,16 +70,19 @@ export const ReadBill: React.FC<PdfReaderFacturaProps> = ({ file, info }) => {
                     <li><strong>Total:</strong> {datos.total ?? "No encontrado"}</li>
                 </ul>
             ) : (
-                <p>Procesando PDF...</p>
+                <p className="text-gray-600">Procesando PDF...</p>
             )}
 
             <details className="mt-6">
-                <summary className="text-sm text-blue-600 cursor-pointer">Ver texto completo</summary>
-                <pre className="bg-gray-100 p-2 rounded mt-2 max-h-64 overflow-auto whitespace-pre-wrap">
+                <summary className="text-sm text-blue-600 cursor-pointer hover:underline">
+                  Ver texto completo
+                </summary>
+                <pre className="bg-gray-100 p-3 rounded mt-2 max-h-64 overflow-auto whitespace-pre-wrap text-sm">
                     {rawText}
                 </pre>
             </details>
         </div>
+
     );
 };
 

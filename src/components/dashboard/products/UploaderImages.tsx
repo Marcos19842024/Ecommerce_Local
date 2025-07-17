@@ -73,49 +73,53 @@ export const UploaderImages = ({
 
 	return (
 		<>
+  			{/* Input oculto */}
 			<input
-				type='file'
-				id='inputfile'
-				accept='image/*'
+				type="file"
+				id="inputfile"
+				accept="image/*"
 				multiple
 				onChange={handleImageChange}
 				hidden
 			/>
+
+			{/* Botón de carga */}
 			<label
 				htmlFor="inputfile"
-				className='bg-cyan-600 w-full text-white flex items-center justify-center self-end py-[6px] px-2 rounded-md text-sm gap-1 font-semibold hover:bg-yellow-500'>
-				<span><i className="fa fa-cloud-upload fa-2x px-2"></i></span>
-				<p>Click To Upload File</p>
-            </label>
+				className="bg-cyan-600 w-full text-white flex items-center justify-center py-2 px-4 rounded-md text-sm gap-2 font-semibold hover:bg-yellow-500 cursor-pointer transition-all"
+			>
+				<i className="fa fa-cloud-upload text-base sm:text-lg" />
+				<span>Click para subir imágenes</span>
+			</label>
 
-			<div className='grid grid-cols-4 lg:grid-cols-2 gap-4'>
+			{/* Galería de previews */}
+			<div className="grid grid-cols-2 gap-4 mt-4">
 				{images.map((image, index) => (
-					<div key={index}>
-						<div className='border border-gray-200 w-full h-20 rounded-md p-1 relative lg:h-28'>
+					<div key={index} className="relative group">
+						<div className="border border-gray-200 w-full h-20 sm:h-32 rounded-md p-1 relative bg-white shadow-sm">
 							<img
 								src={image.previewUrl}
 								alt={`Preview ${index}`}
-								className='rounded-md w-full h-full object-contain'
+								className="rounded-md w-full h-full object-contain"
 							/>
+
+							{/* Botón eliminar */}
 							<button
-								type='button'
+								type="button"
 								onClick={() => handleRemoveImage(index)}
-								className='flex justify-end absolute -top-3 -right-4 hover:scale-110 transition-all z-10'
+								className="absolute top-1 right-1 text-red-500 hover:scale-110 transition-all z-10"
+								aria-label="Eliminar imagen"
 							>
-								<IoIosCloseCircleOutline
-									size={22}
-									className='text-red-500'
-								/>
+								<IoIosCloseCircleOutline size={20} />
 							</button>
 						</div>
 					</div>
 				))}
 			</div>
 
+			{/* Error si no hay imágenes */}
 			{formImages?.length === 0 && errors.images && (
-				<p className='text-red-500 text-xs mt-1'>
-					{errors.images.message}
-				</p>
+				<p className="text-red-500 text-xs mt-2">{errors.images.message}</p>
 			)}
 		</>
 	);
