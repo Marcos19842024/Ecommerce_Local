@@ -87,23 +87,36 @@ export const ExpenseReport = () => {
         setEditIndex(null);
     };
 
-    const handleSave = async  () => {
+    const ordenarFilas = (filas: FormValues[]) => {
+        return [...filas].sort((a, b) => {
+            const fechaA = new Date(a.fecha).getTime();
+            const fechaB = new Date(b.fecha).getTime();
+
+            if (fechaA !== fechaB) return fechaA - fechaB;
+            return a.proveedor.localeCompare(b.proveedor);
+        });
+    };
+
+    const handleSave = async () => {
         const facturaExistente = rows.find(r => r.factura === formValues.factura);
         if (editIndex === null && facturaExistente) {
             toast.error("Ya existe una factura con ese número.");
             return;
         }
+
+        let nuevasFilas = [...rows];
         if (editIndex !== null) {
             // Editar fila existente
-            const updated = [...rows];
-            updated[editIndex] = formValues;
-            setRows(updated);
+            nuevasFilas[editIndex] = formValues;
             toast.success("Factura actualizada correctamente.");
         } else {
             // Agregar nueva fila
-            setRows((prev) => [...prev, formValues]);
+            nuevasFilas.push(formValues);
             toast.success("Factura guardada correctamente.");
         }
+
+        const ordenadas = ordenarFilas(nuevasFilas);
+        setRows(ordenadas);
         resetForm();
     };
 

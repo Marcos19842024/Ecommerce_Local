@@ -163,7 +163,7 @@ export const ThankyouPage = () => {
 
 					<Link
 						to='/products'
-						className='text-white bg-black py-4 text-sm rounded-md px-5 tracking-tight font-semibold'>Seguir comprando
+						className='text-white bg-cyan-600 hover:bg-yellow-500 py-4 text-sm rounded-md px-5 tracking-tight font-semibold'>Seguir comprando
 					</Link>
 				</div>
 			</main>

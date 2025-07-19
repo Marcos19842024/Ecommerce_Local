@@ -209,7 +209,7 @@ export const ProductPage = () => {
 								<button
 									id={item.target}
 									key={item.target}
-									className={`rounded-full flex justify-center items-center ${
+									className={`rounded-md p-2 flex justify-center items-center ${
 										selectedTarget === item.target
 											? 'border border-slate-800 bg-[#f3f3f3] uppercase font-semibold'
 											: ''
@@ -311,11 +311,11 @@ export const ProductPage = () => {
 							{/* BOTONES ACCIÓN */}
 							<div className='flex flex-col gap-3'>
 								<button
-									className='bg-[#f3f3f3] uppercase font-semibold tracking-widest text-xs py-4 rounded-full transition-all duration-300 hover:bg-[#e2e2e2]'
+									className='bg-cyan-600 uppercase text-white font-semibold tracking-widest text-xs py-4 rounded-full transition-all duration-300 hover:bg-yellow-500'
 									onClick={addToCart}>Agregar al carro
 								</button>
 								<button
-									className='bg-black text-white uppercase font-semibold tracking-widest text-xs py-4 rounded-full'
+									className='bg-cyan-600 hover:bg-yellow-500 text-white uppercase font-semibold tracking-widest text-xs py-4 rounded-full'
 									onClick={buyNow}>Comprar ahora
 								</button>
 							</div>

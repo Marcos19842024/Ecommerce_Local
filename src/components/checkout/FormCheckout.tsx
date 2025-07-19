@@ -114,7 +114,7 @@ export const FormCheckout = () => {
 
 				<button
 					type='submit'
-					className='bg-black text-white py-3.5 font-bold tracking-wide rounded-md mt-2'>Finalizar Pedido
+					className='bg-cyan-600 hover:bg-yellow-500 text-white py-3.5 font-bold tracking-wide rounded-md mt-2'>Finalizar Pedido
 				</button>
 			</form>
 		</div>
