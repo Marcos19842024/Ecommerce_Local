@@ -1,6 +1,7 @@
 import { FaBoxOpen, FaCartShopping, FaFacebookF, FaInstagram, FaTruckPickup } from 'react-icons/fa6';
 import { FaWhatsapp } from "react-icons/fa";
 import { TbMessageCircleShare, TbReportMoney } from 'react-icons/tb';
+import { SiFlatpak } from "react-icons/si";
 import { RiBillLine } from 'react-icons/ri';
 import { LuUsers } from 'react-icons/lu';
 
@@ -95,6 +96,6 @@ export const dashboardLinks = [
 		id: 8,
 		title: 'Planogramas',
 		href: '/dashboard/planogramas',
-		icon: <LuUsers size={25} />,
+		icon: <SiFlatpak size={25} />,
 	},
 ];
