@@ -4,7 +4,7 @@ export const Banner = () => {
 			{/* IMAGEN DE FONDO */}
 			<div
 				className='absolute inset-0 bg-cover bg-center opacity-70 h-full'
-				style={{ backgroundImage: 'url(/img/Background-banner.png)' }}
+				style={{ backgroundImage: 'url(/img/BackgroundBanner.png)' }}
 			/>
 
 			{/* OVERLAY */}
