@@ -6,6 +6,8 @@ import { Newsletter } from '../components/home/Newsletter';
 import { Sheet } from '../components/shared/Sheet';
 import { useGlobalStore } from '../store/global.store';
 import { NavbarMobile } from '../components/shared/NavbarMobile';
+import { Brands } from '../components/home/Brands';
+import { FeatureGrid } from '../components/home/FeatureGrid';
 
 export const RootLayout = () => {
 	const { pathname } = useLocation();
@@ -21,9 +23,13 @@ export const RootLayout = () => {
 
 			{pathname === '/' && <Banner />}
 
-			<main className='container my-2 flex-1'>
+			<FeatureGrid />
+
+			<main className='container my-1 flex-1'>
 				<Outlet />
 			</main>
+
+			<Brands />
 
 			{pathname === '/' && <Newsletter />}
 

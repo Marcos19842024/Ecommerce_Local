@@ -23,17 +23,17 @@ const brands = [
 
 export const Brands = () => {
 	return (
-		<div className='w-full flex flex-col items-center justify-between gap-1 pt-10 pb-10 bg-gray-950 rounded-lg'>
+		<div className='w-full flex flex-col items-center justify-between gap-1 bg-gray-950'>
 			<h2 className='font-bold text-2xl text-white gap-3'>Marcas disponibles</h2>
 
 			<p className='w-2/3 text-center text-sm md:text-base justify-between text-white'>
 				Tenemos lo mejor en productos para el cuidado de tus mascotas.
 			</p>
 
-			<div className='grid grid-cols-2 gap-3 mt-4 items-center md:grid-cols-2 bg-gray-950 p-1 rounded-lg'>
+			<div className='flex gap-3 mt-4 items-center bg-gray-950 p-1 rounded-lg'>
 				{brands.map((brand, index) => (
 					<div key={index}>
-						<img src={brand.image} alt={brand.alt} />
+						<img src={brand.image} alt={brand.alt} className='lg:h-32 lg:w-32 hfull w-full m-2' />
 					</div>
 				))}
 			</div>

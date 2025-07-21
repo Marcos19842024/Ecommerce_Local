@@ -13,7 +13,7 @@ export const ProductGrid = ({ title, products }: Props) => {
 				{title}
 			</h2>
 
-			<div className='grid grid-cols-1 gap-2 gap-y-3 sm:grid-cols-2 lg:grid-cols-4'>
+			<div className='grid grid-cols-1 gap-2 gap-y-3 sm:grid-cols-2 lg:grid-cols-5'>
 				{products.map(product => (
 					<CardProduct
 						key={product.id}

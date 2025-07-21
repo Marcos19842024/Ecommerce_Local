@@ -28,7 +28,7 @@ export const FeatureGrid = () => {
 	const closeModalDayCare = () => setIsOpenDayCare(false);
 
 	return (
-		<div className='grid grid-cols-2 gap-8 mt-6 mb-16 lg:grid-cols-5 lg:gap-5'>
+		<div className='grid grid-cols-2 gap-8 m-4 mt-6 mb-16 lg:grid-cols-5 lg:gap-5'>
 			
 			<div className='flex relative group overflow-hidden items-center gap-6'>
 				<MdLocalShipping
