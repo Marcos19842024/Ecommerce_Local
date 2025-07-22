@@ -8,6 +8,7 @@ import { Cliente } from "../../../interfaces";
 import { createNewMsg, getMascotas } from "../../../utils/messages";
 import { MessageBubble } from "./MessageBubble";
 import { MessageBubbleFile } from "./MessageBubbleFile";
+import { Loader } from "../../shared/Loader";
 
 interface Props {
   clientes: Cliente[];
@@ -20,7 +21,7 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
     if (!clientes.length) {
         return (
             <div className="flex flex-col items-center justify-center h-full">
-                <p className="text-gray-600">No tienes transportes pendientes.</p>
+                <p className="text-gray-600">No tienes mensajes pendientes.</p>
             </div>
         );
     }
@@ -32,6 +33,7 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
 
     // Usar hook custom para manejar mensajes, archivos y funciones
     const {
+        loader,
         messages,
         msjo,
         setMsjo,
@@ -127,7 +129,7 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
                     </div>
 
                     {/* Conversación actual */}
-                    <div className="lg:col-span-3 flex flex-col bg-gray-800 rounded p-4 max-h-[70vh]">
+                    <div className="relative lg:col-span-3 flex flex-col bg-gray-800 rounded p-4 max-h-[70vh]">
                         <div className="mb-4">
                             <h2 className="text-white font-bold text-xl">{clientes[index].nombre}</h2>
                             <p className="text-gray-400">{clientes[index].telefono}</p>
@@ -137,7 +139,9 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
                                 </p>
                             )}
                         </div>
-
+                        <div className="absolute left-80 top-0">
+                            {loader && <Loader />}
+                        </div>
                         <div className="flex-1 overflow-y-auto space-y-2">
                             {clientes[index].mensaje.map((msg, idx) => (
                                 <MessageBubble key={`msg-${idx}`} {...createNewMsg(msg)} editable={false} />

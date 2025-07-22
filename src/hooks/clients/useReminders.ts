@@ -8,8 +8,10 @@ export const useReminders = (url: string, center: string, cel: string) => {
   const [messages, setMessages] = useState<MessageBubbleProps[]>([]);
   const [files, setFiles] = useState<FileWithPreview[]>([]);
   const [msjo, setMsjo] = useState("");
+  const [loader, setLoader] = useState(false);
 
   const handleUpload = (fileList: FileList | null) => {
+    setLoader(true);
     if (!fileList || fileList.length === 0) return;
     const formData = new FormData();
     for (let i = 0; i < fileList.length; i++) {
@@ -39,14 +41,18 @@ export const useReminders = (url: string, center: string, cel: string) => {
             ...newFiles.filter((nf) => !prev.find((f) => f.name === nf.name)),
           ]);
           toast.success("Archivos subidos correctamente");
+          setLoader(false);
         } else {
           toast.error("Error al subir los archivos");
+          setLoader(false);
         }
       })
       .catch(() => toast.error("Error en la respuesta del servidor"));
+      setLoader(false);
   };
 
   const handleSend = async (cliente: Cliente) => {
+    setLoader(true);
     let data = {
       message: cliente.mensaje,
       phone: `521${cliente.telefono}`,
@@ -59,16 +65,19 @@ export const useReminders = (url: string, center: string, cel: string) => {
         "Content-type": "application/json",
       },
     })
-      .then((res) => res.json())
-      .then((res) => {
-        if (!res.err) {
-          cliente.status = true;
-          toast.success("Mensaje enviado correctamente");
-        } else {
-          toast.error(res.statusText);
-        }
-      })
-      .catch(() => toast.error("Error en la respuesta del servidor"));
+    .then((res) => res.json())
+    .then((res) => {
+      if (!res.err) {
+        cliente.status = true;
+        toast.success("Mensaje enviado correctamente");
+        setLoader(false);
+      } else {
+        toast.error(res.statusText);
+        setLoader(false);
+      }
+    })
+    .catch(() => toast.error("Error en la respuesta del servidor"));
+    setLoader(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>, newMsg: MessageBubbleProps) => {
@@ -88,17 +97,25 @@ export const useReminders = (url: string, center: string, cel: string) => {
     if (id) setMessages((prev) => prev.filter((msg) => msg.id !== id));
     if (fileToDelete) {
       setFiles((prev) => prev.filter((f) => f.id !== fileToDelete.id));
+      setLoader(true);
       fetch(`${url}delete/${fileToDelete.name}`, { method: "DELETE" })
         .then((res) => res.json())
         .then((res) => {
-          if (!res.err) toast.success("Archivo eliminado correctamente");
-          else toast.error(res.err);
+          if (!res.err) {
+            toast.success("Archivo eliminado correctamente");
+            setLoader(false);
+          } else {
+            toast.error(res.err);
+            setLoader(false);
+          }
         })
         .catch(() => toast.error("Error en la respuesta del servidor"));
+        setLoader(false);
     }
   };
 
   return {
+    loader,
     messages,
     setMessages,
     msjo,

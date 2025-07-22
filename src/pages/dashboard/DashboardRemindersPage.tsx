@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 import { prepareContacts } from "../../helpers";
 import { GrDocumentUpload } from "react-icons/gr";
 import { RiMobileDownloadLine } from "react-icons/ri";
+import { Loader } from "../../components/shared/Loader";
 
 export const DashboardRemindersPage = () => {
   const [showShell, setShowShell] = useState(false);
@@ -15,7 +16,8 @@ export const DashboardRemindersPage = () => {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [info, setInfo] = useState<string | null>(null);
   const [showIb, setShowIb] = useState(true);
-  const [list, setList] = useState(false)
+  const [list, setList] = useState(false);
+  const [loader, setLoader] = useState(false);
   const url = 'http://veterinariabaalak.com/';
   const center = 'Baalak';
   const cel = '9812062582';
@@ -25,6 +27,7 @@ export const DashboardRemindersPage = () => {
   }, []);
 
   const handleStatus = () => {
+    setLoader(true);
     fetch(`${url}status/${center}/${cel}`, {
       method: "GET",
     })
@@ -35,12 +38,14 @@ export const DashboardRemindersPage = () => {
         toast.success(res.statusText, {
           position: "top-right"
         });
+        setLoader(false);
       } else {
         setStatus(res.statusText)
         toast.error(`Error ${res.status}: ${res.statusText}`, {
           position: "top-right"
         });
-        setTimeout(() => setStatus('Conectar WhatsApp al Servidor'), 4000)
+        setTimeout(() => setStatus('Conectar WhatsApp al Servidor'), 4000);
+        setLoader(false);
       }
     })
     .catch(() => {
@@ -49,11 +54,13 @@ export const DashboardRemindersPage = () => {
       });
       setStatus("Error en la respuesta del servidor")
       setTimeout(() => setStatus('Conectar WhatsApp al Servidor'), 4000)
+      setLoader(false);
     })
     .finally();
   };
 
   const getContact = async () => {
+    setLoader(true);
     fetch(`${url}contact`, {
       method: "GET",
     })
@@ -68,30 +75,36 @@ export const DashboardRemindersPage = () => {
         toast.success('Contactos obtenidos con exito!', {
           position: "top-right"
         });
+        setLoader(false);
       } else {
         toast.error(`Error ${res.status}: ${res.statusText}`, {
           position: "top-right"
         });
+        setLoader(false);
       }
     })
     .catch(() => {
       toast.error("Error en la respuesta del servidor", {
         position: "top-right"
       });
+      setLoader(false);
     })
     .finally();
   };
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
+      setLoader(true);
       const { data } = useClients({ e });
       if ((await data).length > 0) {
         setClientes(await data);
         setInfo(e.target.files[0].name);
         setShowIb(false);
         setList(false);
+        setLoader(false);
       } else {
         setClientes([]);
+        setLoader(false);
         e.target.value = "";
       }
     }
@@ -169,7 +182,7 @@ export const DashboardRemindersPage = () => {
       </div>
 
       {/* Componente de mensajes */}
-      <Reminders clientes={clientes} url={url} center={center} cel={cel} />
+      {loader ? <Loader /> : <Reminders clientes={clientes} url={url} center={center} cel={cel} />}
     </div>
   )
 }
