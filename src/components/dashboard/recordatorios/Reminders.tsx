@@ -1,7 +1,8 @@
-import { useRef, useState, useMemo } from "react";
+import { useRef, useState, useMemo, useEffect } from "react";
 import { VscSend } from "react-icons/vsc";
 import { PiAppWindowBold, PiPaperclipBold } from "react-icons/pi";
 import { TfiPrinter } from "react-icons/tfi";
+import { RiUserSearchLine } from "react-icons/ri";
 import { PdfViewer } from "../pdf/PdfViewer";
 import { useReminders } from "../../../hooks";
 import { Cliente } from "../../../interfaces";
@@ -30,8 +31,9 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
     const [x5, setX5] = useState(false);
     const [showPdf, setShowPdf] = useState(false);
     const clienteRefs = useRef<(HTMLDivElement | null)[]>([]);
-
-    // Usar hook custom para manejar mensajes, archivos y funciones
+    const [searchTerm, setSearchTerm] = useState("");
+    const enviados = useMemo(() => clientes.filter((c) => c.status), [clientes]);
+    const noEnviados = useMemo(() => clientes.filter((c) => !c.status), [clientes]);
     const {
         loader,
         messages,
@@ -44,24 +46,34 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
         deleteMessage,
     } = useReminders(url, center, cel);
 
-    const enviados = useMemo(() => clientes.filter((c) => c.status), [clientes]);
-    const noEnviados = useMemo(() => clientes.filter((c) => !c.status), [clientes]);
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!clientes[index].status) {
             if (x5) {
                 const clientessend = clientes.filter((cliente) => !cliente.status).slice(0, 5);
                 clientessend.forEach((cliente) => {
-                    cliente.mensaje.push(...messages.map((msj) => msj.message));
                     handleSend(cliente);
                 });
             } else {
-                clientes[index].mensaje.push(...messages.map((msj) => msj.message));
                 handleSend(clientes[index]);
             }
         }
     };
+
+    const filteredClientes = clientes.filter((cliente) =>
+        cliente.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        cliente.telefono?.includes(searchTerm)
+    );
+
+    // Scroll automático al cliente seleccionado
+    useEffect(() => {
+        if (clienteRefs.current[index]) {
+            clienteRefs.current[index].scrollIntoView({
+                behavior: "smooth",
+                block: "center",
+            });
+        }
+    }, [index]);
 
     return (
         <form
@@ -96,48 +108,74 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
             ) : (
                 <>
                     {/* Lista de clientes/chat */}
-                    <div className="lg:col-span-2 overflow-y-auto max-h-[70vh] w-full mx-auto bg-gray-900 rounded p-4">
-                        <div className="sticky top-0 z-10 bg-gray-900 pb-2">
-                            <h2 className="font-bold text-white tracking-tight text-xl py-2 px-2">Chats</h2>
-                            <hr className="border-slate-100 rounded-md" />
-                        </div>
-
-                        {clientes.map((cliente, i) => (
-                        <div
-                            key={i}
-                            ref={(el) => (clienteRefs.current[i] = el)}
-                            onClick={() => setIndex(i)}
-                            className={`flex items-center gap-2 p-2 cursor-pointer rounded ${
-                                index === i ? "bg-cyan-600 text-white" : "text-white"
-                            }`}
-                        >
-                            <img src="/img/User.png" className="w-12 h-12 rounded-full" />
-                            <div className="flex-1 border-b border-slate-600 pb-2">
-                                <div className="flex justify-between">
-                                    <span className="font-medium">{cliente.nombre}</span>
-                                    <span className="text-sm">{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                </div>
-                                {cliente.status && (
-                                    <div className="flex justify-between items-center text-sm">
-                                        <span className="text-gray-400 truncate w-48">{cliente.mensaje.at(-1)}</span>
-                                        <span className="text-cyan-400 text-xs font-bold px-2">✔✔</span>
-                                    </div>
-                                )}
+                    <div className="lg:col-span-2 overflow-y-auto max-h-[70vh] w-full mx-auto bg-gray-900 rounded">
+                        <div className="sticky top-0 z-10 bg-gray-900">
+                            {/* Buscador */}
+                            <div className="px-4 p-2 relative">
+                                <RiUserSearchLine size={20} className="absolute right-6 top-1/2 -translate-y-1/2 text-gray-400"/>
+                                <input
+                                    type="text"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    placeholder="Buscar por nombre o teléfono"
+                                    className="w-full p-2 rounded bg-gray-800 text-white placeholder-gray-400 border border-gray-700"
+                                />
                             </div>
+                            <h2 className="font-bold text-white border-b-2 border-slate-100 text-xl p-2">Chats</h2>
                         </div>
-                        ))}
+                        {/* Lista filtrada */}
+                        {filteredClientes.map((cliente) => {
+                            // Buscar el índice real del cliente en la lista completa
+                            const actualIndex = clientes.findIndex((c) => c === cliente);
+                            return (
+                                <div
+                                    key={actualIndex}
+                                    ref={(el) => (clienteRefs.current[actualIndex] = el)}
+                                    onClick={() => {
+                                        setIndex(actualIndex);
+                                        setSearchTerm(""); // Limpiar búsqueda al seleccionar
+                                    }}
+                                    className={`flex items-center gap-2 p-2 cursor-pointer rounded ${
+                                        index === actualIndex ? "bg-cyan-600 text-white" : "text-white"
+                                    }`}
+                                >
+                                    <img src="/img/User.png" className="w-12 h-12 rounded-full" />
+                                    <div className="flex-1 border-b border-slate-600 pb-2">
+                                        <div className="flex justify-between">
+                                            <span className="font-medium">{cliente.nombre}</span>
+                                            <span className="text-sm">
+                                                {new Date().toLocaleTimeString([], {
+                                                    hour: "2-digit",
+                                                    minute: "2-digit",
+                                                })}
+                                            </span>
+                                        </div>
+                                        {cliente.status && (
+                                            <div className="flex justify-between items-center text-sm">
+                                                <span className="text-gray-400 truncate w-48">
+                                                    {cliente.mensaje.at(-1)}
+                                                </span>
+                                                <span className="text-cyan-400 text-xs font-bold px-2">✔✔</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
-
                     {/* Conversación actual */}
                     <div className="relative lg:col-span-3 flex flex-col bg-gray-800 rounded p-4 max-h-[70vh]">
-                        <div className="mb-4">
-                            <h2 className="text-white font-bold text-xl">{clientes[index].nombre}</h2>
-                            <p className="text-gray-400">{clientes[index].telefono}</p>
-                            {clientes[index].mascotas?.length > 0 && (
-                                <p className="text-sm text-gray-400">
-                                    Mascotas: {getMascotas(clientes[index].mascotas)}
-                                </p>
-                            )}
+                        <div className="mb-4 border-b-2 border-slate-100 flex items-start gap-4">
+                            <img src="/img/User.png" className="w-12 h-12 rounded-full object-cover" />
+                            <div>
+                                <h2 className="text-white font-bold text-xl">{clientes[index].nombre}</h2>
+                                <p className="text-gray-400">{clientes[index].telefono}</p>
+                                {clientes[index].mascotas?.length > 0 && (
+                                    <p className="text-sm text-gray-400">
+                                        Mascotas: {getMascotas(clientes[index].mascotas)}
+                                    </p>
+                                )}
+                            </div>
                         </div>
                         <div className="absolute left-80 top-0">
                             {loader && <Loader />}
@@ -146,10 +184,10 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
                             {clientes[index].mensaje.map((msg, idx) => (
                                 <MessageBubble key={`msg-${idx}`} {...createNewMsg(msg)} editable={false} />
                             ))}
-                            {messages.map((msg) => (
+                            {!clientes[index].status && messages.map((msg) => (
                                 <MessageBubble key={msg.id} {...msg} editable onDelete={() => deleteMessage(msg.id)} />
                             ))}
-                            {files.map((file) => (
+                            {!clientes[index].status && files.map((file) => (
                                 <MessageBubbleFile key={file.id} file={file} {...createNewMsg("")} editable onDelete={() => deleteMessage('', file)} />
                             ))}
                         </div>

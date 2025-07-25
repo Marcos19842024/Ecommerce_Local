@@ -23,13 +23,13 @@ export const RootLayout = () => {
 
 			{pathname === '/' && <Banner />}
 
-			<FeatureGrid />
+			{pathname === '/' && <FeatureGrid />}
 
 			<main className='container my-1 flex-1'>
 				<Outlet />
 			</main>
 
-			<Brands />
+			{pathname === '/' && <Brands />}
 
 			{pathname === '/' && <Newsletter />}
 

@@ -137,7 +137,7 @@ export const Transport = ({ fechas }: TransportProps) => {
                         </div>
 
                         {/* Columna Clientes */}
-                        <div className="overflow-y-auto font-medium text-white w-full lg:w-1/3 bg-gray-900 rounded p-2 h-[310px] lg:h-1/3 ">
+                        <div className="overflow-y-auto font-medium text-white w-full lg:w-1/3 bg-gray-900 rounded p-2 h-[310px] lg:h-1/3">
                             <div className="sticky top-0 bg-gray-900 z-10">
                                 <h2 className="font-bold text-white text-xl py-4 px-4">Clientes</h2>
                                 <hr className="border-slate-100 w-full rounded-md" />

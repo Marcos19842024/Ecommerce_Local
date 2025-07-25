@@ -54,7 +54,7 @@ export const useReminders = (url: string, center: string, cel: string) => {
   const handleSend = async (cliente: Cliente) => {
     setLoader(true);
     let data = {
-      message: cliente.mensaje,
+      message: [...cliente.mensaje, ...messages.map((msj) => msj.message)],
       phone: `521${cliente.telefono}`,
       pathtofiles: files.map((file) => file.name),
     };
@@ -69,6 +69,7 @@ export const useReminders = (url: string, center: string, cel: string) => {
     .then((res) => {
       if (!res.err) {
         cliente.status = true;
+        cliente.mensaje.push(...messages.map((msj) => msj.message));
         toast.success("Mensaje enviado correctamente");
         setLoader(false);
       } else {
@@ -86,7 +87,7 @@ export const useReminders = (url: string, center: string, cel: string) => {
       if (msjo.trim() === "") {
         toast.error("Por favor, escribe un mensaje antes de enviar.");
       } else {
-        newMsg.message = msjo;
+        //newMsg.message = msjo;
         setMessages((prev) => [...prev, newMsg]);
         setMsjo("");
       }
