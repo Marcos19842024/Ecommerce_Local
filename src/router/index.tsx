@@ -25,7 +25,6 @@ import {
 	FeedBackPage,
 	DashboardExpenseReportPage,
 	DashboardReadBillPage,
-	DashboardPlanogramPage,
 } from '../pages';
 import { DashboardProfilePage } from '../pages/dashboard/DashboardProfilePage';
 
@@ -145,10 +144,6 @@ export const router = createBrowserRouter([
 			{
 				path: 'usuarios',
 				element: <DashboardProfilePage />,
-			},
-			{
-				path: 'planogramas',
-				element: <DashboardPlanogramPage />,
 			},
 		],
 	},

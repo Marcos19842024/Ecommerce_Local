@@ -34,4 +34,3 @@ export * from './dashboard/DashboardTransportPage';
 export * from './dashboard/DashboardExpenseReportPage';
 export * from './dashboard/DashboardReadBillPage';
 export * from './dashboard/DashboardProfilePage';
-export * from './dashboard/DasboardPlanogramPage';
