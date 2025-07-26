@@ -13,7 +13,7 @@ export const Shellinabox: React.FC = () => {
             {/* Iframe Shellinabox - ahora ocupa todo el espacio restante */}
             <iframe
                 className="flex-1 w-full p-2"
-                src="https://veterinariabaalak.com:3002"
+                src="http://veterinariabaalak.com:3002"
                 title="Shellinabox"
                 style={{ border: 'none', overflow: 'hidden' }}
                 allowFullScreen
