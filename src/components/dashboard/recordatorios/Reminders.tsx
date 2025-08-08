@@ -12,13 +12,10 @@ import { MessageBubbleFile } from "./MessageBubbleFile";
 import { Loader } from "../../shared/Loader";
 
 interface Props {
-  clientes: Cliente[];
-  url: string;
-  center: string;
-  cel: string;
+    clientes: Cliente[];
 }
 
-export const Reminders = ({ clientes, url, center, cel }: Props) => {
+export const Reminders = ({clientes}: Props) => {
     if (!clientes.length) {
         return (
             <div className="flex flex-col items-center justify-center h-full">
@@ -44,7 +41,7 @@ export const Reminders = ({ clientes, url, center, cel }: Props) => {
         handleSend,
         handleKeyDown,
         deleteMessage,
-    } = useReminders(url, center, cel);
+    } = useReminders();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

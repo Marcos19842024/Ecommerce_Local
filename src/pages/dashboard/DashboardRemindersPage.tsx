@@ -9,6 +9,8 @@ import { prepareContacts } from "../../helpers";
 import { GrDocumentUpload } from "react-icons/gr";
 import { RiMobileDownloadLine } from "react-icons/ri";
 import { Loader } from "../../components/shared/Loader";
+import { url } from "../../server/url";
+import { center, cel } from "../../server/user";
 
 export const DashboardRemindersPage = () => {
   const [showShell, setShowShell] = useState(false);
@@ -18,9 +20,6 @@ export const DashboardRemindersPage = () => {
   const [showIb, setShowIb] = useState(true);
   const [list, setList] = useState(false);
   const [loader, setLoader] = useState(false);
-  const url = 'http://veterinariabaalak.com/';
-  const center = 'Baalak';
-  const cel = '9812062582';
 
   useEffect(() => {
     handleStatus()
@@ -28,7 +27,7 @@ export const DashboardRemindersPage = () => {
 
   const handleStatus = () => {
     setLoader(true);
-    fetch(`${url}status/${center}/${cel}`, {
+    fetch(`${url}/status/${center}/${cel}`, {
       method: "GET",
     })
     .then(res => res.json())
@@ -61,7 +60,7 @@ export const DashboardRemindersPage = () => {
 
   const getContact = async () => {
     setLoader(true);
-    fetch(`${url}contact`, {
+    fetch(`${url}/contact`, {
       method: "GET",
     })
     .then(res => res.json())
@@ -182,7 +181,7 @@ export const DashboardRemindersPage = () => {
       </div>
 
       {/* Componente de mensajes */}
-      {loader ? <Loader /> : <Reminders clientes={clientes} url={url} center={center} cel={cel} />}
+      {loader ? <Loader /> : <Reminders clientes={clientes} />}
     </div>
   )
 }

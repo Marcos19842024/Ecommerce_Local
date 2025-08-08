@@ -3,8 +3,10 @@ import { useState } from "react";
 import { toast } from "react-hot-toast";
 import { getFileTypes } from "../../utils/files";
 import { Cliente, FileWithPreview, MessageBubbleProps } from "../../interfaces";
+import { url } from "../../server/url";
+import { cel, center } from "../../server/user";
 
-export const useReminders = (url: string, center: string, cel: string) => {
+export const useReminders = () => {
   const [messages, setMessages] = useState<MessageBubbleProps[]>([]);
   const [files, setFiles] = useState<FileWithPreview[]>([]);
   const [msjo, setMsjo] = useState("");
@@ -17,7 +19,7 @@ export const useReminders = (url: string, center: string, cel: string) => {
     for (let i = 0; i < fileList.length; i++) {
       formData.append("files", fileList[i]);
     }
-    fetch(`${url}upload`, {
+    fetch(`${url}/upload`, {
       method: "POST",
       body: formData,
     })
@@ -33,7 +35,7 @@ export const useReminders = (url: string, center: string, cel: string) => {
               type: ext,
               icon,
               color,
-              url: `${url}media/${filename}`,
+              url: `${url}/media/${filename}`,
             };
           });
           setFiles((prev) => [
@@ -58,7 +60,7 @@ export const useReminders = (url: string, center: string, cel: string) => {
       phone: `521${cliente.telefono}`,
       pathtofiles: files.map((file) => file.name),
     };
-    await fetch(`${url}send/${center}/${cel}`, {
+    await fetch(`${url}/send/${center}/${cel}`, {
       method: "POST",
       body: JSON.stringify(data),
       headers: {
@@ -99,7 +101,7 @@ export const useReminders = (url: string, center: string, cel: string) => {
     if (fileToDelete) {
       setFiles((prev) => prev.filter((f) => f.id !== fileToDelete.id));
       setLoader(true);
-      fetch(`${url}delete/${fileToDelete.name}`, { method: "DELETE" })
+      fetch(`${url}/delete/${fileToDelete.name}`, { method: "DELETE" })
         .then((res) => res.json())
         .then((res) => {
           if (!res.err) {

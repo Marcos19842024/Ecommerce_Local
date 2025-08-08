@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { IoReload } from "react-icons/io5";
+import { url } from "../../../server/url";
 
 export const Shellinabox: React.FC = () => {
-    const [qr, setQr] = useState('http://veterinariabaalak.com/qr.png')
+    const [qr, setQr] = useState(`${url}/qr.png`)
 
     const reloadQr = () => {
-        setQr(`http://veterinariabaalak.com/qr.png?t=${new Date().getTime()}`)
+        setQr(`${url}/qr.png?t=${new Date().getTime()}`)
     }
 
     return (
@@ -13,7 +14,7 @@ export const Shellinabox: React.FC = () => {
             {/* Iframe Shellinabox - ahora ocupa todo el espacio restante */}
             <iframe
                 className="flex-1 w-full p-2"
-                src="http://veterinariabaalak.com:3002"
+                src={`${url}:3002`}
                 title="Shellinabox"
                 style={{ border: 'none', overflow: 'hidden' }}
                 allowFullScreen
