@@ -50,21 +50,3 @@ export interface FileWithPreview {
     icon: string;
     color: string;
 }
-
-export interface Fechas {
-    fecha: string;
-    clientes: ClienteTransporte[];
-}
-
-export interface ClienteTransporte {
-    hora: string;
-    nombre: string;
-    status: string;
-    mascotas: MascotaTransporte[];
-}
-
-export interface MascotaTransporte {
-    nombre: string;
-    raza: string;
-    asunto: string;
-}

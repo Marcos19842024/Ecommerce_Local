@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
-import { MessageBubbleProps } from "../interfaces";
+import { MessageBubbleProps } from "../interfaces/client.interface";
 
 export const createNewMsg = (message: string): MessageBubbleProps => ({
   id: uuidv4(),
