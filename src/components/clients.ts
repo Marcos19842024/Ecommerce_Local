@@ -45,7 +45,7 @@ export const getClients = async ({e}: Props) => {
         clientes.forEach(cliente => {
             const mascotas = cliente.mascotas;
             let mensaje;
-            cliente.mensaje.push(`Hola ${cliente.nombre}.`);
+            cliente.mensajes.push(`Hola ${cliente.nombre}.`);
 
             if (mascotas.length === 1) {
                 mensaje = "su mascota '" + mascotas[0].nombre + "'," + ListReminders(mascotas[0]);
@@ -65,7 +65,7 @@ export const getClients = async ({e}: Props) => {
                 }
             }
             mensaje += " el día " + mascotas[0].recordatorios[0].tipos[0].fecha + ".";
-            cliente.mensaje.push(`La clínica veterinaria Baalak', le informa que ${mensaje}`)
+            cliente.mensajes.push(`La clínica veterinaria Baalak', le informa que ${mensaje}`)
         });
         return clientes;
     }

@@ -9,7 +9,7 @@ export const createNewMsg = (message: string): MessageBubbleProps => ({
     hour: "2-digit",
     minute: "2-digit",
   }),
-  avatarUrl: "/img/Baalak-logo-banner-small.png",
+  avatarUrl: "/img/Baalak-logo-small.png",
   isOwnMessage: true,
   editable: true,
 });

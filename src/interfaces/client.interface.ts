@@ -17,7 +17,8 @@ export interface Cliente {
     nombre: string;
     telefono: string;
     mascotas: Mascota[];
-    mensaje: string[];
+    mensajes: string[];
+    archivos: FileWithPreview[];
     status: boolean;
 }
 
@@ -49,4 +50,22 @@ export interface FileWithPreview {
     type: string;
     icon: string;
     color: string;
+}
+
+export interface Fechas {
+    fecha: string;
+    clientes: ClienteTransporte[];
+}
+
+export interface ClienteTransporte {
+    hora: string;
+    nombre: string;
+    status: string;
+    mascotas: MascotaTransporte[];
+}
+
+export interface MascotaTransporte {
+    nombre: string;
+    raza: string;
+    asunto: string;
 }

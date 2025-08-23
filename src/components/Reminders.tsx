@@ -150,7 +150,7 @@ export const Reminders = ({clientes}: Props) => {
                                         {cliente.status && (
                                             <div className="flex justify-between items-center text-sm">
                                                 <span className="text-gray-400 truncate w-48">
-                                                    {cliente.mensaje.at(-1)}
+                                                    {cliente.mensajes.at(-1)}
                                                 </span>
                                                 <span className="text-cyan-400 text-xs font-bold px-2">✔✔</span>
                                             </div>
@@ -178,8 +178,11 @@ export const Reminders = ({clientes}: Props) => {
                             {loader && <Loader />}
                         </div>
                         <div className="flex-1 overflow-y-auto space-y-2">
-                            {clientes[index].mensaje.map((msg, idx) => (
+                            {clientes[index].mensajes.map((msg, idx) => (
                                 <MessageBubble key={`msg-${idx}`} {...createNewMsg(msg)} editable={false} />
+                            ))}
+                            {clientes[index].archivos.map((file, idx) => (
+                                <MessageBubbleFile key={`file-${idx}`} file={file} {...createNewMsg("")} editable={false} />
                             ))}
                             {!clientes[index].status && messages.map((msg) => (
                                 <MessageBubble key={msg.id} {...msg} editable onDelete={() => deleteMessage(msg.id)} />

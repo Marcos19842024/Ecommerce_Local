@@ -56,7 +56,7 @@ export const useReminders = () => {
   const handleSend = async (cliente: Cliente) => {
     setLoader(true);
     let data = {
-      message: [...cliente.mensaje, ...messages.map((msj) => msj.message)],
+      message: [...cliente.mensajes, ...messages.map((msj) => msj.message)],
       phone: `521${cliente.telefono}`,
       pathtofiles: files.map((file) => file.name),
     };
@@ -71,7 +71,8 @@ export const useReminders = () => {
     .then((res) => {
       if (!res.err) {
         cliente.status = true;
-        cliente.mensaje.push(...messages.map((msj) => msj.message));
+        cliente.mensajes.push(...messages.map((msj) => msj.message));
+        cliente.archivos.push(...files.map((file) => file));
         toast.success("Mensaje enviado correctamente");
         setLoader(false);
       } else {

@@ -1,4 +1,3 @@
-// Archivo: components/MessageBubbleFile.tsx
 import { FileViewer } from "../components/FileViewer";
 import { MessageBubbleFileProps } from "../interfaces/client.interface";
 

@@ -10,9 +10,9 @@ export const QrCode: React.FC = () => {
     }
 
     return (
-        <div className="flex flex-col lg:flex-row bg-gray-200 rounded-md overflow-hidden h-full">
+        <div className="flex bg-gray-200 rounded-md overflow-hidden h-full">
             {/* QR y botón */}
-            <div className="flex flex-col justify-center items-center gap-4 p-4 w-full lg:w-1/2">
+            <div className="flex flex-col justify-center items-center gap-2 p-4 w-full">
                 <img
                     className="bg-cyan-600 p-1 w-full max-w-xs object-contain rounded-md"
                     src={qr}

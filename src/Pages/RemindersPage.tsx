@@ -4,7 +4,7 @@ import { QrCode } from "../components/QrCode";
 import { useClients } from "../hooks/useClients";
 import { ContactResponse } from "../interfaces/contact.interface";
 import { Cliente } from "../interfaces/client.interface";
-import { PiTerminalWindow } from "react-icons/pi";
+import { BsQrCodeScan } from "react-icons/bs";
 import { FaWhatsapp } from "react-icons/fa6";
 import toast from "react-hot-toast";
 import { prepareContacts } from "../helpers";
@@ -15,7 +15,7 @@ import { url } from "../server/url";
 import { center, cel } from "../server/user";
 
 export const RemindersPage = () => {
-  const [showShell, setShowShell] = useState(false);
+  const [showQr, setShowQr] = useState(false);
   const [status, setStatus] = useState("Conectar WhatsApp al Servidor");
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [info, setInfo] = useState<string | null>(null);
@@ -111,11 +111,22 @@ export const RemindersPage = () => {
     }
   }
 
+  const handleModalContainerClick = (e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation();
+
   return (
     <div className="relative h-full flex flex-col gap-4 p-4">
-      {showShell && 
-        <div className="relative h-full flex flex-col gap-4">
-          <QrCode />
+      {showQr && 
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setShowQr(false)}
+        >
+          <div onClick={handleModalContainerClick}>
+            <div
+                className="bg-gray-900 rounded-lg shadow-lg text-white"
+                onClick={(e) => e.stopPropagation()} // evita cerrar al hacer clic dentro
+            >
+              <QrCode />  
+            </div>
+          </div>
         </div>
       }
       {/* Título */}
@@ -137,9 +148,9 @@ export const RemindersPage = () => {
           <button
             className="flex items-center gap-2 text-white rounded-md px-3 py-2 transition-all bg-cyan-600 hover:bg-yellow-500 hover:scale-105"
             type="button"
-            onClick={() => setShowShell(!showShell)}
+            onClick={() => setShowQr(!showQr)}
           >
-            <PiTerminalWindow /> Acceder al Servidor
+            <BsQrCodeScan /> Escanear QR
           </button>
         </div>
 

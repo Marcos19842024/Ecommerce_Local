@@ -1,5 +1,5 @@
 import { Row } from 'read-excel-file';
-import { Cliente } from '../interfaces/client.interface';
+import { Cliente, Fechas } from '../interfaces/client.interface';
 import { ContactItem } from '../interfaces/contact.interface';
 
 // Función para preparar los clientes
@@ -19,7 +19,8 @@ export const prepareClients = (rows: Row[]) => {
 				nombre: nombreCliente,
 				telefono,
 				mascotas: [],
-				mensaje: [],
+				mensajes: [],
+				archivos: [],
 				status: false
 			};
 			acc.push(cliente);
@@ -58,6 +59,56 @@ export const prepareClients = (rows: Row[]) => {
 	}, []);
 };
 
+// Función para preparar los clientes
+export const prepareClientsTransport = (rows: Row[]) => {
+	return rows.reduce((acc: Fechas[], cell: Row) => {
+		const fecha = formatString(cell[0].toString());
+		const hora = formatString(cell[1].toString());
+		const nombreCliente = formatString(cell[2].toString());
+		const nombreMascota = formatString(cell[3].toString());
+		const razaMascota = formatString(cell[4].toString());
+		const asunto = formatString(cell[5].toString());
+
+		// Buscar o crear la fecha
+		let fechaItem = acc.find(item => item.fecha === fecha);
+		if (!fechaItem) {
+			fechaItem = { fecha, clientes: [] };
+			acc.push(fechaItem);
+		}
+
+		// Buscar cliente por nombre
+		let cliente = fechaItem.clientes.find(c => c.nombre === nombreCliente);
+
+		if (!cliente) {
+			cliente = {
+				hora,
+				nombre: nombreCliente,
+				status: '',
+				mascotas: [],
+			};
+			fechaItem.clientes.push(cliente);
+		}
+
+		// Buscar si ya existe la mascota por nombre
+		let mascota = cliente.mascotas.find(m => m.nombre === nombreMascota);
+
+		if (!mascota) {
+			cliente.mascotas.push({
+				nombre: nombreMascota,
+				raza: razaMascota,
+				asunto: asunto,
+			});
+		} else {
+			// Acumular el asunto si no está incluido
+			if (!mascota.asunto.includes(asunto)) {
+				mascota.asunto += `, ${asunto}`;
+			}
+		}
+
+		return acc;
+	}, []);
+};
+
 // Función para preparar los contactos
 export const prepareContacts = (contacts: ContactItem[]) => {
 	const result = contacts.reduce(
@@ -67,7 +118,8 @@ export const prepareContacts = (contacts: ContactItem[]) => {
 					nombre: contact.name,
 					telefono: contact.number.slice(-10),
 					mascotas: [],
-					mensaje: [],
+					mensajes: [],
+					archivos: [],
 					status: false
 				});
 			}
