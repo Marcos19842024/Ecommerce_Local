@@ -7,6 +7,8 @@ import { FormValues, SelectValues } from "../interfaces/report.interface";
 import { PiAppWindowBold } from "react-icons/pi";
 import { TfiPrinter } from "react-icons/tfi";
 import { PdfViewer } from "../components/PdfViewer";
+import FilePreviewModal from "./FilePreviewModal";
+import { url } from "../server/url";
 
 const currencyFormatter = new Intl.NumberFormat("es-MX", {
     style: "currency",
@@ -19,6 +21,9 @@ export const ExpenseReport = () => {
     const [rows, setRows] = useState<FormValues[]>([]);
     const [editIndex, setEditIndex] = useState<number | null>(null);
     const [showForm, setShowForm] = useState(false);
+    const [pdfFile, setPdfFile] = useState<File | null>(null);
+    const [xmlFile, setXmlFile] = useState<File | null>(null);
+    const [previewFile, setPreviewFile] = useState<{ url: string; type: "pdf" | "xml" } | null>(null);
     const [formValues, setFormValues] = useState<FormValues>({
         fecha: "",
         factura: "",
@@ -41,6 +46,16 @@ export const ExpenseReport = () => {
         "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
     ];
 
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setFormValues({ ...formValues, [e.target.name]: e.target.value });
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: "pdf" | "xml") => {
+        if (e.target.files && e.target.files[0]) {
+        if (type === "pdf") setPdfFile(e.target.files[0]);
+        if (type === "xml") setXmlFile(e.target.files[0]);
+        }
+    };
     const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
 
@@ -103,16 +118,45 @@ export const ExpenseReport = () => {
             toast.error("Ya existe una factura con ese número.");
             return;
         }
+        if (!formValues.factura || !formValues.fecha || !formValues.proveedor) {
+            toast.error("Completa todos los campos requeridos");
+            return;
+        }
+        const formData = new FormData();
+        formData.append("fecha", formValues.fecha);
+        formData.append("proveedor", formValues.proveedor);
+        formData.append("factura", formValues.factura);
+        formData.append("concepto", formValues.concepto);
+        formData.append("subtotal", String(formValues.subtotal));
+        formData.append("iva", String(formValues.iva));
+        formData.append("total", String(formValues.total));
 
+        if (pdfFile) formData.append("pdf", pdfFile);
+        if (xmlFile) formData.append("xml", xmlFile);
         let nuevasFilas = [...rows];
-        if (editIndex !== null) {
-            // Editar fila existente
-            nuevasFilas[editIndex] = formValues;
-            toast.success("Factura actualizada correctamente.");
-        } else {
-            // Agregar nueva fila
-            nuevasFilas.push(formValues);
-            toast.success("Factura guardada correctamente.");
+        try {
+            const method = editIndex !== null ? "PUT" : "POST";
+            const res = await fetch("http://localhost:3001/api/facturas", {
+                method,
+                body: formData,
+            });
+
+            if (!res.ok) throw new Error("Error en el servidor");
+
+            if (editIndex !== null) {
+                const updated = [...rows];
+                updated[editIndex] = formValues;
+                setRows(updated);
+                setEditIndex(null);
+                toast.success("Factura actualizada");
+            } else {
+                setRows([...rows, formValues]);
+                toast.success("Factura agregada");
+            }
+            setPdfFile(null);
+            setXmlFile(null);
+        } catch (error) {
+            toast.error("Error al guardar la factura");
         }
 
         const ordenadas = ordenarFilas(nuevasFilas);
@@ -245,7 +289,7 @@ export const ExpenseReport = () => {
                                     className="bg-gray-900 p-2 rounded-lg shadow-lg text-white space-y-4"
                                     onClick={(e) => e.stopPropagation()} // evita cerrar al hacer clic dentro
                                 >
-                                    <h2 className="text-xl font-bold mb-2">{editIndex !== null ? "Editar factura" : "Nueva factura"}</h2>
+                                    <h2 className="text-xl text-center font-bold mb-2">{editIndex !== null ? "Editar factura" : "Nueva factura"}</h2>
                                     <form
                                         className="bg-gray-900 text-sm gap-2 p-2 w-[273px] space-y-2 text-white rounded-md"
                                         onSubmit={(e) => {
@@ -338,6 +382,10 @@ export const ExpenseReport = () => {
                                                 {editIndex !== null ? "Actualizar" : "Guardar"}
                                             </button>
                                         </div>
+                                        <div className="flex gap-2">
+                                            <input type="file" accept="application/pdf" onChange={(e) => handleFileChange(e, "pdf")} />
+                                            <input type="file" accept=".xml" onChange={(e) => handleFileChange(e, "xml")} />
+                                        </div>
                                     </form>
                                 </div>
                             </div>
@@ -390,6 +438,30 @@ export const ExpenseReport = () => {
                                                         />
                                                     </div>
                                                 </td>
+                                                <td className="px-4 py-2 flex gap-2">
+                                                    <button
+                                                        onClick={() =>
+                                                            setPreviewFile({
+                                                                url: `${url}Reporte de gastos ${selectValues.tipoPago} ${selectValues.mes} ${selectValues.anio}/${row.fecha}/${row.proveedor}/${row.factura}.pdf`,
+                                                                type: "pdf",
+                                                            })
+                                                        }
+                                                        className="text-blue-600 hover:underline"
+                                                    >
+                                                        📄
+                                                    </button>
+                                                    <button
+                                                        onClick={() =>
+                                                            setPreviewFile({
+                                                                url: `${url}Reporte de gastos ${selectValues.tipoPago} ${selectValues.mes} ${selectValues.anio}/${row.fecha}/${row.proveedor}/${row.factura}.xml`,
+                                                                type: "xml",
+                                                            })
+                                                        }
+                                                        className="text-green-600 hover:underline"
+                                                    >
+                                                        📑
+                                                    </button>
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -418,6 +490,13 @@ export const ExpenseReport = () => {
                         </div>
                     )}
                 </>
+            )}
+            {previewFile && (
+                <FilePreviewModal
+                    url={previewFile.url}
+                    type={previewFile.type}
+                    onClose={() => setPreviewFile(null)}
+                />
             )}
         </div>
     );
