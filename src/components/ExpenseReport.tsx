@@ -46,10 +46,6 @@ export const ExpenseReport = () => {
         "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
     ];
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormValues({ ...formValues, [e.target.name]: e.target.value });
-    };
-
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: "pdf" | "xml") => {
         if (e.target.files && e.target.files[0]) {
         if (type === "pdf") setPdfFile(e.target.files[0]);
