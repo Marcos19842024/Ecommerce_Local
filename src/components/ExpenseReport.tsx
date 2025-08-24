@@ -126,7 +126,6 @@ export const ExpenseReport = () => {
       iva: null,
       total: null,
     });
-    setSelectValues({ tipoPago: "", mes: "", anio: null });
     setErrores({});
     setEditIndex(null);
     setPdfFile(null);
@@ -480,7 +479,7 @@ export const ExpenseReport = () => {
                             <BsFiletypePdf
                               onClick={() => {
                                 if (row.factura) {
-                                  setPreviewFile({ url: `${url}invoices/pdf/${row.factura}`, type: "pdf" });
+                                  setPreviewFile({ url: `${url}invoices/${row.fecha}/${row.proveedor}/${row.factura}`, type: "pdf" });
                                 } else {
                                   toast.error("No hay PDF disponible");
                                 }
@@ -492,7 +491,7 @@ export const ExpenseReport = () => {
                             <BsFiletypeXml
                               onClick={() => {
                                 if (row.factura) {
-                                  setPreviewFile({ url: `${url}invoices/xml/${row.factura}`, type: "xml" });
+                                  setPreviewFile({ url: `${url}invoices/${row.fecha}/${row.proveedor}/${row.factura}`, type: "xml" });
                                 } else {
                                   toast.error("No hay XML disponible");
                                 }
