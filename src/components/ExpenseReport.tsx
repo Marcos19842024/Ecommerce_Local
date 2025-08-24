@@ -477,6 +477,30 @@ export const ExpenseReport = () => {
                           <div className="flex justify-center gap-2">
                             <FiEdit onClick={() => { handleEdit(index); handleSelectSave(); }} className="text-yellow-500 hover:text-green-500 cursor-pointer" title="Editar" size={18} />
                             <MdDeleteOutline onClick={() => handleDelete(index)} className="text-yellow-500 hover:text-red-500 cursor-pointer" title="Eliminar" size={20} />
+                            <BsFiletypePdf
+                              onClick={() => {
+                                if (row.factura) {
+                                  setPreviewFile({ url: `${url}invoices/pdf/${row.factura}`, type: "pdf" });
+                                } else {
+                                  toast.error("No hay PDF disponible");
+                                }
+                              }}
+                              className="text-yellow-500 hover:text-cyan-500 cursor-pointer"
+                              title="Ver PDF"
+                              size={18}
+                            />
+                            <BsFiletypeXml
+                              onClick={() => {
+                                if (row.factura) {
+                                  setPreviewFile({ url: `${url}invoices/xml/${row.factura}`, type: "xml" });
+                                } else {
+                                  toast.error("No hay XML disponible");
+                                }
+                              }}
+                              className="text-yellow-500 hover:text-cyan-500 cursor-pointer"
+                              title="Ver XML"
+                              size={18}
+                            />
                           </div>
                         </td>
                       </tr>
