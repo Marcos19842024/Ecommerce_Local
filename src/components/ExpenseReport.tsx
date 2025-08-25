@@ -197,9 +197,27 @@ export const ExpenseReport = () => {
     setEditIndex(index);
   };
 
-  const handleDelete = (index: number) => {
-    setRows(rows.filter((_, i) => i !== index));
-    if (editIndex === index) resetForm();
+  const handleDelete = async (index: number) => {
+    const row = rows[index];
+    if (!row.factura || !row.fecha || !row.proveedor) {
+      toast.error("Datos insuficientes para eliminar la factura");
+      return;
+    }
+
+    try {
+      const res = await fetch(
+          `${url}invoices/${row.fecha}/${row.proveedor}/${row.factura}`,{ method: "DELETE" }
+      );
+
+      if (!res.ok) throw new Error("Error al eliminar en el servidor");
+
+      // ✅ eliminar en estado local
+      setRows(rows.filter((_, i) => i !== index));
+      if (editIndex === index) resetForm();
+      toast.success("Factura eliminada correctamente");
+    } catch (error) {
+      toast.error("No se pudo eliminar la factura");
+    }
   };
 
   const formatCurrency = (value: number) => currencyFormatter.format(value);
@@ -479,7 +497,7 @@ export const ExpenseReport = () => {
                             <BsFiletypePdf
                               onClick={() => {
                                 if (row.factura) {
-                                  setPreviewFile({ url: `${url}invoices/${row.fecha}/${row.proveedor}/${row.factura}`, type: "pdf" });
+                                  setPreviewFile({ url: `${url}invoices/${row.fecha}/${row.proveedor}/${row.factura}.pdf`, type: "pdf" });
                                 } else {
                                   toast.error("No hay PDF disponible");
                                 }
@@ -491,7 +509,7 @@ export const ExpenseReport = () => {
                             <BsFiletypeXml
                               onClick={() => {
                                 if (row.factura) {
-                                  setPreviewFile({ url: `${url}invoices/${row.fecha}/${row.proveedor}/${row.factura}`, type: "xml" });
+                                  setPreviewFile({ url: `${url}invoices/${row.fecha}/${row.proveedor}/${row.factura}.xml`, type: "xml" });
                                 } else {
                                   toast.error("No hay XML disponible");
                                 }
@@ -514,11 +532,23 @@ export const ExpenseReport = () => {
 
       {/* Modal de preview */}
       {previewFile && (
-        <FilePreviewModal
-          url={previewFile.url}
-          type={previewFile.type}
-          onClose={() => setPreviewFile(null)}
-        />
+        <div
+          className="fixed inset-0 flex items-center justify-center bg-black/70 z-50"
+          onClick={() => setPreviewFile(null)}
+          >
+          <div
+            onClick={handleModalContainerClick}
+            className="relative bg-white rounded-lg shadow-lg w-[80vw] h-[80vh] max-w-7xl overflow-hidden flex flex-col"
+            >
+            {/* Contenido ajustado al modal */}
+            <div className="flex-1 overflow-auto h-full">
+              <FilePreviewModal
+                url={previewFile.url}
+                type={previewFile.type}
+              />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
