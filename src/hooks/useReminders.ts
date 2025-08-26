@@ -1,16 +1,22 @@
 // Archivo: hooks/useReminders.ts
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
 import { getFileTypes } from "../utils/files";
 import { Cliente, FileWithPreview, MessageBubbleProps } from "../interfaces/client.interface";
 import { url } from "../server/url";
 import { cel, center } from "../server/user";
 
-export const useReminders = () => {
+interface Props {
+    clientes: Cliente[];
+}
+
+export const useReminders = ({clientes}: Props) => {
   const [messages, setMessages] = useState<MessageBubbleProps[]>([]);
   const [files, setFiles] = useState<FileWithPreview[]>([]);
   const [msjo, setMsjo] = useState("");
   const [loader, setLoader] = useState(false);
+  const enviados = useMemo(() => clientes.filter((c) => c.status), [clientes]);
+  const noEnviados = useMemo(() => clientes.filter((c) => !c.status), [clientes]);
 
   const handleUpload = (fileList: FileList | null) => {
     setLoader(true);
@@ -119,6 +125,8 @@ export const useReminders = () => {
   };
 
   return {
+    enviados,
+    noEnviados,
     loader,
     messages,
     setMessages,

@@ -2,6 +2,8 @@ import { useState, DragEvent, useMemo } from "react";
 import { formatString } from "../helpers";
 import { FiEdit } from "react-icons/fi";
 import { BsFiletypePdf, BsFiletypeXml } from "react-icons/bs";
+import { TfiLayoutListThumbAlt } from "react-icons/tfi";
+import { BiMailSend } from "react-icons/bi";
 import { MdDeleteOutline } from "react-icons/md";
 import toast from "react-hot-toast";
 import { FormValues, SelectValues } from "../interfaces/report.interface";
@@ -10,6 +12,8 @@ import { TfiPrinter } from "react-icons/tfi";
 import { PdfViewer } from "../components/PdfViewer";
 import FilePreviewModal from "./FilePreviewModal";
 import { url } from "../server/url";
+import { pdf } from "@react-pdf/renderer";
+import { PdfExpense } from "./PdfExpense";
 
 const currencyFormatter = new Intl.NumberFormat("es-MX", {
   style: "currency",
@@ -33,6 +37,8 @@ export const ExpenseReport = () => {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [xmlFile, setXmlFile] = useState<File | null>(null);
   const [previewFile, setPreviewFile] = useState<{ url: string; type: "pdf" | "xml" } | null>(null);
+  const [pdfPreview, setPdfPreview] = useState<string | null>(null);
+  const [xmlPreview, setXmlPreview] = useState<string | null>(null);
   const [formValues, setFormValues] = useState<FormValues>({
     fecha: "",
     factura: "",
@@ -63,8 +69,10 @@ export const ExpenseReport = () => {
       const file = e.target.files[0];
       if (type === "pdf" && file.type === "application/pdf") {
         setPdfFile(file);
+        setPdfPreview(file.name);
       } else if (type === "xml" && file.name.endsWith(".xml")) {
         setXmlFile(file);
+        setXmlPreview(file.name);
       } else {
         toast.error(`Solo se permiten archivos ${type.toUpperCase()}`);
       }
@@ -79,8 +87,10 @@ export const ExpenseReport = () => {
 
     if (type === "pdf" && file.type === "application/pdf") {
       setPdfFile(file);
+      setPdfPreview(file.name);
     } else if (type === "xml" && file.name.endsWith(".xml")) {
       setXmlFile(file);
+      setXmlPreview(file.name);
     } else {
       toast.error(`Solo se permiten archivos ${type.toUpperCase()}`);
     }
@@ -130,6 +140,8 @@ export const ExpenseReport = () => {
     setEditIndex(null);
     setPdfFile(null);
     setXmlFile(null);
+    setPdfPreview(null);
+    setXmlPreview(null);
   };
 
   const ordenarFilas = (filas: FormValues[]) => {
@@ -142,9 +154,16 @@ export const ExpenseReport = () => {
   };
 
   const handleSave = async () => {
-    if (!formValues.factura || !formValues.fecha || !formValues.proveedor || !formValues.concepto || formValues.subtotal === null || formValues.iva === null || pdfFile === null || xmlFile === null) {
+    if (!formValues.factura || !formValues.fecha || !formValues.proveedor || !formValues.concepto || formValues.subtotal === null || formValues.iva === null) {
       toast.error("Completa todos los campos requeridos");
       return;
+    }
+
+    if (pdfFile === null || xmlFile === null) {
+      if (pdfPreview === null || xmlPreview === null) {
+        toast.error("Sube los archivos PDF y XML");
+        return;
+      }
     }
 
     const facturaExistente = rows.find(r => r.factura === formValues.factura);
@@ -154,13 +173,22 @@ export const ExpenseReport = () => {
     }
 
     const formData = new FormData();
-    Object.entries({ ...formValues, total }).forEach(([k, v]) => formData.append(k, String(v ?? "")));
+    Object.entries({ ...formValues, total }).forEach(([k, v]) =>
+      formData.append(k, String(v ?? ""))
+    );
     if (pdfFile) formData.append("pdf", pdfFile);
     if (xmlFile) formData.append("xml", xmlFile);
 
+    // si estás editando, mandas la factura original
+    if (editIndex !== null) {
+      formData.append("oldFactura", rows[editIndex].factura);
+    }
+
     try {
-      const method = editIndex !== null ? "PUT" : "POST";
-      const res = await fetch(`${url}invoices`, { method, body: formData });
+      const res = await fetch(`${url}invoices`, {
+        method: "POST", // siempre POST
+        body: formData,
+      });
       if (!res.ok) throw new Error("Error en el servidor");
 
       let nuevasFilas = [...rows];
@@ -171,6 +199,7 @@ export const ExpenseReport = () => {
         nuevasFilas.push({ ...formValues, total });
         toast.success("Factura agregada");
       }
+
       setRows(ordenarFilas(nuevasFilas));
       resetForm();
     } catch (error) {
@@ -192,9 +221,17 @@ export const ExpenseReport = () => {
     setShowForm(true);
   };
 
-  const handleEdit = (index: number) => {
-    setFormValues(rows[index]);
+  const handleEdit = async (index: number) => {
+    const factura = rows[index];
+    setFormValues(factura);
     setEditIndex(index);
+    try {
+      // Guardar previsualizaciones
+      setPdfPreview(`${factura.factura}.pdf`);
+      setXmlPreview(`${factura.factura}.xml`);
+    } catch (err) {
+      toast.error("No se pudieron cargar los archivos");
+    }
   };
 
   const handleDelete = async (index: number) => {
@@ -220,6 +257,36 @@ export const ExpenseReport = () => {
     }
   };
 
+  const handleSendReport = async () => {
+    const blob = await pdf(<PdfExpense data={rows} filters={selectValues} />).toBlob();
+    const formData = new FormData();
+    formData.append("pdf", blob);
+    formData.append("pdfName", `Reporte de gastos ${selectValues.tipoPago} ${selectValues.mes} ${selectValues.anio}.pdf`);
+
+    const res = await fetch(`${url}invoices/downloadZip`, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!res.ok) {
+      toast.error("Error al enviar el reporte y descargar el ZIP");
+      return;
+    }
+
+    const zip = await res.blob();
+    const urlZip = window.URL.createObjectURL(zip);
+
+    toast.success("Reporte generado correctamente");
+    //enviarlo al correo
+
+    const a = document.createElement("a");
+    a.href = urlZip;
+    a.download = `Reporte de Gastos ${selectValues.tipoPago} ${selectValues.mes} ${selectValues.anio}.zip`;
+    a.click();
+
+    window.URL.revokeObjectURL(urlZip);
+  };
+
   const formatCurrency = (value: number) => currencyFormatter.format(value);
   const handleModalContainerClick = (e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation();
 
@@ -232,19 +299,18 @@ export const ExpenseReport = () => {
             className="gap-1 p-2 w-fit rounded-md text-white transition-all group bg-cyan-600 hover:bg-yellow-500 hover:scale-105"
             type="button"
             onClick={() => setShowPdf(!showPdf)}
-          >
+            >
             {showPdf ? <PiAppWindowBold /> : <TfiPrinter />}
           </button>
         )}
       </div>
-
       {/* PDF Viewer */}
       {showPdf ? (
         <PdfViewer facturas={rows} header={selectValues} />
       ) : (
         <>
           {/* Selección tipo pago / mes / año */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2 p-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-1 p-2">
             <div className="flex flex-col">
               <label htmlFor="tipoPago" className="text-sm font-medium">Tipo de pago</label>
               <select
@@ -252,7 +318,7 @@ export const ExpenseReport = () => {
                 value={selectValues.tipoPago}
                 onChange={handleFormChangeSelect}
                 className={`border ${errores.tipoPago ? "border-red-500" : "border-white"} text-cyan-600 rounded p-1`}
-              >
+                >
                 <option value="">Tipo de pago...</option>
                 <option value="Efectivo">Efectivo</option>
                 <option value="TC">Tarjeta Crédito</option>
@@ -266,7 +332,7 @@ export const ExpenseReport = () => {
                 value={selectValues.mes}
                 onChange={handleFormChangeSelect}
                 className={`border ${errores.mes ? "border-red-500" : "border-white"} text-cyan-600 rounded p-1`}
-              >
+                >
                 <option value="">Mes...</option>
                 {MESES.map((mes) => <option key={mes} value={mes}>{mes}</option>)}
               </select>
@@ -278,7 +344,7 @@ export const ExpenseReport = () => {
                 value={selectValues.anio ?? ""}
                 onChange={handleFormChangeSelect}
                 className={`border ${errores.anio ? "border-red-500" : "border-white"} text-cyan-600 rounded p-1`}
-              >
+                >
                 <option value="">Año...</option>
                 {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
               </select>
@@ -286,29 +352,39 @@ export const ExpenseReport = () => {
             <div className="flex flex-col justify-end text-center text-cyan-600">
               <span>Registros: {rows.length}</span>
             </div>
-            <div className="flex flex-col justify-end">
+            <div className="flex col-span-2 gap-2 w-full items-center justify-end">
+              <button
+                disabled={rows.length === 0} // 🔹 desactiva si no hay filas
+                onClick={() => handleSendReport()}
+                className={`flex w-full items-center gap-2 p-2 rounded-md text-white text-sm transition-all group 
+                  ${rows.length === 0 
+                    ? "bg-gray-400 cursor-not-allowed"   // 🔹 estilo deshabilitado
+                    : "bg-cyan-600 hover:bg-yellow-500 hover:scale-105"
+                  }`}
+              >
+                <BiMailSend size={18} /> Enviar reporte
+              </button>
               <button
                 onClick={() => { resetForm(); handleSelectSave(); }}
-                className="bg-cyan-600 text-white rounded hover:bg-yellow-500 p-2"
-              >
-                Agregar factura
+                className="flex w-full items-center gap-2 p-2 rounded-md text-white text-sm transition-all group bg-cyan-600 hover:bg-yellow-500 hover:scale-105"
+                >
+                <TfiLayoutListThumbAlt size={18} color="white"/> Agregar factura
               </button>
             </div>
           </div>
-
           {/* Modal de formulario */}
           {showForm && (
             <div
               className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-start z-50"
               onClick={() => setShowForm(false)}
-            >
+              >
               <div onClick={handleModalContainerClick}>
-                <div className="bg-gray-900 p-2 rounded-lg shadow-lg text-white space-y-4">
-                  <h2 className="text-xl text-center font-bold mb-2">{editIndex !== null ? "Editar factura" : "Nueva factura"}</h2>
+                <div className="bg-gray-900 p-1 rounded-lg shadow-lg text-white space-y-1">
+                  <h2 className="text-xl text-center font-bold">{editIndex !== null ? "Editar factura" : "Nueva factura"}</h2>
                   <form
-                    className="bg-gray-900 text-sm gap-2 p-2 w-[273px] space-y-2 text-white rounded-md"
+                    className="bg-gray-900 text-sm gap-2 p-2 w-[273px] space-y-1 text-white rounded-md"
                     onSubmit={(e) => { e.preventDefault(); handleSave(); }}
-                  >
+                    >
                     {/* Fecha y Factura */}
                     <section className="flex gap-2 text-center w-full">
                       <div>
@@ -336,7 +412,6 @@ export const ExpenseReport = () => {
                         </label>
                       </div>
                     </section>
-
                     {/* Proveedor y Concepto */}
                     <section className="flex flex-col gap-2 text-center w-full">
                       <div>
@@ -364,7 +439,6 @@ export const ExpenseReport = () => {
                         </label>
                       </div>
                     </section>
-
                     {/* Subtotal, Descuento, IVA */}
                     <section className="flex text-center w-full">
                       {["subtotal", "descuento", "iva"].map((field) => (
@@ -382,7 +456,6 @@ export const ExpenseReport = () => {
                         </div>
                       ))}
                     </section>
-
                     {/* Total y Guardar */}
                     <div className="flex justify-end space-x-2">
                       <label className="w-fit text-white rounded p-1">
@@ -391,11 +464,10 @@ export const ExpenseReport = () => {
                       <button
                         type="submit"
                         className="p-1 bg-cyan-600 text-white rounded hover:bg-yellow-500"
-                      >
+                        >
                         {editIndex !== null ? "Actualizar" : "Guardar"}
                       </button>
                     </div>
-
                     {/* Contenedor de botones con flex-wrap */}
                     <div className="flex flex-wrap gap-2 w-full">
                       {/* Dropzone PDF */}
@@ -407,7 +479,7 @@ export const ExpenseReport = () => {
                           p-2 flex items-center gap-2 cursor-pointer
                           ${pdfFile ? "border-cyan-500 bg-white" : "border-cyan-600 bg-white"}
                         `}
-                      >
+                        >
                         <input
                           id="pdf-upload"
                           type="file"
@@ -418,14 +490,14 @@ export const ExpenseReport = () => {
                         <label
                           htmlFor="pdf-upload"
                           className="flex items-center gap-2 text-cyan-600 hover:text-yellow-500 cursor-pointer truncate w-full"
-                        >
+                          >
                           <BsFiletypePdf
                             size={24}
                             className={`transition-transform duration-500 ${pdfFile ? "animate-bounce text-cyan-600" : "text-cyan-500"}`}
-                          />{pdfFile?.name || "Upload pdf"}
+                          />
+                          {pdfPreview || "Upload pdf"}
                         </label>
                       </div>
-
                       {/* Dropzone XML */}
                       <div
                         onDrop={(e) => handleDrop(e, "xml")}
@@ -436,7 +508,7 @@ export const ExpenseReport = () => {
                           p-2 flex items-center gap-2 cursor-pointer
                           ${isDraggingXml ? "border-cyan-500 bg-white" : "border-cyan-600 bg-white"}
                         `}
-                      >
+                        >
                         <input
                           id="xml-upload"
                           type="file"
@@ -447,11 +519,12 @@ export const ExpenseReport = () => {
                         <label
                           htmlFor="xml-upload"
                           className="flex items-center gap-2 text-cyan-600 hover:text-yellow-500 cursor-pointer truncate w-full"
-                        >
+                          >
                           <BsFiletypeXml
                             size={24}
                             className={`transition-transform duration-500 ${xmlFile ? "animate-bounce text-cyan-600" : "text-cyan-500"}`}
-                          />{xmlFile?.name || "Upload xml"}
+                          />
+                          {xmlPreview || "Upload xml"}
                         </label>
                       </div>
                     </div>
@@ -460,7 +533,6 @@ export const ExpenseReport = () => {
               </div>
             </div>
           )}
-
           {/* Tabla */}
           {rows.length > 0 && (
             <div className="flex-1 overflow-y-auto overflow-x-auto rounded-md border max-h-[calc(100vh-300px)]">
@@ -523,13 +595,30 @@ export const ExpenseReport = () => {
                       </tr>
                     ))}
                   </tbody>
+                  {/* Fila de totales */}
+                  <tfoot className="bg-gray-800 font-bold sticky bottom-0 z-10 border-t border-gray-500">
+                    <tr>
+                      <td colSpan={4} className="px-2 py-2 text-right">Totales:</td>
+                      <td className="px-2 py-2 text-right">
+                        {formatCurrency(rows.reduce((acc, row) => acc + (row.subtotal ?? 0), 0))}
+                      </td>
+                      <td className="px-2 py-2 text-right">
+                        {formatCurrency(rows.reduce((acc, row) => acc + (row.descuento ?? 0), 0))}
+                      </td>
+                      <td className="px-2 py-2 text-right">
+                        {formatCurrency(rows.reduce((acc, row) => acc + (row.iva ?? 0), 0))}
+                      </td>
+                      <td className="px-2 py-2 text-right">
+                        {formatCurrency(rows.reduce((acc, row) => acc + (row.total ?? 0), 0))}
+                      </td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             </div>
           )}
         </>
       )}
-
       {/* Modal de preview */}
       {previewFile && (
         <div

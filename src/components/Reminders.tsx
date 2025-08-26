@@ -1,4 +1,4 @@
-import { useRef, useState, useMemo, useEffect } from "react";
+import { useRef, useState, useEffect } from "react";
 import { VscSend } from "react-icons/vsc";
 import { PiAppWindowBold, PiPaperclipBold } from "react-icons/pi";
 import { TfiPrinter } from "react-icons/tfi";
@@ -29,9 +29,9 @@ export const Reminders = ({clientes}: Props) => {
     const [showPdf, setShowPdf] = useState(false);
     const clienteRefs = useRef<(HTMLDivElement | null)[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
-    const enviados = useMemo(() => clientes.filter((c) => c.status), [clientes]);
-    const noEnviados = useMemo(() => clientes.filter((c) => !c.status), [clientes]);
     const {
+        enviados,
+        noEnviados,
         loader,
         messages,
         msjo,
@@ -41,7 +41,7 @@ export const Reminders = ({clientes}: Props) => {
         handleSend,
         handleKeyDown,
         deleteMessage,
-    } = useReminders();
+    } = useReminders({clientes});
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -54,6 +54,7 @@ export const Reminders = ({clientes}: Props) => {
             } else {
                 handleSend(clientes[index]);
             }
+            clienteRefs.current[index + 1]?.focus();
         }
     };
 
