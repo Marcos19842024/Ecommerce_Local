@@ -284,6 +284,17 @@ export const ExpenseReport = () => {
     a.click();
 
     window.URL.revokeObjectURL(urlZip);
+    a.remove();
+    // ✅ limpiar filas
+    setRows([]);
+
+    // ✅ reiniciar filtros
+    setSelectValues({
+      tipoPago: "",
+      mes: "",
+      anio: null,
+    });
+    resetForm();
   };
 
   const formatCurrency = (value: number) => currencyFormatter.format(value);
