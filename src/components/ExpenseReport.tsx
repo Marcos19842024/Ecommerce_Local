@@ -263,7 +263,7 @@ export const ExpenseReport = () => {
     formData.append("pdf", blob);
     formData.append("pdfName", `Reporte de gastos ${selectValues.tipoPago} ${selectValues.mes} ${selectValues.anio}.pdf`);
 
-    const res = await fetch(`${url}invoices/downloadZip`, {
+    const res = await fetch(`${url}invoices/download&SendMailZip`, {
       method: "POST",
       body: formData,
     });
@@ -277,7 +277,6 @@ export const ExpenseReport = () => {
     const urlZip = window.URL.createObjectURL(zip);
 
     toast.success("Reporte generado correctamente");
-    //enviarlo al correo
 
     const a = document.createElement("a");
     a.href = urlZip;
