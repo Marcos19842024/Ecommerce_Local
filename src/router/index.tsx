@@ -4,6 +4,7 @@ import { TransportPage } from '../Pages/TransportPage';
 import { ExpenseReportPage } from '../Pages/ExpenseReportPage';
 import { ReadBillPage } from '../Pages/ReadBillPage';
 import { DashboardLayout } from '../Pages/DashboardLayout';
+import OrgChartInteractive from '../components/OrgChartInteractive';
 
 export const router = createBrowserRouter([
 	{
@@ -29,6 +30,10 @@ export const router = createBrowserRouter([
 			{
 				path: 'facturas',
 				element: <ReadBillPage />,
+			},
+			{
+				path: 'Expedientes',
+				element: <OrgChartInteractive />,
 			},
 		],
 	}

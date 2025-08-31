@@ -27,4 +27,10 @@ export const dashboardLinks = [
 		href: '/facturas',
 		icon: <RiBillLine size={25} />,
 	},
+	{
+		id: 5,
+		title: 'Expedientes',
+		href: '/expedientes',
+		icon: <RiBillLine size={25} />,
+	},
 ];
