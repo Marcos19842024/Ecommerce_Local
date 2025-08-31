@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import axios from "axios";
 import Tree from "react-d3-tree";
 import toast, { Toaster } from "react-hot-toast";
 import { url } from "../server/url";
@@ -28,35 +27,49 @@ export default function OrgChartInteractive() {
   const [zoom, setZoom] = useState(0.7);
 
   // 🌐 Cargar datos iniciales
-  useEffect(() => {
-    axios
-      .get<OrgNode>(`${url}/orgchart`)
-      .then((res) => setTreeData(withIds(res.data)))
-      .catch(() => toast.error("Error al cargar organigrama"));
-  }, []);
+useEffect(() => {
+  fetch(`${url}orgchart`)
+    .then((res) => {
+      console.log("Respuesta cruda:", res);
+      if (!res.ok) throw new Error("Error en la respuesta");
+      return res.json();
+    })
+    .then((data: OrgNode) => {console.log("JSON recibido:", data);setTreeData(withIds(data))})
+    .catch((err) => {console.error("Error al cargar organigrama:", err);toast.error("Error al cargar organigrama");
+});
+}, []);
 
-  // Centrar árbol
-  useEffect(() => {
-    const center = () => {
-      const dims = containerRef.current?.getBoundingClientRect();
-      if (dims) setTranslate({ x: dims.width / 2, y: 100 });
-    };
-    center();
-    const ro = new ResizeObserver(center);
-    if (containerRef.current) ro.observe(containerRef.current);
-    return () => ro.disconnect();
-  }, []);
-
-  // Guardar cambios en backend
-  const saveTree = async (tree: OrgNode) => {
-    try {
-      await axios.post(`${url}/orgchart`, tree);
-      setTreeData(tree);
-      toast.success("Cambios guardados correctamente");
-    } catch {
-      toast.error("Error al guardar organigrama");
-    }
+// Centrar árbol
+useEffect(() => {
+  const center = () => {
+    const dims = containerRef.current?.getBoundingClientRect();
+    if (dims) setTranslate({ x: dims.width / 2, y: 100 });
   };
+  center();
+  const ro = new ResizeObserver(center);
+  if (containerRef.current) ro.observe(containerRef.current);
+  return () => ro.disconnect();
+}, []);
+
+// Guardar cambios en backend
+const saveTree = async (tree: OrgNode) => {
+  try {
+    const res = await fetch(`${url}/orgchart`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(tree),
+    });
+
+    if (!res.ok) throw new Error("Error al guardar");
+
+    setTreeData(tree);
+    toast.success("Cambios guardados correctamente");
+  } catch {
+    toast.error("Error al guardar organigrama");
+  }
+};
 
   // Funciones de árbol
   const findNode = (node: OrgNode, id: string): OrgNode | null => {
