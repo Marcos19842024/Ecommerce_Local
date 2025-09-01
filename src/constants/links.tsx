@@ -1,6 +1,7 @@
 import { FaTruckPickup } from 'react-icons/fa6';
 import { TbMessageCircleShare, TbReportMoney } from 'react-icons/tb';
 import { RiBillLine } from 'react-icons/ri';
+import { GiOrganigram } from "react-icons/gi";
 
 export const dashboardLinks = [
 	{
@@ -31,6 +32,6 @@ export const dashboardLinks = [
 		id: 5,
 		title: 'Expedientes',
 		href: '/expedientes',
-		icon: <RiBillLine size={25} />,
+		icon: <GiOrganigram size={25} />,
 	},
 ];
