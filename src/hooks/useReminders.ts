@@ -1,4 +1,3 @@
-// Archivo: hooks/useReminders.ts
 import { useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
 import { getFileTypes } from "../utils/files";
@@ -7,7 +6,7 @@ import { url } from "../server/url";
 import { cel, center } from "../server/user";
 
 interface Props {
-    clientes: Cliente[];
+  clientes: Cliente[];
 }
 
 export const useReminders = ({clientes}: Props) => {

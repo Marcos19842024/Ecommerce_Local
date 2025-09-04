@@ -92,29 +92,21 @@ const initialFiles: GalleryFile[] = [
 const FileGallery = ({ nombre, puesto }: { nombre: string, puesto: string }) => {
   const [files, setFiles] = useState<GalleryFile[]>(initialFiles);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const carouselRef = useRef<HTMLDivElement>(null);
 
   // Efecto para el carrusel automático
   useEffect(() => {
-    if (!isAutoPlaying) return;
-
+    setFiles(initialFiles);
     const interval = setInterval(() => {
       nextSlide();
     }, 4000);
 
     return () => clearInterval(interval);
-  }, [isAutoPlaying, currentIndex]);
+  }, [currentIndex]);
 
   const nextSlide = () => {
     setCurrentIndex((prevIndex) => 
       prevIndex === files.length - 1 ? 0 : prevIndex + 1
-    );
-  };
-
-  const prevSlide = () => {
-    setCurrentIndex((prevIndex) => 
-      prevIndex === 0 ? files.length - 1 : prevIndex - 1
     );
   };
 
@@ -199,33 +191,9 @@ const FileGallery = ({ nombre, puesto }: { nombre: string, puesto: string }) => 
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
+    <div className="mx-auto max-w-6xl px-2 py-2 w-[80vw]">
       <h2 className="mb-2 text-3xl font-bold text-gray-800">{nombre}</h2>
-      <p className="mb-6 text-gray-600">{puesto}</p>
-      
-      {/* Controles del carrusel */}
-      <div className="mb-6 flex items-center justify-center space-x-4">
-        <button
-          onClick={() => setIsAutoPlaying(!isAutoPlaying)}
-          className="flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white transition-colors hover:bg-blue-600"
-        >
-          {isAutoPlaying ? '⏸️ Pausar' : '▶️ Reproducir'}
-        </button>
-        <div className="flex space-x-2">
-          <button
-            onClick={prevSlide}
-            className="rounded-lg bg-gray-200 p-2 transition-colors hover:bg-gray-300"
-          >
-            ◀️ Anterior
-          </button>
-          <button
-            onClick={nextSlide}
-            className="rounded-lg bg-gray-200 p-2 transition-colors hover:bg-gray-300"
-          >
-            Siguiente ▶️
-          </button>
-        </div>
-      </div>
+      <p className="mb-2 text-gray-600">{puesto}</p>
       
       {/* Carrusel 3D */}
       <div className="relative h-96 overflow-hidden rounded-xl">
@@ -268,7 +236,7 @@ const FileGallery = ({ nombre, puesto }: { nombre: string, puesto: string }) => 
       </div>
       
       {/* Indicadores */}
-      <div className="mt-8 flex justify-center space-x-2">
+      <div className="mt-4 flex justify-center space-x-2">
         {files.map((_, index) => (
           <button
             key={index}
@@ -281,8 +249,8 @@ const FileGallery = ({ nombre, puesto }: { nombre: string, puesto: string }) => 
       </div>
       
       {/* Miniaturas */}
-      <div className="mt-12">
-        <h3 className="mb-4 text-xl font-semibold text-gray-700">Todos los archivos</h3>
+      <div className="mt-4">
+        <h3 className="mb-2 text-xl font-semibold text-gray-700">Todos los archivos</h3>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
           {files.map((file, index) => (
             <div
@@ -305,7 +273,7 @@ const FileGallery = ({ nombre, puesto }: { nombre: string, puesto: string }) => 
       </div>
       
       {/* Información del archivo actual */}
-      <div className="mt-8 rounded-lg bg-blue-50 p-6">
+      <div className="mt-4 rounded-lg bg-blue-50 p-6">
         <h3 className="text-lg font-semibold text-blue-800">Archivo actual</h3>
         <div className="mt-2 flex items-center">
           <div className="mr-4 h-12 w-12">
