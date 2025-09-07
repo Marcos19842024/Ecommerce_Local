@@ -3,7 +3,6 @@ import { SiAwsorganizations } from "react-icons/si";
 import { RiDeleteBin2Line } from "react-icons/ri";
 import { FiEdit } from "react-icons/fi";
 import { VscFileSymlinkDirectory } from "react-icons/vsc";
-import { MdOutlineZoomInMap, MdOutlineZoomOutMap } from "react-icons/md";
 import { url } from "../server/url";
 import toast from "react-hot-toast";
 import Tree from "react-d3-tree";
@@ -12,6 +11,7 @@ import FileGallery from "./FileGallery";
 interface OrgNode {
   id?: string;
   name: string;
+  alias?: string;
   attributes?: { puesto?: string };
   children?: OrgNode[];
 }
@@ -27,16 +27,17 @@ const withIds = (node: OrgNode): OrgNode => ({
 export default function OrgChartInteractive() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [translate, setTranslate] = useState({ x: 0, y: 100 });
-  const [zoom, setZoom] = useState(0.90);
   const [showModal, setShowModal] = useState(false);
   const [treeData, setTreeData] = useState<OrgNode | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editPuesto, setEditPuesto] = useState("");
   const [editName, setEditName] = useState("");
+  const [editAlias, setEditAlias] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalAction, setModalAction] = useState<"add" | "edit">("add");
   const [modalPuesto, setModalPuesto] = useState("");
   const [modalNombre, setModalNombre] = useState("");
+  const [modalAlias, setModalAlias] = useState("");
   const [nodePosition, setNodePosition] = useState({ x: 0, y: 0, visible: false });
   const [isButtonsVisible, setIsButtonsVisible] = useState(false);
   const dataMemo = treeData ? [treeData] : [];
@@ -127,7 +128,7 @@ export default function OrgChartInteractive() {
   };
 
   // Acciones
-  const addChild = async (childNombre: string, childPuesto: string, targetId?: string) => {
+  const addChild = async (childNombre: string, childPuesto: string, childAlias?: string, targetId?: string) => {
     const targetNodeId = targetId || selectedId;
     if (!treeData || !targetNodeId) return;
 
@@ -139,7 +140,8 @@ export default function OrgChartInteractive() {
 
     const newNode: OrgNode = { 
       id: uid(), 
-      name: childNombre, 
+      name: childNombre,
+      alias: childAlias,
       attributes: { puesto: childPuesto }, 
       children: [] 
     };
@@ -151,12 +153,13 @@ export default function OrgChartInteractive() {
     await saveTree(updated);
   };
 
-  const editNode = async (newNombre: string, newPuesto: string, targetId?: string) => {
+  const editNode = async (newNombre: string, newPuesto: string, newAlias?: string, targetId?: string) => {
     const targetNodeId = targetId || selectedId;
     if (!treeData || !targetNodeId) return;
 
     const updated = updateNode({...treeData}, targetNodeId, {
       name: newNombre,
+      alias: newAlias,
       attributes: { puesto: newPuesto }
     });
     
@@ -172,6 +175,7 @@ export default function OrgChartInteractive() {
     if (updated) saveTree(updated);
     setSelectedId(null);
     setEditName("");
+    setEditAlias("");
     setEditPuesto("");
     setNodePosition(prev => ({ ...prev, visible: false }));
   };
@@ -186,19 +190,23 @@ export default function OrgChartInteractive() {
       const selectedNode = findNode(treeData, selectedId);
       if (selectedNode) {
         setModalNombre(selectedNode.name);
+        setModalAlias(selectedNode.alias? selectedNode.alias : "");
         setModalPuesto(selectedNode.attributes?.puesto || "");
         // Actualizar también los estados de edición
         setEditName(selectedNode.name);
+        setEditAlias(selectedNode.alias? selectedNode.alias : "");
         setEditPuesto(selectedNode.attributes?.puesto || "");
       }
     } else {
       setModalNombre("");
+      setModalAlias("");
       setModalPuesto("");
       // Para añadir, mantener los valores del nodo padre seleccionado
       if (treeData && selectedId) {
         const selectedNode = findNode(treeData, selectedId);
         if (selectedNode) {
           setEditName(selectedNode.name);
+          setEditAlias(selectedNode.alias? selectedNode.alias : "");
           setEditPuesto(selectedNode.attributes?.puesto || "");
         }
       }
@@ -212,9 +220,9 @@ export default function OrgChartInteractive() {
 
     try {
       if (modalAction === "edit") {
-        await editNode(modalNombre, modalPuesto);
+        await editNode(modalNombre, modalPuesto, modalAlias);
       } else {
-        await addChild(modalNombre, modalPuesto);
+        await addChild(modalNombre, modalPuesto, modalAlias);
       }
       setIsModalOpen(false);
     } catch (error) {
@@ -223,8 +231,14 @@ export default function OrgChartInteractive() {
   };
 
   // Renderizado de nodo con botones flotantes
-  const renderNode = ({ nodeDatum, toggleNode }: any) => (
-    <g>
+  const renderNode = ({ nodeDatum }: any) => (
+    <g
+      style={{ transition: 'all 0.2s ease-in-out' }}
+      className="node-group"
+      onClick={(e) => {
+        setNodeData(e, nodeDatum);
+      }}
+    >
       {/* Fondo del nodo */}
       <rect
         width="200"
@@ -235,12 +249,9 @@ export default function OrgChartInteractive() {
         stroke={selectedId === nodeDatum.id ? "#fbbf24" : "#06b6d4"}
         strokeWidth={selectedId === nodeDatum.id ? "2" : "1"}
         rx="20"
-        onClick={(e) => {
-          setNodeData(e, nodeDatum);
-        }}
         style={{ cursor: "pointer" }}
       />
-      
+
       {/* Contenido del nodo */}
       <text
         textAnchor="middle"
@@ -249,9 +260,6 @@ export default function OrgChartInteractive() {
         fill="#000000ff"
         stroke="#000000ff"
         strokeWidth="1"
-        onClick={(e) => {
-          setNodeData(e, nodeDatum);
-        }}
         style={{ cursor: "pointer" }}
       >
         {nodeDatum.attributes?.puesto || "?"}
@@ -264,54 +272,32 @@ export default function OrgChartInteractive() {
         fill="#000000ff"
         stroke="#000000ff"
         strokeWidth="1"
-        onClick={(e) => {
-          setNodeData(e, nodeDatum);
-        }}
         style={{ cursor: "pointer" }}
       >
-        {nodeDatum.name}
+        {nodeDatum.alias}
       </text>
-      
-      {/* Botón toggle */}
+
       {nodeDatum.children && nodeDatum.children.length > 0 && (
-        <>
-          <circle
-            r="10"
-            cx="0"
-            cy="60"
-            fill={selectedId === nodeDatum.id ? "#fbbf24" : "#06b6d4"}
-            stroke="#000000ff"
-            strokeWidth="1"
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleNode();
-            }}
-            style={{ cursor: "pointer" }}
-          />
-          <text
-            textAnchor="middle"
-            dy="65"
-            dx="0"
-            fontSize="15"
-            fill="white"
-            strokeWidth="0"
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleNode();
-            }}
-            style={{ cursor: "pointer", fontWeight: "bold" }}
-          >
-            {nodeDatum.__rd3t.collapsed ? "⬆" : "⬇"}
-          </text>
-        </>
+        <text
+          textAnchor="middle"
+          dy={nodeDatum.__rd3t.collapsed ? "61" : "75"}
+          dx="0"
+          fontSize="20"
+          fill={selectedId === nodeDatum.id ? "#fbbf24" : "#06b6d4"}
+          strokeWidth="0"
+          style={{ cursor: "pointer", fontWeight: "bold" }}
+        >
+          ▼
+        </text>
       )}
     </g>
   );
 
-  const setNodeData = (e: React.MouseEvent<SVGRectElement> | React.MouseEvent<SVGTextElement>, nodeDatum: any) => {
+  const setNodeData = (e: React.MouseEvent<SVGGElement>, nodeDatum: any) => {
     e.stopPropagation();
     setSelectedId(nodeDatum.id);
     setEditName(nodeDatum.name);
+    setEditAlias(nodeDatum.alias ?? "");
     setEditPuesto(nodeDatum.attributes?.puesto ?? "");
     
     // Obtener posición para botones flotantes
@@ -320,7 +306,7 @@ export default function OrgChartInteractive() {
     if (containerRect) {
       setNodePosition({
         x: rect.left - containerRect.left + rect.width / 2,
-        y: rect.top - containerRect.top - 50,
+        y: rect.top - containerRect.top - 40,
         visible: true
       });
     }
@@ -357,7 +343,6 @@ export default function OrgChartInteractive() {
             </button>
             <button
               className="flex items-center gap-1 p-1 rounded-md text-white bg-cyan-600 hover:bg-yellow-500 hover:scale-105 transition-all"
-              type="button"
               onClick={() => {
                 if (!selectedId) {
                   toast.error("Selecciona un nodo primero");
@@ -367,6 +352,7 @@ export default function OrgChartInteractive() {
                   const selectedNode = findNode(treeData, selectedId);
                   if (selectedNode) {
                     setEditName(selectedNode.name);
+                    setEditAlias(selectedNode.alias? selectedNode.alias : "");
                     setEditPuesto(selectedNode.attributes?.puesto || "");
                   }
                 }
@@ -375,23 +361,6 @@ export default function OrgChartInteractive() {
             >
               <VscFileSymlinkDirectory />Ver Expediente
             </button>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="flex items-center gap-1 border border-cyan-600 p-1 rounded-md">
-              <button
-                onClick={() => setZoom((prev) => Math.max(0.90, prev - 0.10))}
-                className="flex items-center gap-1 p-1 rounded-md text-white bg-cyan-600 hover:bg-yellow-500 hover:scale-105 transition-all"
-              >
-                <MdOutlineZoomInMap size={20} />Alejar
-              </button>
-              <span className="flex items-center rounded-md text-cyan-600">{zoom.toFixed(2)}x</span>
-              <button
-                onClick={() => setZoom((prev) => Math.min(1.0, prev + 0.10))}
-                className="flex items-center gap-1 p-1 rounded-md text-white bg-cyan-600 hover:bg-yellow-500 hover:scale-105 transition-all"
-              >
-                <MdOutlineZoomOutMap size={20} />Acercar
-              </button>
-            </div>
           </div>
         </div>
 
@@ -412,7 +381,7 @@ export default function OrgChartInteractive() {
             <Tree
               data={dataMemo}
               translate={translate}
-              zoom={zoom}
+              zoom={0.80}
               collapsible
               zoomable
               nodeSize={{ x: 300, y: 200 }}
@@ -426,7 +395,7 @@ export default function OrgChartInteractive() {
           {/* Botones flotantes */}
           {!selectedId || !isButtonsVisible ? null : (
             <div 
-              className="floating-buttons absolute z-30 bg-white border border-cyan-600 rounded-lg shadow-lg p-2 flex flex-col gap-1 transition-all duration-200"
+              className="floating-buttons absolute z-30 bg-white border border-cyan-600 rounded-lg shadow-lg p-2 flex gap-1 transition-all duration-200"
               style={{
                 left: nodePosition.x,
                 top: nodePosition.y,
@@ -464,7 +433,21 @@ export default function OrgChartInteractive() {
               
               <button
                 className="flex items-center gap-1 p-1 rounded-md text-white bg-cyan-600 hover:bg-yellow-500 transition-all text-xs hover:scale-110 transform transition-transform duration-150"
-                onClick={() => setShowModal(true)}
+                onClick={() => {
+                  if (!selectedId) {
+                    toast.error("Selecciona un nodo primero");
+                    return;
+                  }
+                  if (treeData && selectedId) {
+                    const selectedNode = findNode(treeData, selectedId);
+                    if (selectedNode) {
+                      setEditName(selectedNode.name);
+                      setEditAlias(selectedNode.alias? selectedNode.alias : "");
+                      setEditPuesto(selectedNode.attributes?.puesto || "");
+                    }
+                  }
+                  setShowModal(true);
+                }}
                 title="Ver expediente"
               >
                 <VscFileSymlinkDirectory size={14} />
@@ -521,12 +504,28 @@ export default function OrgChartInteractive() {
                   <input
                     id="nombre"
                     type="text"
-                    name="name"
+                    name="nombre"
                     value={modalNombre}
                     className="w-full border border-gray-300 text-gray-800 rounded p-2 focus:ring-2 focus:ring-cyan-600 focus:border-transparent transition-colors"
                     required
                     onChange={(e) => setModalNombre(e.target.value)}
                     placeholder="Ingrese el nombre"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="alias" className="block text-sm font-medium text-white mb-1">
+                    Alias
+                  </label>
+                  <input
+                    id="alias"
+                    type="text"
+                    name="alias"
+                    value={modalAlias}
+                    className="w-full border border-gray-300 text-gray-800 rounded p-2 focus:ring-2 focus:ring-cyan-600 focus:border-transparent transition-colors"
+                    required
+                    onChange={(e) => setModalAlias(e.target.value)}
+                    placeholder="Ingrese el alias"
                   />
                 </div>
                 
@@ -559,7 +558,7 @@ export default function OrgChartInteractive() {
               }}
             >
               <div className="p-2 w-fit">
-                <FileGallery nombre={editName} puesto={editPuesto} />
+                <FileGallery nombre={editName} alias={editAlias} puesto={editPuesto} />
               </div>
             </div>
           </div>
