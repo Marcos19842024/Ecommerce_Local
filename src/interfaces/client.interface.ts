@@ -44,12 +44,13 @@ export interface MessageBubbleFileProps {
 
 export interface FileWithPreview {
     id: string
-    file: File;
     name: string;
     url: string;
     type: string;
+    size?: string;
     icon: string;
     color: string;
+    uploadDate?: string;
 }
 
 export interface Fechas {

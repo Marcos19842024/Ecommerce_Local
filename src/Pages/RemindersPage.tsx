@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Reminders } from "../components/Reminders";
 import { QrCode } from "../components/QrCode";
 import { useClients } from "../hooks/useClients";
@@ -22,10 +22,6 @@ export const RemindersPage = () => {
   const [showIb, setShowIb] = useState(true);
   const [list, setList] = useState(false);
   const [loader, setLoader] = useState(false);
-
-  useEffect(() => {
-    handleStatus()
-  }, []);
 
   const handleStatus = () => {
     setLoader(true);

@@ -40,6 +40,7 @@ export default function OrgChartInteractive() {
   const [modalAlias, setModalAlias] = useState("");
   const [nodePosition, setNodePosition] = useState({ x: 0, y: 0, visible: false });
   const [isButtonsVisible, setIsButtonsVisible] = useState(false);
+  const [employeeKey, setEmployeeKey] = useState(0);
   const dataMemo = treeData ? [treeData] : [];
   const handleModalContainerClick = (e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation();
 
@@ -53,6 +54,18 @@ export default function OrgChartInteractive() {
       .then((data: OrgNode) => setTreeData(withIds(data)))
       .catch(() => toast.error("Error al cargar organigrama"));
   }, []);
+
+  // Sincronizar datos del nodo seleccionado
+  useEffect(() => {
+    if (treeData && selectedId) {
+      const selectedNode = findNode(treeData, selectedId);
+      if (selectedNode) {
+        setEditName(selectedNode.name);
+        setEditAlias(selectedNode.alias || "");
+        setEditPuesto(selectedNode.attributes?.puesto || "");
+      }
+    }
+  }, [treeData, selectedId]);
 
   // Centrar árbol
   useEffect(() => {
@@ -77,26 +90,6 @@ export default function OrgChartInteractive() {
       return () => clearTimeout(timer);
     }
   }, [nodePosition.visible]);
-
-  // Guardar cambios en backend
-  const saveTree = async (tree: OrgNode) => {
-    try {
-      setTreeData(tree);
-      const res = await fetch(`${url}orgchart`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(tree),
-      });
-
-      if (!res.ok) throw new Error("Error al guardar");
-      toast.success("Cambios guardados correctamente");
-    } catch {
-      if (treeData) setTreeData(treeData);
-      toast.error("Error al guardar organigrama");
-    }
-  };
 
   // Funciones de árbol
   const findNode = (node: OrgNode, id: string): OrgNode | null => {
@@ -142,7 +135,7 @@ export default function OrgChartInteractive() {
       id: uid(), 
       name: childNombre,
       alias: childAlias,
-      attributes: { puesto: childPuesto }, 
+      attributes: { puesto: childPuesto },
       children: [] 
     };
 
@@ -150,29 +143,92 @@ export default function OrgChartInteractive() {
       children: [...(parentNode.children || []), newNode]
     });
     
-    await saveTree(updated);
+    if (updated) {
+    // Guardar cambios en backend
+      try {
+        setTreeData(updated);
+        const res = await fetch(`${url}orgchart`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(updated),
+        });
+
+        if (!res.ok) throw new Error("Error al guardar");
+        toast.success("Cambios guardados correctamente");
+      } catch {
+        if (treeData) setTreeData(treeData);
+        toast.error("Error al guardar organigrama");
+      }
+    }
   };
 
   const editNode = async (newNombre: string, newPuesto: string, newAlias?: string, targetId?: string) => {
     const targetNodeId = targetId || selectedId;
     if (!treeData || !targetNodeId) return;
 
+    // Si el nombre cambió, forzar recarga del FileGallery
+    const oldNode = findNode(treeData, targetNodeId);
+    if (oldNode && oldNode.name !== newNombre) {
+      setEmployeeKey(prev => prev + 1);
+    }
+
     const updated = updateNode({...treeData}, targetNodeId, {
       name: newNombre,
       alias: newAlias,
       attributes: { puesto: newPuesto }
     });
-    
-    await saveTree(updated);
+
+    if (updated) {
+      // Actualizar datos en el backend
+      try {
+        setTreeData(updated);
+        if (oldNode) {
+          const res = await fetch(`${url}orgchart/employees/${encodeURIComponent(oldNode.name)}`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(updated),
+          });
+
+          if (!res.ok) throw new Error("Error al guardar");
+          toast.success("Cambios guardados correctamente");
+        } else {
+          toast.error("No se encontró el nodo a editar");
+        }
+      } catch {
+        if (treeData) setTreeData(treeData);
+        toast.error("Error al guardar organigrama");
+      }
+    }
+    // Actualizar estados locales
+    setEditName(newNombre);
+    setEditAlias(newAlias || "");
+    setEditPuesto(newPuesto);
     setSelectedId(null);
   };
 
-  const deleteNode = () => {
+  const deleteNode = async () => {
     if (!treeData || !selectedId) return toast.error("Selecciona un nodo para eliminar");
     if (selectedId === treeData.id) return toast.error("No puedes eliminar la raíz");
     if (!confirm("¿Eliminar este nodo y sus hijos?")) return;
+    const selectedNode = findNode(treeData, selectedId);
     const updated = removeNode(treeData, selectedId);
-    if (updated) saveTree(updated);
+    if (updated && selectedNode) {
+      try {
+        const res = await fetch(`${url}orgchart/employees/${encodeURIComponent(selectedNode.name)}`,{
+          method: "DELETE" }
+        );
+
+        if (!res.ok) throw new Error("Error al eliminar en el servidor");
+
+        toast.success("nodo eliminada correctamente");
+      } catch (error) {
+        toast.error("No se pudo eliminar el nodo");
+      }
+    }
     setSelectedId(null);
     setEditName("");
     setEditAlias("");
@@ -190,26 +246,13 @@ export default function OrgChartInteractive() {
       const selectedNode = findNode(treeData, selectedId);
       if (selectedNode) {
         setModalNombre(selectedNode.name);
-        setModalAlias(selectedNode.alias? selectedNode.alias : "");
+        setModalAlias(selectedNode.alias || "");
         setModalPuesto(selectedNode.attributes?.puesto || "");
-        // Actualizar también los estados de edición
-        setEditName(selectedNode.name);
-        setEditAlias(selectedNode.alias? selectedNode.alias : "");
-        setEditPuesto(selectedNode.attributes?.puesto || "");
       }
     } else {
       setModalNombre("");
       setModalAlias("");
       setModalPuesto("");
-      // Para añadir, mantener los valores del nodo padre seleccionado
-      if (treeData && selectedId) {
-        const selectedNode = findNode(treeData, selectedId);
-        if (selectedNode) {
-          setEditName(selectedNode.name);
-          setEditAlias(selectedNode.alias? selectedNode.alias : "");
-          setEditPuesto(selectedNode.attributes?.puesto || "");
-        }
-      }
     }
     setModalAction(action);
     setIsModalOpen(true);
@@ -228,6 +271,11 @@ export default function OrgChartInteractive() {
     } catch (error) {
       toast.error("Error al guardar los cambios");
     }
+  };
+
+  const handleCloseFileModal = () => {
+    setShowModal(false);
+    setEmployeeKey(0); // Resetear la key cuando se cierra el modal
   };
 
   // Renderizado de nodo con botones flotantes
@@ -296,9 +344,6 @@ export default function OrgChartInteractive() {
   const setNodeData = (e: React.MouseEvent<SVGGElement>, nodeDatum: any) => {
     e.stopPropagation();
     setSelectedId(nodeDatum.id);
-    setEditName(nodeDatum.name);
-    setEditAlias(nodeDatum.alias ?? "");
-    setEditPuesto(nodeDatum.attributes?.puesto ?? "");
     
     // Obtener posición para botones flotantes
     const rect = e.currentTarget.getBoundingClientRect();
@@ -318,50 +363,6 @@ export default function OrgChartInteractive() {
         {/* Barra superior */}
         <div className="p-4 border-b bg-white sticky top-0 z-10 flex flex-wrap items-center gap-1 rounded-md">
           <div className="text-lg font-semibold mr-auto">Organigrama interactivo</div>
-          <div
-            className="flex items-center gap-1 border border-cyan-600 p-1 rounded-md">
-            <button
-              className="flex items-center gap-1 p-1 rounded-md text-white bg-cyan-600 hover:bg-yellow-500 hover:scale-105 transition-all"
-              type="button"
-              onClick={() => openModal("add")}
-            >
-              <SiAwsorganizations />Añadir
-            </button>
-            <button
-              className="flex items-center gap-1 p-1 rounded-md text-white bg-cyan-600 hover:bg-yellow-500 hover:scale-105 transition-all"
-              type="button"
-              onClick={() => openModal("edit")}
-            >
-              <FiEdit />Editar
-            </button>
-            <button
-              className="flex items-center gap-1 p-1 rounded-md text-white bg-cyan-600 hover:bg-yellow-500 hover:scale-105 transition-all"
-              type="button"
-              onClick={deleteNode}
-            >
-              <RiDeleteBin2Line />Eliminar
-            </button>
-            <button
-              className="flex items-center gap-1 p-1 rounded-md text-white bg-cyan-600 hover:bg-yellow-500 hover:scale-105 transition-all"
-              onClick={() => {
-                if (!selectedId) {
-                  toast.error("Selecciona un nodo primero");
-                  return;
-                }
-                if (treeData && selectedId) {
-                  const selectedNode = findNode(treeData, selectedId);
-                  if (selectedNode) {
-                    setEditName(selectedNode.name);
-                    setEditAlias(selectedNode.alias? selectedNode.alias : "");
-                    setEditPuesto(selectedNode.attributes?.puesto || "");
-                  }
-                }
-                setShowModal(true);
-              }}
-            >
-              <VscFileSymlinkDirectory />Ver Expediente
-            </button>
-          </div>
         </div>
 
         {/* Área del árbol */}
@@ -395,7 +396,7 @@ export default function OrgChartInteractive() {
           {/* Botones flotantes */}
           {!selectedId || !isButtonsVisible ? null : (
             <div 
-              className="floating-buttons absolute z-30 bg-white border border-cyan-600 rounded-lg shadow-lg p-2 flex gap-1 transition-all duration-200"
+              className="floating-buttons absolute z-30 bg-white border border-cyan-600 rounded-lg shadow-lg p-1 flex gap-1 transition-all duration-200"
               style={{
                 left: nodePosition.x,
                 top: nodePosition.y,
@@ -547,7 +548,7 @@ export default function OrgChartInteractive() {
           <div
             className="fixed inset-0 flex items-center justify-center bg-black/70 z-50 transition-opacity duration-200"
             style={{ opacity: showModal ? 1 : 0 }}
-            onClick={() => setShowModal(false)}
+            onClick={handleCloseFileModal}
           >
             <div
               onClick={handleModalContainerClick}
@@ -558,7 +559,12 @@ export default function OrgChartInteractive() {
               }}
             >
               <div className="p-2 w-fit">
-                <FileGallery nombre={editName} alias={editAlias} puesto={editPuesto} />
+                <FileGallery 
+                  key={employeeKey}
+                  nombre={editName} 
+                  alias={editAlias} 
+                  puesto={editPuesto} 
+                />
               </div>
             </div>
           </div>

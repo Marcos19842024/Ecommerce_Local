@@ -1,111 +1,91 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { url } from '../server/url';
-import { GrDocumentPdf, GrDocumentWord } from 'react-icons/gr';
-
-// Definimos los tipos de archivo - solo documentos ahora
-type FileType = 'document';
-
-interface GalleryFile {
-  id: number;
-  name: string;
-  type: FileType;
-  url: string;
-  extension: string;
-  size?: string;
-  uploadDate?: string;
-}
+import { getFileTypes } from '../utils/files';
+import { FileWithPreview } from '../interfaces/client.interface';
+import { FileViewer } from './FileViewer';
 
 // Datos de ejemplo para la galería - solo documentos
-const initialFiles: GalleryFile[] = [
+const initialFiles: FileWithPreview[] = [
   {
-    id: 1,
+    id: '1',
     name: 'Documento importante',
-    type: 'document',
-    url: '#',
-    extension: 'pdf',
+    url: `${url}qr.png`,
+    type: 'pdf',
     size: '4.7 MB',
-    uploadDate: '2023-06-21'
+    icon: 'fa fa-file-pdf-o',
+    color: 'red',
+    uploadDate: '2023-06-21',
   },
   {
-    id: 2,
-    name: 'Presentación ejecutiva',
-    type: 'document',
+    id: '2',
+    name: 'Otro Documento importante',
     url: '#',
-    extension: 'docx',
-    size: '8.2 MB',
-    uploadDate: '2023-07-03'
-  },
-  {
-    id: 3,
-    name: 'Planificación mensual',
-    type: 'document',
-    url: '#',
-    extension: 'docx',
-    size: '1.8 MB',
-    uploadDate: '2023-09-05'
-  },
-  {
-    id: 4,
-    name: 'Reporte financiero',
-    type: 'document',
-    url: '#',
-    extension: 'pdf',
-    size: '3.5 MB',
-    uploadDate: '2023-10-15'
+    type: 'docx',
+    size: '4.7 MB',
+    icon: 'fa fa-file-word-o',
+    color: 'blue',
+    uploadDate: '2023-06-21',
   }
 ];
 
 const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string, puesto: string }) => {
-  const [files, setFiles] = useState<GalleryFile[]>([]);
+  const [files, setFiles] = useState<FileWithPreview[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [isActive, setIsActive] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const carouselRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Cargar archivos iniciales desde el backend
-  useEffect(() => {
-    const loadFiles = async () => {
-      try {
-        setIsLoading(true);
-        const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(nombre)}/files`);
+  // Cargar archivos desde el backend
+  const loadFiles = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(nombre)}`);
+      
+      if (response.ok) {
+        const serverFiles = await response.json();
         
-        if (response.ok) {
-          const serverFiles = await response.json();
-          
-          if (serverFiles.length > 0) {
-            // Convertir archivos del backend al formato GalleryFile
-            const formattedFiles = serverFiles.map((file: any, index: number) => ({
+        if (serverFiles.length > 0) {
+          // Convertir archivos del backend al formato GalleryFile
+          const formattedFiles: FileWithPreview[] = serverFiles.map((file: any, index: number) => {
+            const ext = file.name.split('.').pop() || ''
+            const [icon, color] = getFileTypes(ext)
+            return {
               id: index + 1,
               name: file.name,
-              type: 'document' as FileType,
-              url: `${url}orgchart/${file.path}`,
-              extension: file.name.split('.').pop() || '',
+              url: `${url}orgchart/employees/${encodeURIComponent(nombre)}/${encodeURIComponent(file.name)}`,
+              type: ext,
               size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+              icon,
+              color,
               uploadDate: new Date(file.uploadDate).toISOString().split('T')[0]
-            }));
-            
-            setFiles(formattedFiles);
-          } else {
-            // Usar archivos iniciales si no hay archivos en el backend
-            setFiles(initialFiles);
-          }
+            }
+          });
+          
+          setFiles(formattedFiles);
+          setIsActive(true);
         } else {
-          // En caso de error, usar archivos iniciales
           setFiles(initialFiles);
+          setIsActive(false)
         }
-      } catch (error) {
-        console.error('Error loading files:', error);
-        // Usar archivos iniciales en caso de error
+      } else {
         setFiles(initialFiles);
-      } finally {
-        setIsLoading(false);
+        setIsActive(false)
       }
-    };
-
-    loadFiles();
+    } catch (error) {
+      console.error('Error loading files:', error);
+      setFiles(initialFiles);
+      setIsActive(false)
+    } finally {
+      setIsLoading(false);
+    }
   }, [nombre]);
+
+  // Cargar archivos cuando el nombre cambia
+  useEffect(() => {
+    loadFiles();
+  }, [loadFiles, nombre]);
 
   // Efecto para el carrusel automático
   useEffect(() => {
@@ -124,10 +104,6 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
     );
   };
 
-  const goToSlide = (index: number) => {
-    setCurrentIndex(index);
-  };
-
   // Función para eliminar archivo
   const handleDeleteFile = async (fileName: string) => {
     const loadingToast = toast.loading('Eliminando archivo...', {
@@ -142,8 +118,8 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
       toast.dismiss(loadingToast);
 
       if (response.status === 200) {
-        // Eliminar archivo del estado local
-        setFiles(prevFiles => prevFiles.filter(file => file.name !== fileName));
+        // Recargar archivos desde el backend
+        await loadFiles();
         
         toast.success('Archivo eliminado correctamente', {
           duration: 4000,
@@ -194,6 +170,7 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
       const formData = new FormData();
       formData.append('file', file);
 
+      // URL corregida - agregar /upload al final
       const uploadUrl = `${url}orgchart/employees/${encodeURIComponent(nombre)}`;
 
       const response = await fetch(uploadUrl, {
@@ -204,18 +181,8 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
       toast.dismiss(loadingToast);
 
       if (response.status === 200) {
-        // Agregar el nuevo archivo a la galería
-        const newFile: GalleryFile = {
-          id: files.length > 0 ? Math.max(...files.map(f => f.id)) + 1 : 1,
-          name: file.name,
-          type: 'document',
-          url: `${url}employees/${encodeURIComponent(nombre)}/${encodeURIComponent(file.name)}`,
-          extension: file.name.split('.').pop() || '',
-          size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
-          uploadDate: new Date().toISOString().split('T')[0]
-        };
-
-        setFiles(prevFiles => [...prevFiles, newFile]);
+        // Recargar archivos desde el backend
+        await loadFiles();
         
         toast.success('Archivo subido correctamente', {
           duration: 4000,
@@ -246,7 +213,7 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
         position: 'top-right',
       });
     }
-  }, [nombre, files]);
+  }, [nombre, loadFiles]);
 
   // Manejadores para drag and drop
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
@@ -280,37 +247,6 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
     }
   };
 
-  // Función para obtener el icono según el tipo de archivo
-  const getFileIcon = (file: GalleryFile, isLarge: boolean = false) => {
-    const bgColor = 'bg-red-100';
-    const icon = file.extension.toLowerCase() === 'pdf' ? <GrDocumentPdf /> : <GrDocumentWord />;
-
-    return (
-      <div className={`flex h-full w-full items-center justify-center rounded-lg ${bgColor}`}>
-        <div className="text-center">
-          <div className={`mx-auto ${isLarge ? 'text-5xl' : 'text-2xl'}`}>{icon}</div>
-          <p className="mt-1 text-xs font-medium text-gray-700">.{file.extension}</p>
-        </div>
-      </div>
-    );
-  };
-
-  // Función para calcular la posición 3D de cada elemento
-  const calculate3DPosition = (index: number) => {
-    const totalItems = files.length;
-    const position = (index - currentIndex + totalItems) % totalItems;
-    
-    if (position === 0) {
-      return { transform: 'translateZ(0px) scale(1)', opacity: 1, zIndex: 10 };
-    } else if (position === 1 || position === totalItems - 1) {
-      return { transform: 'translateZ(-100px) translateX(200px) scale(0.9)', opacity: 0.8, zIndex: 5 };
-    } else if (position === 2 || position === totalItems - 2) {
-      return { transform: 'translateZ(-200px) translateX(100px) scale(0.8)', opacity: 0.6, zIndex: 4 };
-    } else {
-      return { transform: 'translateZ(-300px) translateX(0px) scale(0.7)', opacity: 0.4, zIndex: 3 };
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="mx-auto max-w-6xl px-2 py-2 w-[80vw]">
@@ -328,7 +264,7 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
       
       {/* Área para subir archivos con drag & drop */}
       <div 
-        className={`mt-2 p-1 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors ${
+        className={`mt-1 p-1 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors ${
           isDragging ? 'border-cyan-500 bg-cyan-50' : 'border-gray-300 hover:border-gray-400'
         }`}
         onDragOver={handleDragOver}
@@ -353,106 +289,50 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
           <p className="text-xs text-gray-500">Solo se aceptan archivos PDF y Word (hasta 10MB)</p>
         </div>
       </div>
-
-      {/* Carrusel 3D */}
-      {files.length > 0 ? (
-        <>
-          <div className="relative h-80 overflow-hidden rounded-xl mt-2">
-            <div 
-              ref={carouselRef}
-              className="absolute inset-0 flex items-center justify-center perspective-1000"
-            >
-              {files.map((file, index) => {
-                const position = calculate3DPosition(index);
-                
-                return (
-                  <div
-                    key={file.id}
-                    className="absolute w-64 transition-all duration-700 ease-in-out"
-                    style={{
-                      transform: position.transform,
-                      opacity: position.opacity,
-                      zIndex: position.zIndex
-                    }}
-                  >
-                    <div className="rounded-xl bg-white p-4 shadow-xl">
-                      <div className="h-44">
-                        {getFileIcon(file, true)}
+      
+      {/* Miniaturas */}
+      <div className="mt-2">
+        <h3 className="mb-2 text-xl font-semibold text-gray-700">Todos los archivos</h3>
+        {files.length > 0 ? (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+            {files.map((file) => (
+              <div
+                key={file.id}
+                className="cursor-pointer overflow-hidden rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition-all hover:shadow-md relative group"
+              >
+                <div className="h-20">
+                  <FileViewer file={file} />
+                </div>
+                <div className="m-2 w-full">
+                      <div className="gap-2 flex grid-col-2 items-center justify-between text-sm text-gray-500">
+                        <i className={file.icon}
+                          style={{ color: file.color }}>
+                        </i>
+                        <span className='w-full'>{file.name}</span>
                       </div>
-                      <div className="mt-4">
-                        <h3 className="truncate text-lg font-semibold text-gray-800">{file.name}</h3>
-                        <div className="mt-2 flex items-center justify-between text-sm text-gray-500">
-                          <span>.{file.extension}</span>
-                          <span>{file.size}</span>
-                        </div>
-                        <div className="mt-2 text-xs text-gray-400">
-                          Subido: {file.uploadDate}
-                        </div>
-                        <div className="mt-3 flex space-x-2">
+                      <div className="flex w-full gap-2 grid-col-2 items-center justify-between text-xs text-gray-500">
+                        <span className='justify-start w-fit m-2'>Subido: {file.uploadDate}</span>
+                        <span className='justify-end w-fit m-2'>{file.size}</span>
+                      </div>
+                      {isActive && (
+                        <div className="m-3 gap-2 justify-between">
                           <a 
                             href={file.url} 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-cyan-600 hover:bg-yellow-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                            className=" w-fit m-2 items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-cyan-600 hover:bg-yellow-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500"
                           >
                             Abrir archivo
                           </a>
                           <button
                             onClick={() => handleDeleteFile(file.name)}
-                            className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-full shadow-sm text-white bg-red-500 hover:bg-yellow-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                            className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-full shadow-sm text-white bg-red-600 hover:bg-yellow-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                           >
                             Eliminar
                           </button>
                         </div>
-                      </div>
+                      )}
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-          
-          {/* Indicadores */}
-          <div className="mt-2 flex justify-center space-x-2">
-            {files.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => goToSlide(index)}
-                className={`h-3 w-3 rounded-full transition-all ${
-                  index === currentIndex ? 'bg-blue-500 scale-125' : 'bg-gray-300'
-                }`}
-              />
-            ))}
-          </div>
-        </>
-      ) : (
-        <div className="mt-6 p-8 text-center bg-gray-50 rounded-lg">
-          <p className="text-gray-500">No hay archivos disponibles</p>
-        </div>
-      )}
-      
-      {/* Miniaturas */}
-      <div className="mt-4">
-        <h3 className="mb-2 text-xl font-semibold text-gray-700">Todos los archivos</h3>
-        {files.length > 0 ? (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-            {files.map((file, index) => (
-              <div
-                key={file.id}
-                className="cursor-pointer overflow-hidden rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition-all hover:shadow-md relative group"
-              >
-                <div 
-                  onClick={() => goToSlide(index)}
-                  className={`${index === currentIndex ? 'ring-2 ring-blue-500' : ''}`}
-                >
-                  <div className="h-20">
-                    {getFileIcon(file)}
-                  </div>
-                  <div className="mt-2">
-                    <p className="truncate text-sm font-medium text-gray-700">{file.name}</p>
-                    <p className="text-xs text-gray-500">.{file.extension} • {file.size}</p>
-                  </div>
-                </div>
               </div>
             ))}
           </div>
