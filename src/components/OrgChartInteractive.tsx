@@ -168,42 +168,66 @@ export default function OrgChartInteractive() {
     const targetNodeId = targetId || selectedId;
     if (!treeData || !targetNodeId) return;
 
-    // Si el nombre cambió, forzar recarga del FileGallery
+    // Encontrar el nodo antiguo antes de hacer cambios
     const oldNode = findNode(treeData, targetNodeId);
-    if (oldNode && oldNode.name !== newNombre) {
+    if (!oldNode) {
+      toast.error("No se encontró el nodo a editar");
+      return;
+    }
+
+    // Si el nombre cambió, forzar recarga del FileGallery
+    if (oldNode.name !== newNombre) {
       setEmployeeKey(prev => prev + 1);
     }
 
-    const updated = updateNode({...treeData}, targetNodeId, {
+    // Crear copia del treeData para la actualización local
+    const treeDataCopy = JSON.parse(JSON.stringify(treeData));
+    const updated = updateNode(treeDataCopy, targetNodeId, {
       name: newNombre,
       alias: newAlias,
       attributes: { puesto: newPuesto }
     });
 
     if (updated) {
-      // Actualizar datos en el backend
+      // Guardar el estado anterior para posible rollback
+      const previousTreeData = treeData;
+      
       try {
+        // Actualizar UI primero (optimistic update)
         setTreeData(updated);
-        if (oldNode) {
-          const res = await fetch(`${url}orgchart/employees/${encodeURIComponent(oldNode.name)}`, {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(updated),
-          });
+        
+        // Preparar datos para el backend según tu endpoint
+        const updateData = {
+          newName: newNombre,  // Este campo es específico para el renombrado
+          puesto: newPuesto,   // Otros campos que quieras actualizar
+          ...(newAlias && { alias: newAlias }) // Incluir alias solo si existe
+        };
 
-          if (!res.ok) throw new Error("Error al guardar");
-          toast.success("Cambios guardados correctamente");
-        } else {
-          toast.error("No se encontró el nodo a editar");
+        // Llamar al endpoint del backend
+        const res = await fetch(`${url}orgachart/employees/${encodeURIComponent(oldNode.name)}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(updateData),
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || "Error al guardar");
         }
-      } catch {
-        if (treeData) setTreeData(treeData);
-        toast.error("Error al guardar organigrama");
+
+        toast.success("Cambios guardados correctamente");
+        
+      } catch (error) {
+        // Revertir cambios en caso de error
+        setTreeData(previousTreeData);
+        toast.error(error instanceof Error ? error.message : "Error al guardar cambios");
+        return; // Salir de la función para no actualizar estados locales
       }
     }
-    // Actualizar estados locales
+
+    // Actualizar estados locales solo si todo fue exitoso
     setEditName(newNombre);
     setEditAlias(newAlias || "");
     setEditPuesto(newPuesto);
@@ -223,7 +247,7 @@ export default function OrgChartInteractive() {
         );
 
         if (!res.ok) throw new Error("Error al eliminar en el servidor");
-
+        setTreeData(updated);
         toast.success("nodo eliminada correctamente");
       } catch (error) {
         toast.error("No se pudo eliminar el nodo");
