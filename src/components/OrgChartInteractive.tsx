@@ -120,6 +120,27 @@ export default function OrgChartInteractive() {
     return { ...node, children: node.children?.map((c) => removeNode(c, id)).filter(Boolean) as OrgNode[] };
   };
 
+  // Guardar cambios en backend
+  const saveTree = async (tree: OrgNode) => {
+    try {
+      setTreeData(tree);
+      
+      const res = await fetch(`${url}orgchart`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(tree),
+      });
+
+      if (!res.ok) throw new Error("Error al guardar");
+      toast.success("Cambios guardados correctamente");
+    } catch {
+      if (treeData) setTreeData(treeData);
+      toast.error("Error al guardar organigrama");
+    }
+  };
+
   // Acciones
   const addChild = async (childNombre: string, childPuesto: string, childAlias?: string, targetId?: string) => {
     const targetNodeId = targetId || selectedId;
@@ -143,115 +164,40 @@ export default function OrgChartInteractive() {
       children: [...(parentNode.children || []), newNode]
     });
     
-    if (updated) {
-    // Guardar cambios en backend
-      try {
-        setTreeData(updated);
-        const res = await fetch(`${url}orgchart`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(updated),
-        });
-
-        if (!res.ok) throw new Error("Error al guardar");
-        toast.success("Cambios guardados correctamente");
-      } catch {
-        if (treeData) setTreeData(treeData);
-        toast.error("Error al guardar organigrama");
-      }
-    }
+    await saveTree(updated);
   };
 
   const editNode = async (newNombre: string, newPuesto: string, newAlias?: string, targetId?: string) => {
     const targetNodeId = targetId || selectedId;
     if (!treeData || !targetNodeId) return;
 
-    // Encontrar el nodo antiguo antes de hacer cambios
-    const oldNode = findNode(treeData, targetNodeId);
-    if (!oldNode) {
-      toast.error("No se encontró el nodo a editar");
-      return;
-    }
-
     // Si el nombre cambió, forzar recarga del FileGallery
-    if (oldNode.name !== newNombre) {
+    const oldNode = findNode(treeData, targetNodeId);
+    if (oldNode && oldNode.name !== newNombre) {
       setEmployeeKey(prev => prev + 1);
     }
 
-    // Crear copia del treeData para la actualización local
-    const treeDataCopy = JSON.parse(JSON.stringify(treeData));
-    const updated = updateNode(treeDataCopy, targetNodeId, {
+    const updated = updateNode({...treeData}, targetNodeId, {
       name: newNombre,
       alias: newAlias,
       attributes: { puesto: newPuesto }
     });
-
-    if (updated) {
-      // Guardar el estado anterior para posible rollback
-      const previousTreeData = treeData;
-      
-      try {
-        // Actualizar UI primero (optimistic update)
-        setTreeData(updated);
-        
-        // Preparar datos para el backend según tu endpoint
-        const updateData = {
-          newName: newNombre,  // Este campo es específico para el renombrado
-          puesto: newPuesto,   // Otros campos que quieras actualizar
-          ...(newAlias && { alias: newAlias }) // Incluir alias solo si existe
-        };
-
-        const res = await fetch(`${url}orgchart/employees/${encodeURIComponent(oldNode.name)}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(updateData),
-        });
-
-        if (!res.ok) {
-          const errorData = await res.json();
-          throw new Error(errorData.error || "Error al guardar");
-        }
-
-        toast.success("Cambios guardados correctamente");
-        
-      } catch (error) {
-        // Revertir cambios en caso de error
-        setTreeData(previousTreeData);
-        toast.error(error instanceof Error ? error.message : "Error al guardar cambios");
-        return; // Salir de la función para no actualizar estados locales
-      }
-    }
-
-    // Actualizar estados locales solo si todo fue exitoso
+    
+    await saveTree(updated);
+    
+    // Actualizar estados locales
     setEditName(newNombre);
     setEditAlias(newAlias || "");
     setEditPuesto(newPuesto);
     setSelectedId(null);
   };
 
-  const deleteNode = async () => {
+  const deleteNode = () => {
     if (!treeData || !selectedId) return toast.error("Selecciona un nodo para eliminar");
     if (selectedId === treeData.id) return toast.error("No puedes eliminar la raíz");
     if (!confirm("¿Eliminar este nodo y sus hijos?")) return;
-    const selectedNode = findNode(treeData, selectedId);
     const updated = removeNode(treeData, selectedId);
-    if (updated && selectedNode) {
-      try {
-        const res = await fetch(`${url}orgchart/employees/${encodeURIComponent(selectedNode.name)}`,{
-          method: "DELETE" }
-        );
-
-        if (!res.ok) throw new Error("Error al eliminar en el servidor");
-        setTreeData(updated);
-        toast.success("nodo eliminada correctamente");
-      } catch (error) {
-        toast.error("No se pudo eliminar el nodo");
-      }
-    }
+    if (updated) saveTree(updated);
     setSelectedId(null);
     setEditName("");
     setEditAlias("");
