@@ -203,8 +203,7 @@ export default function OrgChartInteractive() {
           ...(newAlias && { alias: newAlias }) // Incluir alias solo si existe
         };
 
-        // Llamar al endpoint del backend
-        const res = await fetch(`${url}orgachart/employees/${encodeURIComponent(oldNode.name)}`, {
+        const res = await fetch(`${url}orgchart/employees/${encodeURIComponent(oldNode.name)}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
