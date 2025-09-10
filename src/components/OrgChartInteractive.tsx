@@ -7,6 +7,8 @@ import { url } from "../server/url";
 import toast from "react-hot-toast";
 import Tree from "react-d3-tree";
 import FileGallery from "./FileGallery";
+import PasswordPrompt from "./PasswordPrompt";
+import { password } from "../server/user";
 
 interface OrgNode {
   id?: string;
@@ -41,6 +43,8 @@ export default function OrgChartInteractive() {
   const [nodePosition, setNodePosition] = useState({ x: 0, y: 0, visible: false });
   const [isButtonsVisible, setIsButtonsVisible] = useState(false);
   const [employeeKey, setEmployeeKey] = useState(0);
+  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
+  const [fileToDelete, setFileToDelete] = useState<string | null>(null);
   const dataMemo = treeData ? [treeData] : [];
   const handleModalContainerClick = (e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation();
 
@@ -192,11 +196,17 @@ export default function OrgChartInteractive() {
     setSelectedId(null);
   };
 
+  // Función para solicitar contraseña antes de eliminar
+  const requestDeleteFile = (selectedId: string) => {
+    setFileToDelete(selectedId);
+    setShowPasswordPrompt(true);
+  };
+
   const deleteNode = () => {
-    if (!treeData || !selectedId) return toast.error("Selecciona un nodo para eliminar");
-    if (selectedId === treeData.id) return toast.error("No puedes eliminar la raíz");
+    if (!treeData || !fileToDelete) return toast.error("Selecciona un nodo para eliminar");
+    if (fileToDelete === treeData.id) return toast.error("No puedes eliminar la raíz");
     if (!confirm("¿Eliminar este nodo y sus hijos?")) return;
-    const updated = removeNode(treeData, selectedId);
+    const updated = removeNode(treeData, fileToDelete);
     if (updated) saveTree(updated);
     setSelectedId(null);
     setEditName("");
@@ -395,7 +405,7 @@ export default function OrgChartInteractive() {
               
               <button
                 className="flex items-center gap-1 p-1 rounded-md text-white bg-cyan-600 hover:bg-yellow-500 transition-all text-xs hover:scale-110 transform transition-transform duration-150"
-                onClick={deleteNode}
+                onClick={() => requestDeleteFile(selectedId)}
                 title="Eliminar nodo"
               >
                 <RiDeleteBin2Line size={14} />
@@ -537,6 +547,19 @@ export default function OrgChartInteractive() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Modal de contraseña - Usando el componente importado */}
+        {showPasswordPrompt && (
+          <PasswordPrompt
+            onSuccess={deleteNode}
+            onCancel={() => {
+              setShowPasswordPrompt(false);
+              setFileToDelete(null);
+            }}
+            message="Ingrese la contraseña para eliminar el nodo"
+            correctPassword={password}
+          />
         )}
       </div>
     </>

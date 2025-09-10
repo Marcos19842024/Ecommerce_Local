@@ -4,6 +4,10 @@ import { url } from '../server/url';
 import { getFileTypes } from '../utils/files';
 import { FileWithPreview } from '../interfaces/client.interface';
 import { FileViewer } from './FileViewer';
+import { LuFolderDown } from "react-icons/lu";
+import { MdOutlineAttachEmail } from 'react-icons/md';
+import PasswordPrompt from './PasswordPrompt'; // Importamos el componente
+import { password } from '../server/user';
 
 // Datos de ejemplo para la galería - solo documentos
 const initialFiles: FileWithPreview[] = [
@@ -31,10 +35,11 @@ const initialFiles: FileWithPreview[] = [
 
 const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string, puesto: string }) => {
   const [files, setFiles] = useState<FileWithPreview[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [isActive, setIsActive] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
+  const [fileToDelete, setFileToDelete] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Cargar archivos desde el backend
@@ -87,31 +92,22 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
     loadFiles();
   }, [loadFiles, nombre]);
 
-  // Efecto para el carrusel automático
-  useEffect(() => {
-    if (files.length > 0) {
-      const interval = setInterval(() => {
-        nextSlide();
-      }, 4000);
-
-      return () => clearInterval(interval);
-    }
-  }, [files, currentIndex]);
-
-  const nextSlide = () => {
-    setCurrentIndex((prevIndex) => 
-      prevIndex === files.length - 1 ? 0 : prevIndex + 1
-    );
+  // Función para solicitar contraseña antes de eliminar
+  const requestDeleteFile = (fileName: string) => {
+    setFileToDelete(fileName);
+    setShowPasswordPrompt(true);
   };
 
-  // Función para eliminar archivo
-  const handleDeleteFile = async (fileName: string) => {
+  // Función para eliminar archivo después de verificación
+  const handleDeleteFile = async () => {
+    if (!fileToDelete) return;
+
     const loadingToast = toast.loading('Eliminando archivo...', {
       position: 'top-right',
     });
 
     try {
-      const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(nombre)}/${encodeURIComponent(fileName)}`, {
+      const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(nombre)}/${encodeURIComponent(fileToDelete)}`, {
         method: 'DELETE',
       });
 
@@ -138,6 +134,9 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
         duration: 5000,
         position: 'top-right',
       });
+    } finally {
+      setFileToDelete(null);
+      setShowPasswordPrompt(false);
     }
   };
 
@@ -170,7 +169,6 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
       const formData = new FormData();
       formData.append('file', file);
 
-      // URL corregida - agregar /upload al final
       const uploadUrl = `${url}orgchart/employees/${encodeURIComponent(nombre)}`;
 
       const response = await fetch(uploadUrl, {
@@ -197,7 +195,6 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
       } else if (response.status === 413) {
         toast.error('El archivo excede el límite de 10MB', {
           duration: 5000,
-          position: 'top-right',
         });
       } else {
         toast.error('Error al subir el archivo', {
@@ -259,8 +256,28 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
 
   return (
     <div className="mx-auto max-w-6xl px-1 py-1 w-[80vw]">
-      <h2 className="mb-1 text-2xl font-bold text-gray-800">{alias}</h2>
-      <p className="text-gray-600">{puesto}</p>
+      <div className="m-1 gap-1 flex justify-between">
+        <div className="m-1 gap-1 justify-between">
+          <h2 className="mb-1 text-2xl font-bold text-gray-800">{alias}</h2>
+          <p className="text-gray-600">{puesto}</p>
+        </div>
+        {isActive && (
+          <div className="m-1 gap-2 flex flex-col justify-between">
+            <button
+              onClick={() => {/* Lógica para descargar expediente */}}
+              className="inline-flex items-center px-1 py-1.5 border border-gray-300 text-xs font-medium rounded-full shadow-sm text-white bg-cyan-600 hover:bg-yellow-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500"
+            > <LuFolderDown size={15} className='m-1'/>
+              Descargar expediente
+            </button>
+            <button
+              onClick={() => {/* Lógica para enviar por email */}}
+              className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-full shadow-sm text-white bg-cyan-600 hover:bg-yellow-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500"
+            ><MdOutlineAttachEmail size={15} className='m-1'/>
+              Enviar por email
+            </button>
+          </div>
+        )}
+      </div>
       
       {/* Área para subir archivos con drag & drop */}
       <div 
@@ -304,35 +321,33 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
                   <FileViewer file={file} />
                 </div>
                 <div className="m-2 w-full">
-                      <div className="gap-2 flex grid-col-2 items-center justify-between text-sm text-gray-500">
-                        <i className={file.icon}
-                          style={{ color: file.color }}>
-                        </i>
-                        <span className='w-full'>{file.name}</span>
-                      </div>
-                      <div className="flex w-full gap-2 grid-col-2 items-center justify-between text-xs text-gray-500">
-                        <span className='justify-start w-fit m-2'>Subido: {file.uploadDate}</span>
-                        <span className='justify-end w-fit m-2'>{file.size}</span>
-                      </div>
-                      {isActive && (
-                        <div className="m-3 gap-2 justify-between">
-                          <a 
-                            href={file.url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className=" w-fit m-2 items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-cyan-600 hover:bg-yellow-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500"
-                          >
-                            Abrir archivo
-                          </a>
-                          <button
-                            onClick={() => handleDeleteFile(file.name)}
-                            className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-full shadow-sm text-white bg-red-600 hover:bg-yellow-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                          >
-                            Eliminar
-                          </button>
-                        </div>
-                      )}
+                  <div className="gap-2 flex grid-col-2 items-center justify-between text-sm text-gray-500">
+                    <i className={file.icon} style={{ color: file.color }}></i>
+                    <span className='w-full'>{file.name}</span>
+                  </div>
+                  <div className="flex w-full gap-2 grid-col-2 items-center justify-between text-xs text-gray-500">
+                    <span className='justify-start w-fit m-2'>Subido: {file.uploadDate}</span>
+                    <span className='justify-end w-fit m-2'>{file.size}</span>
+                  </div>
+                  {isActive && (
+                    <div className="m-3 gap-2 justify-between">
+                      <a 
+                        href={file.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="w-fit m-2 items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-cyan-600 hover:bg-yellow-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500"
+                      >
+                        Abrir archivo
+                      </a>
+                      <button
+                        onClick={() => requestDeleteFile(file.name)}
+                        className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-full shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Eliminar
+                      </button>
                     </div>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -340,6 +355,19 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
           <p className="text-gray-500 text-center py-4">No hay archivos para mostrar</p>
         )}
       </div>
+
+      {/* Modal de contraseña - Usando el componente importado */}
+      {showPasswordPrompt && (
+        <PasswordPrompt
+          onSuccess={handleDeleteFile}
+          onCancel={() => {
+            setShowPasswordPrompt(false);
+            setFileToDelete(null);
+          }}
+          message="Ingrese la contraseña para eliminar el archivo"
+          correctPassword={password}
+        />
+      )}
     </div>
   );
 };
