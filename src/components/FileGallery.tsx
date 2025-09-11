@@ -4,9 +4,7 @@ import { url } from '../server/url';
 import { getFileTypes } from '../utils/files';
 import { FileWithPreview } from '../interfaces/client.interface';
 import { FileViewer } from './FileViewer';
-import { LuFolderDown } from "react-icons/lu";
-import { MdOutlineAttachEmail } from 'react-icons/md';
-import PasswordPrompt from './PasswordPrompt'; // Importamos el componente
+import PasswordPrompt from './PasswordPrompt';
 import { password } from '../server/user';
 
 // Datos de ejemplo para la galería - solo documentos
@@ -38,6 +36,10 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
   const [isDragging, setIsDragging] = useState(false);
   const [isActive, setIsActive] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [send, setSend] = useState(true);
+  const [download, setDownload] = useState(false);
+  const [email, setEmail] = useState('');
+  const [showEmailInput, setShowEmailInput] = useState(false);
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -92,10 +94,84 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
     loadFiles();
   }, [loadFiles, nombre]);
 
-  // Función para solicitar contraseña antes de eliminar
-  const requestDeleteFile = (fileName: string) => {
-    setFileToDelete(fileName);
-    setShowPasswordPrompt(true);
+  const handleSendDownload = async () => {
+    if (!send && !download) {
+      toast.error("Selecciona enviar o descargar antes de aceptar");
+      return;
+    }
+
+    // Validar email si se seleccionó enviar
+    if (send && !email) {
+      toast.error("Por favor ingresa un correo electrónico");
+      return;
+    }
+
+    if (send && !isValidEmail(email)) {
+      toast.error("Por favor ingresa un correo electrónico válido");
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append("send", send.toString());
+      formData.append("download", download.toString());
+      
+      // Solo agregar el email si se va a enviar
+      if (send) {
+        formData.append("email", email);
+      }
+
+      const res = await fetch(`${url}orgchart/download-send-mail-zip/employees/${encodeURIComponent(nombre)}`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const contentType = res.headers.get("content-type");
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || `Error HTTP: ${res.status}`);
+      }
+
+      // Manejar respuesta según el tipo de contenido
+      if (contentType?.includes("application/json")) {
+        const data = await res.json();
+        if (send) {
+          toast.success(data.message || `Expediente enviado a ${email} correctamente`);
+        }
+      } else if (contentType?.includes("application/zip")) {
+        const zipBlob = await res.blob();
+        const urlZip = window.URL.createObjectURL(zipBlob);
+        const a = document.createElement("a");
+        a.href = urlZip;
+        a.download = `Expediente de ${nombre}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        
+        setTimeout(() => {
+          window.URL.revokeObjectURL(urlZip);
+          document.body.removeChild(a);
+        }, 100);
+        
+        if (send) {
+          toast.success(`Expediente enviado a ${email} y descargado correctamente`);
+        } else {
+          toast.success("Expediente descargado correctamente");
+        }
+      }
+
+      // Limpiar formulario después de éxito
+      if (send) {
+        setEmail('');
+        setShowEmailInput(false);
+      }
+
+    } catch (error) {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "Error al procesar el expediente";
+      toast.error(errorMessage);
+    }
   };
 
   // Función para eliminar archivo después de verificación
@@ -138,6 +214,24 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
       setFileToDelete(null);
       setShowPasswordPrompt(false);
     }
+  };
+
+  // Manejar cambio en checkbox de enviar
+  const handleSendChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const isChecked = e.target.checked;
+    setSend(isChecked);
+    setShowEmailInput(isChecked);
+    
+    // Si deselecciona enviar, limpiar el email
+    if (!isChecked) {
+      setEmail('');
+    }
+  };
+
+  // Función para validar email
+  const isValidEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
   };
 
   // Función para manejar la subida de archivos
@@ -212,6 +306,12 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
     }
   }, [nombre, loadFiles]);
 
+  // Función para solicitar contraseña antes de eliminar
+  const requestDeleteFile = (fileName: string) => {
+    setFileToDelete(fileName);
+    setShowPasswordPrompt(true);
+  };
+
   // Manejadores para drag and drop
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -263,17 +363,42 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
         </div>
         {isActive && (
           <div className="m-1 gap-2 flex flex-col justify-between">
-            <button
-              onClick={() => {/* Lógica para descargar expediente */}}
-              className="inline-flex items-center px-1 py-1.5 border border-gray-300 text-xs font-medium rounded-full shadow-sm text-white bg-cyan-600 hover:bg-yellow-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500"
-            > <LuFolderDown size={15} className='m-1'/>
+            <label className="flex items-center gap-1 text-cyan-600">
+              <input
+                disabled={isActive}
+                type="checkbox"
+                checked={send}
+                onChange={handleSendChange}
+              />
+              Enviar expediente
+            </label>
+            <label className="flex items-center gap-1 text-cyan-600">
+              <input
+                disabled={isActive}
+                type="checkbox"
+                checked={download}
+                onChange={(e) => setDownload(e.target.checked)}
+              />
               Descargar expediente
-            </button>
+            </label>
+            {/* Campo de email (solo visible cuando se selecciona enviar) */}
+            {showEmailInput && (
+              <div>
+                <label>Correo electrónico:</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Ingresa tu correo electrónico"
+                  required={send}
+                />
+              </div>
+            )}
             <button
-              onClick={() => {/* Lógica para enviar por email */}}
+              onClick={() => handleSendDownload()}
               className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-full shadow-sm text-white bg-cyan-600 hover:bg-yellow-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500"
-            ><MdOutlineAttachEmail size={15} className='m-1'/>
-              Enviar por email
+            >
+              {send && download ? 'Enviar y Descargar' : send ? 'Enviar' : 'Descargar'}
             </button>
           </div>
         )}
