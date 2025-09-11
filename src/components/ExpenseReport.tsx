@@ -2,8 +2,8 @@ import { useState, DragEvent, useMemo } from "react";
 import { formatString } from "../helpers";
 import { FiEdit } from "react-icons/fi";
 import { BsFiletypePdf, BsFiletypeXml } from "react-icons/bs";
+import { CgCalendarNext } from "react-icons/cg";
 import { TfiLayoutListThumbAlt } from "react-icons/tfi";
-import { BiMailSend } from "react-icons/bi";
 import { MdDeleteOutline } from "react-icons/md";
 import toast from "react-hot-toast";
 import { FormValues, SelectValues } from "../interfaces/report.interface";
@@ -34,6 +34,8 @@ export const ExpenseReport = () => {
   const [rows, setRows] = useState<FormValues[]>([]);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [send, setSend] = useState(true);
+  const [download, setDownload] = useState(false);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [xmlFile, setXmlFile] = useState<File | null>(null);
   const [previewFile, setPreviewFile] = useState<{ url: string; type: "pdf" | "xml" } | null>(null);
@@ -258,43 +260,78 @@ export const ExpenseReport = () => {
   };
 
   const handleSendReport = async () => {
-    const blob = await pdf(<PdfExpense data={rows} filters={selectValues} />).toBlob();
-    const formData = new FormData();
-    formData.append("pdf", blob);
-    formData.append("pdfName", `Reporte de gastos ${selectValues.tipoPago} ${selectValues.mes} ${selectValues.anio}.pdf`);
-
-    const res = await fetch(`${url}invoices/download&SendMailZip`, {
-      method: "POST",
-      body: formData,
-    });
-
-    if (!res.ok) {
-      toast.error("Error al enviar el reporte y descargar el ZIP");
+    if (!send && !download) {
+      toast.error("Selecciona enviar o descargar antes de terminar el reporte");
       return;
     }
 
-    const zip = await res.blob();
-    const urlZip = window.URL.createObjectURL(zip);
+    try {
+      const blob = await pdf(<PdfExpense data={rows} filters={selectValues} />).toBlob();
+      const formData = new FormData();
+      formData.append("pdf", blob);
+      formData.append("pdfName", `Reporte de gastos ${selectValues.tipoPago} ${selectValues.mes} ${selectValues.anio}.pdf`);
+      formData.append("send", send.toString());
+      formData.append("download", download.toString());
 
-    toast.success("Reporte generado correctamente");
+      const res = await fetch(`${url}invoices/download-send-mail-zip`, {
+        method: "POST",
+        body: formData,
+      });
 
-    const a = document.createElement("a");
-    a.href = urlZip;
-    a.download = `Reporte de Gastos ${selectValues.tipoPago} ${selectValues.mes} ${selectValues.anio}.zip`;
-    a.click();
+      const contentType = res.headers.get("content-type");
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || `Error HTTP: ${res.status}`);
+      }
 
-    window.URL.revokeObjectURL(urlZip);
-    a.remove();
-    // ✅ limpiar filas
-    setRows([]);
+      // Manejar respuesta según el tipo de contenido
+      if (contentType?.includes("application/json")) {
+        // Solo enviar por correo (sin descarga)
+        const data = await res.json();
+        if (send) {
+          toast.success(data.message || "Reporte enviado por correo correctamente");
+        }
+      } else if (contentType?.includes("application/zip")) {
+        // Descargar ZIP
+        const zipBlob = await res.blob();
+        const urlZip = window.URL.createObjectURL(zipBlob);
+        const a = document.createElement("a");
+        a.href = urlZip;
+        a.download = `Reporte de Gastos ${selectValues.tipoPago} ${selectValues.mes} ${selectValues.anio}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        
+        setTimeout(() => {
+          window.URL.revokeObjectURL(urlZip);
+          document.body.removeChild(a);
+        }, 100);
+        
+        if (send) {
+          toast.success("Reporte generado, enviado y descargado correctamente");
+        } else {
+          toast.success("Reporte descargado correctamente");
+        }
+      }
 
-    // ✅ reiniciar filtros
-    setSelectValues({
-      tipoPago: "",
-      mes: "",
-      anio: null,
-    });
-    resetForm();
+      // Limpiar estado
+      setRows([]);
+      setSelectValues({
+        tipoPago: "",
+        mes: "",
+        anio: null,
+      });
+      
+      if (resetForm) {
+        resetForm();
+      }
+
+    } catch (error) {
+      const errorMessage = typeof error === "object" && error !== null && "message" in error
+        ? (error as { message?: string }).message
+        : undefined;
+      toast.error(errorMessage || "Error al procesar el reporte");
+    }
   };
 
   const formatCurrency = (value: number) => currencyFormatter.format(value);
@@ -305,13 +342,33 @@ export const ExpenseReport = () => {
       {/* Botón de PDF general */}
       <div className="flex w-full gap-2 p-2 items-center justify-end">
         {rows.length > 0 && (
-          <button
-            className="gap-1 p-2 w-fit rounded-md text-white transition-all group bg-cyan-600 hover:bg-yellow-500 hover:scale-105"
-            type="button"
-            onClick={() => setShowPdf(!showPdf)}
-            >
-            {showPdf ? <PiAppWindowBold /> : <TfiPrinter />}
-          </button>
+          <>
+            <label className="flex items-center gap-1 text-cyan-600">
+              <input
+                disabled={rows.length === 0} // 🔹 desactiva si no hay filas
+                type="checkbox"
+                checked={send}
+                onChange={(e) => setSend(e.target.checked)}
+              />
+              Enviar reporte
+            </label>
+            <label className="flex items-center gap-1 text-cyan-600">
+              <input
+                disabled={rows.length === 0} // 🔹 desactiva si no hay filas
+                type="checkbox"
+                checked={download}
+                onChange={(e) => setDownload(e.target.checked)}
+              />
+              Descargar reporte
+            </label>
+            <button
+              className="gap-1 p-2 w-fit rounded-md text-white transition-all group bg-cyan-600 hover:bg-yellow-500 hover:scale-105"
+              type="button"
+              onClick={() => setShowPdf(!showPdf)}
+              >
+              {showPdf ? <PiAppWindowBold /> : <TfiPrinter />}
+            </button>
+          </> 
         )}
       </div>
       {/* PDF Viewer */}
@@ -372,7 +429,7 @@ export const ExpenseReport = () => {
                     : "bg-cyan-600 hover:bg-yellow-500 hover:scale-105"
                   }`}
               >
-                <BiMailSend size={18} /> Enviar reporte
+                <CgCalendarNext size={18} color="white"/> Terminar Reporte
               </button>
               <button
                 onClick={() => { resetForm(); handleSelectSave(); }}

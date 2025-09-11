@@ -81,7 +81,11 @@ export const Reminders = ({clientes}: Props) => {
             {/* Controles superiores */}
             <div className="lg:col-span-5 flex flex-wrap justify-between items-center gap-4">
                 <label className="flex items-center gap-2 p-2 rounded-md text-cyan-600 transition-all group hover:bg-cyan-600 hover:text-white hover:scale-105">
-                    <input type="checkbox" checked={x5} onChange={() => setX5(!x5)} />
+                    <input
+                        type="checkbox"
+                        checked={x5}
+                        onChange={() => setX5(!x5)}
+                    />
                     Enviar 5 en 5
                 </label>
 
