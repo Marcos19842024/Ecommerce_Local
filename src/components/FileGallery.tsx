@@ -36,7 +36,7 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
   const [isDragging, setIsDragging] = useState(false);
   const [isActive, setIsActive] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [send, setSend] = useState(true);
+  const [send, setSend] = useState(false);
   const [download, setDownload] = useState(false);
   const [email, setEmail] = useState('');
   const [showEmailInput, setShowEmailInput] = useState(false);
@@ -112,18 +112,23 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
     }
 
     try {
-      const formData = new FormData();
-      formData.append("send", send.toString());
-      formData.append("download", download.toString());
-      
-      // Solo agregar el email si se va a enviar
-      if (send) {
-        formData.append("email", email);
+      const data = {
+        send: send,
+        download: download,
+        email: send ? email : undefined
+      };
+
+      // Remover email si es undefined para evitar enviarlo cuando no se necesita
+      if (!send) {
+        delete data.email;
       }
 
-      const res = await fetch(`${url}orgchart/download-send-mail-zip/employees/${encodeURIComponent(nombre)}`, {
+      const res = await fetch(`${url}orgchart/download-send-mail-zip/${encodeURIComponent(nombre)}`, {
         method: "POST",
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
       });
 
       const contentType = res.headers.get("content-type");
@@ -234,77 +239,86 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
     return emailRegex.test(email);
   };
 
-  // Función para manejar la subida de archivos
-  const handleFileUpload = useCallback(async (file: File) => {
-    // Validar tipo de archivo
-    const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword'];
-    if (!validTypes.includes(file.type)) {
-      toast.error('Solo se permiten archivos PDF y Word (.doc, .docx)', {
-        duration: 5000,
-        position: 'top-right',
-      });
-      return;
-    }
-
-    // Validar tamaño (máximo 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error('El archivo no puede ser mayor a 10MB', {
-        duration: 5000,
-        position: 'top-right',
-      });
-      return;
-    }
-
-    const loadingToast = toast.loading('Subiendo archivo...', {
-      position: 'top-right',
-    });
-
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const uploadUrl = `${url}orgchart/employees/${encodeURIComponent(nombre)}`;
-
-      const response = await fetch(uploadUrl, {
-        method: 'POST',
-        body: formData,
-      });
-
-      toast.dismiss(loadingToast);
-
-      if (response.status === 200) {
-        // Recargar archivos desde el backend
-        await loadFiles();
-        
-        toast.success('Archivo subido correctamente', {
-          duration: 4000,
-          position: 'top-right',
-        });
-        
-      } else if (response.status === 400) {
-        toast.error('Tipo de archivo no permitido', {
-          duration: 5000,
-          position: 'top-right',
-        });
-      } else if (response.status === 413) {
-        toast.error('El archivo excede el límite de 10MB', {
-          duration: 5000,
-        });
+  // Función para manejar la subida de múltiples archivos
+  const handleFilesUpload = useCallback(async (filesToUpload: File[]) => {
+    // Validar cada archivo
+    const validFiles: File[] = [];
+    const invalidFiles: string[] = [];
+    
+    filesToUpload.forEach(file => {
+      // Validar tipo de archivo
+      const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword'];
+      const extension = file.name.split('.').pop()?.toLowerCase() || '';
+      const isValidType = validTypes.includes(file.type) || ['pdf', 'doc', 'docx'].includes(extension);
+      
+      // Validar tamaño (máximo 10MB)
+      const isValidSize = file.size <= 10 * 1024 * 1024;
+      
+      if (isValidType && isValidSize) {
+        validFiles.push(file);
       } else {
-        toast.error('Error al subir el archivo', {
-          duration: 5000,
-          position: 'top-right',
-        });
+        invalidFiles.push(file.name);
       }
+    });
+    
+    // Mostrar advertencia para archivos inválidos
+    if (invalidFiles.length > 0) {
+      toast.error(`${invalidFiles.length} archivo(s) no válidos. Solo se permiten PDF y Word (hasta 10MB)`, {
+        duration: 5000,
+        position: 'top-right',
+      });
+    }
+    
+    if (validFiles.length === 0) return;
+    
+    // Subir archivos válidos
+    const uploadPromises = validFiles.map(file => uploadSingleFile(file));
+    
+    try {
+      await Promise.all(uploadPromises);
+      // Recargar archivos desde el backend después de subir todos
+      await loadFiles();
+      
+      toast.success(`${validFiles.length} archivo(s) subido(s) correctamente`, {
+        duration: 4000,
+        position: 'top-right',
+      });
+      
     } catch (error) {
-      console.error('Error uploading file:', error);
-      toast.dismiss(loadingToast);
-      toast.error('No se pudo conectar con el servidor', {
+      console.error('Error uploading files:', error);
+      toast.error('Error al subir algunos archivos', {
         duration: 5000,
         position: 'top-right',
       });
     }
   }, [nombre, loadFiles]);
+
+  // Función para subir un solo archivo
+  const uploadSingleFile = async (file: File): Promise<void> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const uploadUrl = `${url}orgchart/employees/${encodeURIComponent(nombre)}`;
+      const response = await fetch(uploadUrl, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        if (response.status === 400) {
+          throw new Error('Tipo de archivo no permitido');
+        } else if (response.status === 413) {
+          throw new Error('El archivo excede el límite de 10MB');
+        } else {
+          throw new Error('Error al subir el archivo');
+        }
+      }
+    } catch (error) {
+      console.error(`Error uploading file ${file.name}:`, error);
+      throw error;
+    }
+  };
 
   // Función para solicitar contraseña antes de eliminar
   const requestDeleteFile = (fileName: string) => {
@@ -329,7 +343,7 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
     
     const droppedFiles = Array.from(e.dataTransfer.files);
     if (droppedFiles.length > 0) {
-      handleFileUpload(droppedFiles[0]);
+      handleFilesUpload(droppedFiles);
     }
   };
 
@@ -337,7 +351,7 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = e.target.files;
     if (selectedFiles && selectedFiles.length > 0) {
-      handleFileUpload(selectedFiles[0]);
+      handleFilesUpload(Array.from(selectedFiles));
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -365,7 +379,6 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
           <div className="m-1 gap-2 flex flex-col justify-between">
             <label className="flex items-center gap-1 text-cyan-600">
               <input
-                disabled={isActive}
                 type="checkbox"
                 checked={send}
                 onChange={handleSendChange}
@@ -374,7 +387,6 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
             </label>
             <label className="flex items-center gap-1 text-cyan-600">
               <input
-                disabled={isActive}
                 type="checkbox"
                 checked={download}
                 onChange={(e) => setDownload(e.target.checked)}
@@ -383,30 +395,30 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
             </label>
             {/* Campo de email (solo visible cuando se selecciona enviar) */}
             {showEmailInput && (
-              <div>
-                <label>Correo electrónico:</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Ingresa tu correo electrónico"
-                  required={send}
-                />
-              </div>
+              <input
+                className="flex items-center gap-1 text-sm text-cyan-600 w-fit px-2"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Ingresa tu email"
+                required={send}
+              />
             )}
-            <button
-              onClick={() => handleSendDownload()}
-              className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-full shadow-sm text-white bg-cyan-600 hover:bg-yellow-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500"
-            >
-              {send && download ? 'Enviar y Descargar' : send ? 'Enviar' : 'Descargar'}
-            </button>
+            {(send || download) && (
+              <button
+                onClick={() => handleSendDownload()}
+                className="inline-flex items-center px-3 py-1.5 w-fit border border-gray-300 text-xs font-medium rounded-full shadow-sm text-white bg-cyan-600 hover:bg-yellow-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500"
+              >
+                {send && download ? 'Enviar y descargar expediente' : send ? 'Enviar expediente' : 'Descargar expediente'}
+              </button>
+            )}
           </div>
         )}
       </div>
       
-      {/* Área para subir archivos con drag & drop */}
-      <div 
-        className={`mt-1 p-1 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors ${
+      {/* Área para subir archivos con drag & drop - MODIFICADA PARA MÚLTIPLES ARCHIVOS */}
+      <div
+        className={`mt-1 p-6 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors ${
           isDragging ? 'border-cyan-500 bg-cyan-50' : 'border-gray-300 hover:border-gray-400'
         }`}
         onDragOver={handleDragOver}
@@ -420,20 +432,21 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
           onChange={handleFileSelect}
           accept=".pdf,.doc,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword"
           className="hidden"
+          multiple
         />
-        <div className="flex flex-col items-center justify-center space-y-1">
+        <div className="flex flex-col items-center justify-center space-y-2">
           <svg className="w-12 h-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
             <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           <p className="text-gray-600">
             <span className="font-medium text-cyan-600">Haz clic para subir</span> o arrastra y suelta aquí
           </p>
-          <p className="text-xs text-gray-500">Solo se aceptan archivos PDF y Word (hasta 10MB)</p>
+          <p className="text-xs text-gray-500">Se aceptan múltiples archivos PDF y Word (hasta 10MB cada uno)</p>
         </div>
       </div>
       
       {/* Miniaturas */}
-      <div className="mt-2">
+      <div className="mt-4">
         <h3 className="mb-2 text-xl font-semibold text-gray-700">Todos los archivos</h3>
         {files.length > 0 ? (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
@@ -455,14 +468,14 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
                     <span className='justify-end w-fit m-2'>{file.size}</span>
                   </div>
                   {isActive && (
-                    <div className="m-3 gap-2 justify-between">
+                    <div className="m-3 gap-2 flex justify-between">
                       <a 
                         href={file.url} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="w-fit m-2 items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-cyan-600 hover:bg-yellow-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500"
+                        className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-cyan-600 hover:bg-yellow-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500"
                       >
-                        Abrir archivo
+                        Abrir
                       </a>
                       <button
                         onClick={() => requestDeleteFile(file.name)}

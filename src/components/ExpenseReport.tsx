@@ -14,6 +14,7 @@ import FilePreviewModal from "./FilePreviewModal";
 import { url } from "../server/url";
 import { pdf } from "@react-pdf/renderer";
 import { PdfExpense } from "./PdfExpense";
+import { Loader } from "./Loader";
 
 const currencyFormatter = new Intl.NumberFormat("es-MX", {
   style: "currency",
@@ -57,6 +58,7 @@ export const ExpenseReport = () => {
     anio: null,
   });
   const [isDraggingXml, setIsDraggingXml] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // ✅ calcular total con useMemo
   const total = useMemo(() => {
@@ -265,6 +267,7 @@ export const ExpenseReport = () => {
       return;
     }
 
+    setIsLoading(true);
     try {
       const blob = await pdf(<PdfExpense data={rows} filters={selectValues} />).toBlob();
       const formData = new FormData();
@@ -331,6 +334,8 @@ export const ExpenseReport = () => {
         ? (error as { message?: string }).message
         : undefined;
       toast.error(errorMessage || "Error al procesar el reporte");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -419,26 +424,29 @@ export const ExpenseReport = () => {
             <div className="flex flex-col justify-end text-center text-cyan-600">
               <span>Registros: {rows.length}</span>
             </div>
-            <div className="flex col-span-2 gap-2 w-full items-center justify-end">
-              <button
-                disabled={rows.length === 0} // 🔹 desactiva si no hay filas
-                onClick={() => handleSendReport()}
-                className={`flex w-full items-center gap-2 p-2 rounded-md text-white text-sm transition-all group 
-                  ${rows.length === 0 
-                    ? "bg-gray-400 cursor-not-allowed"   // 🔹 estilo deshabilitado
-                    : "bg-cyan-600 hover:bg-yellow-500 hover:scale-105"
-                  }`}
-              >
-                <CgCalendarNext size={18} color="white"/> Terminar Reporte
-              </button>
-              <button
-                onClick={() => { resetForm(); handleSelectSave(); }}
-                className="flex w-full items-center gap-2 p-2 rounded-md text-white text-sm transition-all group bg-cyan-600 hover:bg-yellow-500 hover:scale-105"
+            {!isLoading && (
+              <div className="flex col-span-2 gap-2 w-full items-center justify-end">
+                <button
+                  disabled={rows.length === 0} // 🔹 desactiva si no hay filas
+                  onClick={() => handleSendReport()}
+                  className={`flex w-full items-center gap-2 p-2 rounded-md text-white text-sm transition-all group 
+                    ${rows.length === 0 
+                      ? "bg-gray-400 cursor-not-allowed"   // 🔹 estilo deshabilitado
+                      : "bg-cyan-600 hover:bg-yellow-500 hover:scale-105"
+                    }`}
                 >
-                <TfiLayoutListThumbAlt size={18} color="white"/> Agregar factura
-              </button>
-            </div>
+                  <CgCalendarNext size={18} color="white"/> Terminar Reporte
+                </button>
+                <button
+                  onClick={() => { resetForm(); handleSelectSave(); }}
+                  className="flex w-full items-center gap-2 p-2 rounded-md text-white text-sm transition-all group bg-cyan-600 hover:bg-yellow-500 hover:scale-105"
+                  >
+                  <TfiLayoutListThumbAlt size={18} color="white"/> Agregar factura
+                </button>
+              </div>
+            )}
           </div>
+          {isLoading && <Loader />}
           {/* Modal de formulario */}
           {showForm && (
             <div
