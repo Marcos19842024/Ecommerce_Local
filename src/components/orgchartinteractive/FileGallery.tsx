@@ -1,11 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { url } from '../server/url';
-import { getFileTypes } from '../utils/files';
-import { FileWithPreview } from '../interfaces/client.interface';
-import { FileViewer } from './FileViewer';
-import PasswordPrompt from './PasswordPrompt';
-import { password } from '../server/user';
+import { url } from '../../server/url';
+import { getFileTypes } from '../../utils/files';
+import { FileViewer } from '../shared/FileViewer';
+import PasswordPrompt from '../shared/PasswordPrompt';
+import { password } from '../../server/user';
+import { FileWithPreview } from '../../interfaces/shared.interface';
+import { Employee } from '../../interfaces/orgchartinteractive.interface';
+import { pdf } from '@react-pdf/renderer';
+import { PdfEmployeeRecord } from './PdfEmployeeRecord';
 
 // Datos de ejemplo para la galería - solo documentos
 const initialFiles: FileWithPreview[] = [
@@ -31,7 +34,12 @@ const initialFiles: FileWithPreview[] = [
   }
 ];
 
-const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string, puesto: string }) => {
+interface FileGalleryProps {
+  employee: Employee;
+}
+
+const FileGallery = ({ employee }: FileGalleryProps) => {
+  const { name, alias, puesto, area } = employee;
   const [files, setFiles] = useState<FileWithPreview[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isActive, setIsActive] = useState(false);
@@ -43,12 +51,20 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const handleModalContainerClick = (e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation();
   
   // Cargar archivos desde el backend
   const loadFiles = useCallback(async () => {
+    if (!name) {
+      setFiles(initialFiles);
+      setIsActive(false);
+      setIsLoading(false);
+      return;
+    }
+  
     try {
       setIsLoading(true);
-      const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(nombre)}`);
+      const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(name)}`);
       
       if (response.ok) {
         const serverFiles = await response.json();
@@ -61,7 +77,7 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
             return {
               id: index + 1,
               name: file.name,
-              url: `${url}orgchart/employees/${encodeURIComponent(nombre)}/${encodeURIComponent(file.name)}`,
+              url: `${url}orgchart/employees/${encodeURIComponent(name)}/${encodeURIComponent(file.name)}`,
               type: ext,
               size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
               icon,
@@ -87,12 +103,12 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
     } finally {
       setIsLoading(false);
     }
-  }, [nombre]);
+  }, [name]);
 
   // Cargar archivos cuando el nombre cambia
   useEffect(() => {
     loadFiles();
-  }, [loadFiles, nombre]);
+  }, [loadFiles, name]);
 
   const handleSendDownload = async () => {
     if (!send && !download) {
@@ -123,7 +139,7 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
         delete data.email;
       }
 
-      const res = await fetch(`${url}orgchart/download-send-mail-zip/${encodeURIComponent(nombre)}`, {
+      const res = await fetch(`${url}orgchart/download-send-mail-zip/${encodeURIComponent(name)}`, {
         method: "POST",
         headers: {
           'Content-Type': 'application/json',
@@ -149,7 +165,7 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
         const urlZip = window.URL.createObjectURL(zipBlob);
         const a = document.createElement("a");
         a.href = urlZip;
-        a.download = `Expediente de ${nombre}.zip`;
+        a.download = `Expediente de ${name}.zip`;
         document.body.appendChild(a);
         a.click();
         
@@ -188,7 +204,7 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
     });
 
     try {
-      const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(nombre)}/${encodeURIComponent(fileToDelete)}`, {
+      const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(name)}/${encodeURIComponent(fileToDelete)}`, {
         method: 'DELETE',
       });
 
@@ -291,7 +307,7 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
         position: 'top-right',
       });
     }
-  }, [nombre, loadFiles]);
+  }, [name, loadFiles]);
 
   // Función para subir un solo archivo
   const uploadSingleFile = async (file: File): Promise<void> => {
@@ -299,7 +315,7 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
     formData.append('file', file);
 
     try {
-      const uploadUrl = `${url}orgchart/employees/${encodeURIComponent(nombre)}`;
+      const uploadUrl = `${url}orgchart/employees/${encodeURIComponent(name)}`;
       const response = await fetch(uploadUrl, {
         method: 'POST',
         body: formData,
@@ -347,7 +363,30 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
     }
   };
 
-  // Manejador para selección de archivo por botón
+  const handleGeneratePDF = async () => {
+  
+    const blob = await pdf(<PdfEmployeeRecord employeeData={employee} />).toBlob();
+    const formData = new FormData();
+    formData.append('file', blob, 'Caratula.pdf');
+
+    try {
+      const uploadUrl = `${url}orgchart/employees/${encodeURIComponent(name)}`;
+      const response = await fetch(uploadUrl, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error("Error al guardar");
+      
+      toast.success("Carátula creada correctamente");
+
+      await loadFiles();
+      
+    } catch {
+      toast.error("Error al crear carátula");
+    }
+  };
+  
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = e.target.files;
     if (selectedFiles && selectedFiles.length > 0) {
@@ -373,46 +412,57 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
       <div className="m-1 gap-1 flex justify-between">
         <div className="m-1 gap-1 justify-between">
           <h2 className="mb-1 text-2xl font-bold text-gray-800">{alias}</h2>
+          <p className="text-gray-600">{area}</p>
           <p className="text-gray-600">{puesto}</p>
         </div>
+        <div className="m-1 gap-2 flex flex-col justify-start">
+          <button
+            onClick={() => handleGeneratePDF()}
+            className="inline-flex items-center px-3 py-1.5 w-fit border border-gray-300 text-xs font-medium rounded-full shadow-sm text-white bg-cyan-600 hover:bg-yellow-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500"
+          >
+            Crear caratula
+          </button>
+        </div>
         {isActive && (
-          <div className="m-1 gap-2 flex flex-col justify-between">
-            <label className="flex items-center gap-1 text-cyan-600">
-              <input
-                type="checkbox"
-                checked={send}
-                onChange={handleSendChange}
-              />
-              Enviar expediente
-            </label>
-            <label className="flex items-center gap-1 text-cyan-600">
-              <input
-                type="checkbox"
-                checked={download}
-                onChange={(e) => setDownload(e.target.checked)}
-              />
-              Descargar expediente
-            </label>
-            {/* Campo de email (solo visible cuando se selecciona enviar) */}
-            {showEmailInput && (
-              <input
-                className="flex items-center gap-1 text-sm text-cyan-600 w-fit px-2"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Ingresa tu email"
-                required={send}
-              />
-            )}
-            {(send || download) && (
-              <button
-                onClick={() => handleSendDownload()}
-                className="inline-flex items-center px-3 py-1.5 w-fit border border-gray-300 text-xs font-medium rounded-full shadow-sm text-white bg-cyan-600 hover:bg-yellow-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500"
-              >
-                {send && download ? 'Enviar y descargar expediente' : send ? 'Enviar expediente' : 'Descargar expediente'}
-              </button>
-            )}
-          </div>
+          <>
+            <div className="m-1 gap-2 flex flex-col justify-start">
+              <label className="flex items-center gap-1 text-cyan-600">
+                <input
+                  type="checkbox"
+                  checked={send}
+                  onChange={handleSendChange}
+                />
+                Enviar expediente
+              </label>
+              <label className="flex items-center gap-1 text-cyan-600">
+                <input
+                  type="checkbox"
+                  checked={download}
+                  onChange={(e) => setDownload(e.target.checked)}
+                />
+                Descargar expediente
+              </label>
+              {/* Campo de email (solo visible cuando se selecciona enviar) */}
+              {showEmailInput && (
+                <input
+                  className="flex items-center gap-1 text-sm text-cyan-600 w-fit px-2"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Ingresa tu email"
+                  required={send}
+                />
+              )}
+              {(send || download) && (
+                <button
+                  onClick={() => handleSendDownload()}
+                  className="inline-flex items-center px-3 py-1.5 w-fit border border-gray-300 text-xs font-medium rounded-full shadow-sm text-white bg-cyan-600 hover:bg-yellow-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500"
+                >
+                  {send && download ? 'Enviar y descargar expediente' : send ? 'Enviar expediente' : 'Descargar expediente'}
+                </button>
+              )}
+            </div>
+          </>
         )}
       </div>
       
@@ -479,7 +529,7 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
                       </a>
                       <button
                         onClick={() => requestDeleteFile(file.name)}
-                        className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-full shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                        className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-full shadow-sm text-white bg-red-600 hover:bg-yellow-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                       >
                         Eliminar
                       </button>
@@ -496,15 +546,20 @@ const FileGallery = ({ nombre, alias, puesto }: { nombre: string, alias: string,
 
       {/* Modal de contraseña - Usando el componente importado */}
       {showPasswordPrompt && (
-        <PasswordPrompt
-          onSuccess={handleDeleteFile}
-          onCancel={() => {
-            setShowPasswordPrompt(false);
+        <div
+          className="fixed inset-0 flex items-center justify-center bg-black/70 z-50"
+          onClick={() => {
             setFileToDelete(null);
+            setShowPasswordPrompt(false);
+            handleModalContainerClick;
           }}
-          message="Ingrese la contraseña para eliminar el archivo"
-          correctPassword={password}
-        />
+          >
+          <PasswordPrompt
+            onSuccess={handleDeleteFile}
+            message="Ingrese la contraseña para eliminar el archivo"
+            correctPassword={password}
+          />
+        </div>
       )}
     </div>
   );

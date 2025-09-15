@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { IoReload } from "react-icons/io5";
-import { url } from "../server/url";
+import { url } from "../../server/url";
 
 export const QrCode: React.FC = () => {
     const [qr, setQr] = useState(`${url}qr.png`)

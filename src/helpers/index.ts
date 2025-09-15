@@ -1,6 +1,6 @@
 import { Row } from 'read-excel-file';
-import { Cliente, Fechas } from '../interfaces/client.interface';
-import { ContactItem } from '../interfaces/contact.interface';
+import { Cliente, ContactItem } from '../interfaces/reminders.interface';
+import { Fechas } from '../interfaces/transport.interface';
 
 // Función para preparar los clientes
 export const prepareClients = (rows: Row[]) => {

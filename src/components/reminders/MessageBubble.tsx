@@ -1,6 +1,6 @@
-import { MessageBubbleProps } from "../interfaces/client.interface";
+import { MessageBubble } from "../../interfaces/reminders.interface";
 
-export const MessageBubble = ({ id, message, senderName, timestamp, avatarUrl, isOwnMessage, editable, onDelete }: MessageBubbleProps & { onDelete?: (id: string) => void }) => {
+export const MessageBubbles = ({ id, message, senderName, timestamp, avatarUrl, isOwnMessage, editable, onDelete }: MessageBubble & { onDelete?: (id: string) => void }) => {
   const alignment = isOwnMessage ? "justify-end" : "justify-start";
   const bgColor = isOwnMessage ? "bg-green-900" : "bg-gray-800";
   const flexDirection = isOwnMessage ? "flex-row-reverse" : "flex-row";

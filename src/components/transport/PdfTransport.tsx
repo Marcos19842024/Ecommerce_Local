@@ -1,5 +1,5 @@
 import { Page, Text, View, Document, StyleSheet } from "@react-pdf/renderer";
-import { Fechas } from "../interfaces/client.interface";
+import { Fechas } from "../../interfaces/transport.interface";
 
 interface PdfProps {
     fechas: Fechas[];

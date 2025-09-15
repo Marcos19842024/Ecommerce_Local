@@ -1,4 +1,4 @@
-import { ExpenseReport } from "../components/ExpenseReport";
+import { ExpenseReport } from "../components/expensereport/ExpenseReport";
 
 export const ExpenseReportPage = () => {
   return (

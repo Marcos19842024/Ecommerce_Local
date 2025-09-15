@@ -3,8 +3,9 @@ import { TfiPrinter } from "react-icons/tfi";
 import { FiEdit } from "react-icons/fi";
 import { useEffect, useState } from "react";
 import { MdDeleteOutline } from "react-icons/md";
-import { Fechas, MascotaTransporte, ClienteTransporte } from "../interfaces/client.interface";
-import { PdfViewer } from "./PdfViewer";
+import { Cliente, Fechas, Mascota } from "../../interfaces/transport.interface";
+import { PDFViewer } from "@react-pdf/renderer";
+import { PdfTransport } from "./PdfTransport";
 
 interface TransportProps {
     fechas: Fechas[];
@@ -43,7 +44,7 @@ export const Transport = ({ fechas }: TransportProps) => {
         fechasState.map((f) => f.fecha !== fecha ? f : { ...f, clientes: f.clientes.filter((c) => c.nombre !== cliente) }
     ));
 
-    const openEditModal = (mascota?: MascotaTransporte, cliente?: ClienteTransporte) => {
+    const openEditModal = (mascota?: Mascota, cliente?: Cliente) => {
         setSelectedMascota(mascota);
         setFormValues({
             status: cliente?.status ?? "",
@@ -104,7 +105,11 @@ export const Transport = ({ fechas }: TransportProps) => {
 
                 {showPdf ? (
                     <div className="w-full col-span-5">
-                        <PdfViewer fechas={fechasState} />
+                        <div className="w-full h-[80vh] border shadow">
+                            <PDFViewer width="100%" height="100%">
+                                <PdfTransport fechas={fechasState} />
+                            </PDFViewer>
+                        </div>
                     </div>
                 ) : (
                     <div className="flex flex-col lg:flex-row w-full col-span-5 gap-2">

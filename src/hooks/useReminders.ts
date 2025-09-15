@@ -1,16 +1,17 @@
 import { useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
 import { getFileTypes } from "../utils/files";
-import { Cliente, FileWithPreview, MessageBubbleProps } from "../interfaces/client.interface";
+import { Cliente, MessageBubble } from "../interfaces/reminders.interface";
 import { url } from "../server/url";
 import { cel, center } from "../server/user";
+import { FileWithPreview } from "../interfaces/shared.interface";
 
 interface Props {
   clientes: Cliente[];
 }
 
 export const useReminders = ({clientes}: Props) => {
-  const [messages, setMessages] = useState<MessageBubbleProps[]>([]);
+  const [messages, setMessages] = useState<MessageBubble[]>([]);
   const [files, setFiles] = useState<FileWithPreview[]>([]);
   const [msjo, setMsjo] = useState("");
   const [loader, setLoader] = useState(false);
@@ -89,7 +90,7 @@ export const useReminders = ({clientes}: Props) => {
     setLoader(false);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>, newMsg: MessageBubbleProps) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>, newMsg: MessageBubble) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       if (msjo.trim() === "") {

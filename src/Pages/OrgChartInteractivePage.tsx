@@ -1,4 +1,4 @@
-import OrgChartInteractive from "../components/OrgChartInteractive";
+import OrgChartInteractive from "../components/orgchartinteractive/OrgChartInteractive";
 
 export const OrgChartInteractivePage = () => {
   return (

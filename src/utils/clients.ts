@@ -1,6 +1,6 @@
 import readXlsxFile from 'read-excel-file';
 import { prepareClients } from '../helpers';
-import { Cliente, Mascota, Recordatorio } from '../interfaces/client.interface';
+import { Cliente, Mascota, Recordatorio } from '../interfaces/reminders.interface';
 import toast from 'react-hot-toast';
 
 interface Props {

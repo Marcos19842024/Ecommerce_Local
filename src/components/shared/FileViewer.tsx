@@ -1,5 +1,5 @@
 import React from "react";
-import { FileWithPreview } from "../interfaces/client.interface";
+import { FileWithPreview } from "../../interfaces/shared.interface";
 
 export const FileViewer: React.FC<{ file: FileWithPreview }> = ({ file }) => {
     const { url, type } = file;

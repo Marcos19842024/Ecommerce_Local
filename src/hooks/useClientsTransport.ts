@@ -1,4 +1,4 @@
-import { getClientsTransport } from "../components/transports";
+import { getClientsTransport } from "../utils/transports";
 
 interface Props {
     e: React.ChangeEvent<HTMLInputElement>;

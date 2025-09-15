@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { RiBillLine } from 'react-icons/ri';
-import { ReadBill } from '../components/ReadBill';
+import { ReadBill } from '../components/readbill/ReadBill';
 
 export const ReadBillPage = () => {
     const [file, setFile] = useState<File | null>(null);
@@ -41,7 +41,6 @@ export const ReadBillPage = () => {
                         </label>
                     </div>
                 </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-3 w-full h-[80vh] border shadow rounded overflow-hidden">
                     {file && info && (
                         <>

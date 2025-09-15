@@ -1,16 +1,15 @@
 import { useState } from "react";
-import { Reminders } from "../components/Reminders";
-import { QrCode } from "../components/QrCode";
+import { Reminders } from "../components/reminders/Reminders";
+import { QrCode } from "../components/reminders/QrCode";
 import { useClients } from "../hooks/useClients";
-import { ContactResponse } from "../interfaces/contact.interface";
-import { Cliente } from "../interfaces/client.interface";
+import { Cliente, ContactResponse } from "../interfaces/reminders.interface";
 import { BsQrCodeScan } from "react-icons/bs";
 import { FaWhatsapp } from "react-icons/fa6";
 import toast from "react-hot-toast";
 import { prepareContacts } from "../helpers";
 import { GrDocumentUpload } from "react-icons/gr";
 import { RiMobileDownloadLine } from "react-icons/ri";
-import { Loader } from "../components/Loader";
+import { Loader } from "../components/shared/Loader";
 import { url } from "../server/url";
 import { center, cel } from "../server/user";
 

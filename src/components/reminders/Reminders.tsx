@@ -3,13 +3,14 @@ import { VscSend } from "react-icons/vsc";
 import { PiAppWindowBold, PiPaperclipBold } from "react-icons/pi";
 import { TfiPrinter } from "react-icons/tfi";
 import { RiUserSearchLine } from "react-icons/ri";
-import { PdfViewer } from "../components/PdfViewer";
-import { useReminders } from "../hooks/useReminders";
-import { Cliente } from "../interfaces/client.interface";
-import { createNewMsg, getMascotas } from "../utils/messages";
-import { MessageBubble } from "./MessageBubble";
+import { useReminders } from "../../hooks/useReminders";
+import { Cliente } from "../../interfaces/reminders.interface";
+import { createNewMsg, getMascotas } from "../../utils/messages";
+import { MessageBubbles } from "./MessageBubble";
 import { MessageBubbleFile } from "./MessageBubbleFile";
-import { Loader } from "../components/Loader";
+import { Loader } from "../shared/Loader";
+import { PDFViewer } from "@react-pdf/renderer";
+import { PdfReminders } from "./PdfReminders";
 
 interface Props {
     clientes: Cliente[];
@@ -104,8 +105,10 @@ export const Reminders = ({clientes}: Props) => {
 
             {/* Vista PDF o Vista Conversación */}
             {showPdf ? (
-                <div className="lg:col-span-5">
-                    <PdfViewer sending={enviados} notsending={noEnviados} />
+                <div className="w-full h-[80vh] border shadow">
+                    <PDFViewer width="100%" height="100%">
+                        <PdfReminders sending={enviados} notsending={noEnviados} />
+                    </PDFViewer>
                 </div>
             ) : (
                 <>
@@ -184,13 +187,13 @@ export const Reminders = ({clientes}: Props) => {
                         </div>
                         <div className="flex-1 overflow-y-auto space-y-2">
                             {clientes[index].mensajes.map((msg, idx) => (
-                                <MessageBubble key={`msg-${idx}`} {...createNewMsg(msg)} editable={false} />
+                                <MessageBubbles key={`msg-${idx}`} {...createNewMsg(msg)} editable={false} />
                             ))}
                             {clientes[index].archivos.map((file, idx) => (
                                 <MessageBubbleFile key={`file-${idx}`} file={file} {...createNewMsg("")} editable={false} />
                             ))}
                             {!clientes[index].status && messages.map((msg) => (
-                                <MessageBubble key={msg.id} {...msg} editable onDelete={() => deleteMessage(msg.id)} />
+                                <MessageBubbles key={msg.id} {...msg} editable onDelete={() => deleteMessage(msg.id)} />
                             ))}
                             {!clientes[index].status && files.map((file) => (
                                 <MessageBubbleFile key={file.id} file={file} {...createNewMsg("")} editable onDelete={() => deleteMessage('', file)} />

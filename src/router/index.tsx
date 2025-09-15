@@ -4,7 +4,7 @@ import { TransportPage } from '../Pages/TransportPage';
 import { ExpenseReportPage } from '../Pages/ExpenseReportPage';
 import { ReadBillPage } from '../Pages/ReadBillPage';
 import { DashboardLayout } from '../Pages/DashboardLayout';
-import OrgChartInteractive from '../components/OrgChartInteractive';
+import OrgChartInteractive from '../components/orgchartinteractive/OrgChartInteractive';
 
 export const router = createBrowserRouter([
 	{

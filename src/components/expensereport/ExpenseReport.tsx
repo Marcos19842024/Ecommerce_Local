@@ -1,20 +1,19 @@
 import { useState, DragEvent, useMemo } from "react";
-import { formatString } from "../helpers";
 import { FiEdit } from "react-icons/fi";
 import { BsFiletypePdf, BsFiletypeXml } from "react-icons/bs";
 import { CgCalendarNext } from "react-icons/cg";
 import { TfiLayoutListThumbAlt } from "react-icons/tfi";
 import { MdDeleteOutline } from "react-icons/md";
 import toast from "react-hot-toast";
-import { FormValues, SelectValues } from "../interfaces/report.interface";
 import { PiAppWindowBold } from "react-icons/pi";
 import { TfiPrinter } from "react-icons/tfi";
-import { PdfViewer } from "../components/PdfViewer";
+import { pdf, PDFViewer } from "@react-pdf/renderer";
+import { formatString } from "../../helpers";
+import { FormValues, SelectValues } from "../../interfaces/report.interface";
+import { url } from "../../server/url";
 import FilePreviewModal from "./FilePreviewModal";
-import { url } from "../server/url";
-import { pdf } from "@react-pdf/renderer";
+import { Loader } from "../shared/Loader";
 import { PdfExpense } from "./PdfExpense";
-import { Loader } from "./Loader";
 
 const currencyFormatter = new Intl.NumberFormat("es-MX", {
   style: "currency",
@@ -378,7 +377,11 @@ export const ExpenseReport = () => {
       </div>
       {/* PDF Viewer */}
       {showPdf ? (
-        <PdfViewer facturas={rows} header={selectValues} />
+        <div className="w-full h-[80vh] border shadow">
+          <PDFViewer width="100%" height="100%">
+            <PdfExpense data={rows} filters={selectValues} />
+          </PDFViewer>
+        </div>
       ) : (
         <>
           {/* Selección tipo pago / mes / año */}

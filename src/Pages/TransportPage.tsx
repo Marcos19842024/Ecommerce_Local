@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { GrDocumentUpload } from "react-icons/gr";
-import { Transport } from "../components/Transport";
-import { Fechas } from "../interfaces/client.interface";
+import { Transport } from "../components/transport/Transport";
 import { useClientsTransport } from "../hooks/useClientsTransport";
+import { Fechas } from "../interfaces/transport.interface";
 
 export const TransportPage = () => {
     const [fechas, setFechas] = useState<Fechas[]>([]);

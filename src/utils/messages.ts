@@ -1,9 +1,10 @@
 import { v4 as uuidv4 } from "uuid";
-import { MessageBubbleProps } from "../interfaces/client.interface";
+import { MessageBubble } from "../interfaces/reminders.interface";
 
-export const createNewMsg = (message: string): MessageBubbleProps => ({
+export const createNewMsg = (message: string): MessageBubble => ({
   id: uuidv4(),
   message,
+  file: null,
   senderName: "Baalak Veterinaria",
   timestamp: new Date().toLocaleTimeString([], {
     hour: "2-digit",

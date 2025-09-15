@@ -1,5 +1,5 @@
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
-import { FormValues, SelectValues } from "../interfaces/report.interface";
+import { FormValues, SelectValues } from "../../interfaces/report.interface";
 
 const styles = StyleSheet.create({
     page: {

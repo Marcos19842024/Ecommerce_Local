@@ -1,5 +1,5 @@
 import { Document, Text, Page, View, StyleSheet } from "@react-pdf/renderer";
-import { Cliente } from "../interfaces/client.interface";
+import { Cliente } from "../../interfaces/reminders.interface";
 
 interface PdfProps {
   sending: Cliente[];

@@ -1,4 +1,4 @@
-import { getClients } from "../components/clients";
+import { getClients } from "../utils/clients";
 
 interface Props {
 	e: React.ChangeEvent<HTMLInputElement>;

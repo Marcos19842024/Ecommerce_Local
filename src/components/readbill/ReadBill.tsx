@@ -1,24 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { getDocument, GlobalWorkerOptions } from "pdfjs-dist";
 import { PDFDocumentProxy } from "pdfjs-dist/types/src/display/api";
-import pdfWorker from "../utils/pdf.worker";
+import pdfWorker from "../../utils/pdf.worker";
+import { PdfReaderFacturaProps, DatosFactura } from "../../interfaces/readbill.interface";
 
 GlobalWorkerOptions.workerPort = new pdfWorker();
-
-interface PdfReaderFacturaProps {
-    file: File;
-    info: string;
-}
-
-interface DatosFactura {
-    empresa?: string;
-    folio?: string;
-    fecha?: string;
-    concepto?: string;
-    subtotal?: string;
-    iva?: string;
-    total?: string;
-}
 
 export const ReadBill: React.FC<PdfReaderFacturaProps> = ({ file, info }) => {
     const [datos, setDatos] = useState<DatosFactura | null>(null);
