@@ -9,6 +9,7 @@ import { FileWithPreview } from '../../interfaces/shared.interface';
 import { Employee } from '../../interfaces/orgchartinteractive.interface';
 import { pdf } from '@react-pdf/renderer';
 import { PdfEmployeeRecord } from './PdfEmployeeRecord';
+import Modal from '../shared/Modal';
 
 // Datos de ejemplo para la galería - solo documentos
 const initialFiles: FileWithPreview[] = [
@@ -48,10 +49,9 @@ const FileGallery = ({ employee }: FileGalleryProps) => {
   const [download, setDownload] = useState(false);
   const [email, setEmail] = useState('');
   const [showEmailInput, setShowEmailInput] = useState(false);
-  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const handleModalContainerClick = (e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation();
   
   // Cargar archivos desde el backend
   const loadFiles = useCallback(async () => {
@@ -233,7 +233,7 @@ const FileGallery = ({ employee }: FileGalleryProps) => {
       });
     } finally {
       setFileToDelete(null);
-      setShowPasswordPrompt(false);
+      setShowModal(false);
     }
   };
 
@@ -339,7 +339,7 @@ const FileGallery = ({ employee }: FileGalleryProps) => {
   // Función para solicitar contraseña antes de eliminar
   const requestDeleteFile = (fileName: string) => {
     setFileToDelete(fileName);
-    setShowPasswordPrompt(true);
+    setShowModal(true);
   };
 
   // Manejadores para drag and drop
@@ -545,22 +545,19 @@ const FileGallery = ({ employee }: FileGalleryProps) => {
       </div>
 
       {/* Modal de contraseña - Usando el componente importado */}
-      {showPasswordPrompt && (
-        <div
-          className="fixed inset-0 flex items-center justify-center bg-black/70 z-50"
-          onClick={() => {
-            setFileToDelete(null);
-            setShowPasswordPrompt(false);
-            handleModalContainerClick;
-          }}
+      {showModal && (
+          <Modal
+            className1="fixed inset-0 flex items-center justify-center bg-black/70 z-50"
+            className2="relative bg-white rounded-lg shadow-lg max-w-md w-full p-6"
+            closeModal={() => setShowModal(false)}
           >
-          <PasswordPrompt
-            onSuccess={handleDeleteFile}
-            message="Ingrese la contraseña para eliminar el archivo"
-            correctPassword={password}
-          />
-        </div>
-      )}
+            <PasswordPrompt
+              onSuccess={handleDeleteFile}
+              message="Ingrese la contraseña para eliminar el archivo"
+              correctPassword={password}
+            />
+          </Modal>
+        )}
     </div>
   );
 };
