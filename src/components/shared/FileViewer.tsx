@@ -7,13 +7,11 @@ export const FileViewer: React.FC<{ file: FileWithPreview }> = ({ file }) => {
     switch (type) {
         case "pdf":
             return (
-                <div className={`w-full rounded-md`}>
-                    <iframe
-                        src={url}
-                        title="preview"
-                        className="w-full h-[150px] rounded-md bg-white"
-                    />
-                </div>
+                <iframe
+                    src={url}
+                    title="preview"
+                    className="w-full h-[400px] border rounded bg-white text-black"
+                />
             );
         case "mp3":
         case "wav":

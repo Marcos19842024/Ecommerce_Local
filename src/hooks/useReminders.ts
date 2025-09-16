@@ -66,7 +66,7 @@ export const useReminders = ({clientes}: Props) => {
       phone: `521${cliente.telefono}`,
       pathtofiles: files.map((file) => file.name),
     };
-    await fetch(`${url}send/${center}/${cel}`, {
+    await fetch(`${url}wwebjs/send/${center}/${cel}`, {
       method: "POST",
       body: JSON.stringify(data),
       headers: {

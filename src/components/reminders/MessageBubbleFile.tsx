@@ -45,7 +45,7 @@ export const MessageBubbleFile = ({
             </div>
           </div>
         </div>
-        {editable && (
+        {editable && onDelete && (
           <span
             className="cursor-pointer text-xl text-red-500"
             onClick={onDelete}

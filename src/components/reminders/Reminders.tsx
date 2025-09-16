@@ -7,7 +7,6 @@ import { useReminders } from "../../hooks/useReminders";
 import { Cliente } from "../../interfaces/reminders.interface";
 import { createNewMsg, getMascotas } from "../../utils/messages";
 import { MessageBubbles } from "./MessageBubble";
-import { MessageBubbleFile } from "./MessageBubbleFile";
 import { Loader } from "../shared/Loader";
 import { PDFViewer } from "@react-pdf/renderer";
 import { PdfReminders } from "./PdfReminders";
@@ -190,13 +189,13 @@ export const Reminders = ({clientes}: Props) => {
                                 <MessageBubbles key={`msg-${idx}`} {...createNewMsg(msg)} editable={false} />
                             ))}
                             {clientes[index].archivos.map((file, idx) => (
-                                <MessageBubbleFile key={`file-${idx}`} file={file} {...createNewMsg("")} editable={false} />
+                                <MessageBubbles key={`file-${idx}`} file={file} {...createNewMsg("")} editable={false} />
                             ))}
                             {!clientes[index].status && messages.map((msg) => (
                                 <MessageBubbles key={msg.id} {...msg} editable onDelete={() => deleteMessage(msg.id)} />
                             ))}
                             {!clientes[index].status && files.map((file) => (
-                                <MessageBubbleFile key={file.id} file={file} {...createNewMsg("")} editable onDelete={() => deleteMessage('', file)} />
+                                <MessageBubbles key={file.id} file={file} {...createNewMsg("")} editable onDelete={() => deleteMessage('', file)} />
                             ))}
                         </div>
 
