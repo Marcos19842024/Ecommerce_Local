@@ -24,7 +24,7 @@ export const RemindersPage = () => {
 
   const handleStatus = () => {
     setLoader(true);
-    fetch(`${url}status/${center}/${cel}`, {
+    fetch(`${url}wwebjs/status/${center}/${cel}`, {
       method: "GET",
     })
     .then(res => res.json())
@@ -57,7 +57,7 @@ export const RemindersPage = () => {
 
   const getContact = async () => {
     setLoader(true);
-    fetch(`${url}contact`, {
+    fetch(`${url}wwebjs/contact`, {
       method: "GET",
     })
     .then(res => res.json())

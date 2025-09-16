@@ -48,34 +48,43 @@ const styles = StyleSheet.create({
         marginBottom: 5,
         alignItems: 'flex-start',
     },
-    checkbox: {
+    checkboxContainer: {
         width: 10,
         height: 10,
         border: '1px solid black',
         marginRight: 5,
         marginTop: 2,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    checkmarkImage: {
+        width: 8,
+        height: 8,
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        color: 'black',
+        fontWeight: 'bold',
     },
     documentText: {
         fontSize: 11,
         flex: 1,
+        marginRight: 15,
     },
 });
 
 // Componente para el documento PDF
-export const PdfEmployeeRecord = ({ employeeData }: { employeeData: Employee }) => (
+export const PdfEmployeeRecord = ({ employeeData, isChecked }: { employeeData: Employee, isChecked: Record<string, boolean> }) => (
     <Document>
         <Page size="LETTER" style={styles.page}>
-            {/* Imagen de la clínica (requiere tener la imagen en public/img) */}
             <Image
                 src="./media/Logo.png"
                 style={styles.image}
             />
             
-            {/* Títulos */}
             <Text style={styles.clinicName}>Clínica Veterinaria Baalak'</Text>
             <Text style={styles.folderTitle}>Carpeta de Expediente del Personal</Text>
         
-            {/* Sección de datos del trabajador */}
             <Text style={styles.sectionTitle}>Datos del Trabajador</Text>
             <View style={styles.workerData}>
                 <Text style={styles.workerText}>
@@ -92,63 +101,191 @@ export const PdfEmployeeRecord = ({ employeeData }: { employeeData: Employee }) 
                 </Text>
             </View>
         
-            {/* Sección de documentos */}
             <Text style={styles.sectionTitle}>Documentos en el Expediente</Text>
             <View style={styles.documentsSection}>
                 <View style={styles.checkboxRow}>
-                <View style={styles.checkbox} />
-                <Text style={styles.documentText}>Acta de nacimiento</Text>
-                <View style={styles.checkbox} />
-                <Text style={styles.documentText}>Alta del personal</Text>
+                    <View style={styles.checkboxContainer}>
+                        {
+                            isChecked['Acta de nacimiento.pdf'] &&
+                            <Image
+                                src="https://img.icons8.com/ios-filled/20/000000/checkmark--v1.png"
+                                style={styles.checkmarkImage}
+                            />
+                        }
+                    </View>
+                    <Text style={styles.documentText}>Acta de nacimiento</Text>
+                    <View style={styles.checkboxContainer}>
+                    
+                        {
+                            isChecked['Alta del personal.pdf'] &&
+                            <Image
+                                src="https://img.icons8.com/ios-filled/20/000000/checkmark--v1.png"
+                                style={styles.checkmarkImage}
+                            />
+                        }
+                    </View>
+                    <Text style={styles.documentText}>Alta del personal</Text>
                 </View>
                 
                 <View style={styles.checkboxRow}>
-                <View style={styles.checkbox} />
-                <Text style={styles.documentText}>Identificación oficial</Text>
-                <View style={styles.checkbox} />
-                <Text style={styles.documentText}>Contrato laboral</Text>
+                    <View style={styles.checkboxContainer}>
+                        {
+                            isChecked['Identificacion oficial.pdf'] &&
+                            <Image
+                                src="https://img.icons8.com/ios-filled/20/000000/checkmark--v1.png"
+                                style={styles.checkmarkImage}
+                            />
+                        }
+                    </View>
+                    <Text style={styles.documentText}>Identificación oficial</Text>
+                    <View style={styles.checkboxContainer}>
+                        {
+                            isChecked['Contrato laboral.pdf'] &&
+                            <Image
+                                src="https://img.icons8.com/ios-filled/20/000000/checkmark--v1.png"
+                                style={styles.checkmarkImage}
+                            />
+                        }
+                    </View>
+                    <Text style={styles.documentText}>Contrato laboral</Text>
                 </View>
             
                 <View style={styles.checkboxRow}>
-                <View style={styles.checkbox} />
-                <Text style={styles.documentText}>Comprobante de domicilio</Text>
-                <View style={styles.checkbox} />
-                <Text style={styles.documentText}>Autorización para la dispersión de nómina (APDN)</Text>
+                    <View style={styles.checkboxContainer}>
+                        {
+                            isChecked['Comprobante de domicilio.pdf'] &&
+                            <Image
+                                src="https://img.icons8.com/ios-filled/20/000000/checkmark--v1.png"
+                                style={styles.checkmarkImage}
+                            />
+                        }
+                    </View>
+                    <Text style={styles.documentText}>Comprobante de domicilio</Text>
+                    <View style={styles.checkboxContainer}>
+                        {
+                            isChecked['APDN.pdf'] &&
+                            <Image
+                                src="https://img.icons8.com/ios-filled/20/000000/checkmark--v1.png"
+                                style={styles.checkmarkImage}
+                            />
+                        }
+                    </View>
+                    <Text style={styles.documentText}>Autorización para la dispersión de nómina (APDN)</Text>
                 </View>
             
                 <View style={styles.checkboxRow}>
-                <View style={styles.checkbox} />
-                <Text style={styles.documentText}>CURP</Text>
-                <View style={styles.checkbox} />
-                <Text style={styles.documentText}>Acuerdo de confidencialidad</Text>
+                    <View style={styles.checkboxContainer}>
+                        {
+                            isChecked['CURP.pdf'] &&
+                            <Image
+                                src="https://img.icons8.com/ios-filled/20/000000/checkmark--v1.png"
+                                style={styles.checkmarkImage}
+                            />
+                        }
+                    </View>
+                    <Text style={styles.documentText}>CURP</Text>
+                    <View style={styles.checkboxContainer}>
+                        {
+                            isChecked['Acuerdo de confidencialidad.pdf'] &&
+                            <Image
+                                src="https://img.icons8.com/ios-filled/20/000000/checkmark--v1.png"
+                                style={styles.checkmarkImage}
+                            />
+                        }
+                    </View>
+                    <Text style={styles.documentText}>Acuerdo de confidencialidad</Text>
                 </View>
                 
                 <View style={styles.checkboxRow}>
-                <View style={styles.checkbox} />
-                <Text style={styles.documentText}>RFC</Text>
-                <View style={styles.checkbox} />
-                <Text style={styles.documentText}>Código de ética</Text>
+                    <View style={styles.checkboxContainer}>
+                        {
+                            isChecked['RFC.pdf'] &&
+                            <Image
+                                src="https://img.icons8.com/ios-filled/20/000000/checkmark--v1.png"
+                                style={styles.checkmarkImage}
+                            />
+                        }
+                    </View>
+                    <Text style={styles.documentText}>RFC</Text>
+                    <View style={styles.checkboxContainer}>
+                        {
+                            isChecked['Codigo de etica.pdf'] &&
+                            <Image
+                                src="https://img.icons8.com/ios-filled/20/000000/checkmark--v1.png"
+                                style={styles.checkmarkImage}
+                            />
+                        }
+                    </View>
+                    <Text style={styles.documentText}>Código de ética</Text>
                 </View>
             
                 <View style={styles.checkboxRow}>
-                <View style={styles.checkbox} />
-                <Text style={styles.documentText}>Número de seguro social</Text>
-                <View style={styles.checkbox} />
-                <Text style={styles.documentText}>Reglamento interno de bienestar animal (RIBA)</Text>
+                    <View style={styles.checkboxContainer}>
+                        {
+                            isChecked['NSS.pdf'] &&
+                            <Image
+                                src="https://img.icons8.com/ios-filled/20/000000/checkmark--v1.png"
+                                style={styles.checkmarkImage}
+                            />
+                        }
+                    </View>
+                    <Text style={styles.documentText}>Número de seguro social</Text>
+                    <View style={styles.checkboxContainer}>
+                        {
+                            isChecked['RIBA.pdf'] &&
+                            <Image
+                                src="https://img.icons8.com/ios-filled/20/000000/checkmark--v1.png"
+                                style={styles.checkmarkImage}
+                            />
+                        }
+                    </View>
+                    <Text style={styles.documentText}>Reglamento interno de bienestar animal (RIBA)</Text>
                 </View>
                 
                 <View style={styles.checkboxRow}>
-                <View style={styles.checkbox} />
-                <Text style={styles.documentText}>Solicitud de Empleo</Text>
-                <View style={styles.checkbox} />
-                <Text style={styles.documentText}>Reglamento interior de trabajo (RIT)</Text>
+                    <View style={styles.checkboxContainer}>
+                        {
+                            isChecked['Solicitud de empleo.pdf'] &&
+                            <Image
+                                src="https://img.icons8.com/ios-filled/20/000000/checkmark--v1.png"
+                                style={styles.checkmarkImage}
+                            />
+                        }
+                    </View>
+                    <Text style={styles.documentText}>Solicitud de Empleo</Text>
+                    <View style={styles.checkboxContainer}>
+                        {
+                            isChecked['RIT.pdf'] &&
+                            <Image
+                                src="https://img.icons8.com/ios-filled/20/000000/checkmark--v1.png"
+                                style={styles.checkmarkImage}
+                            />
+                        }
+                    </View>
+                    <Text style={styles.documentText}>Reglamento interior de trabajo (RIT)</Text>
                 </View>
             
                 <View style={styles.checkboxRow}>
-                <View style={styles.checkbox} />
-                <Text style={styles.documentText}>Constancias / Certificados</Text>
-                <View style={styles.checkbox} />
-                <Text style={styles.documentText}>Perfil de puesto</Text>
+                    <View style={styles.checkboxContainer}>
+                        {
+                            (isChecked['Certificado de estudios.pdf'] || isChecked['Cedula profesional.pdf']) &&
+                            <Image
+                                src="https://img.icons8.com/ios-filled/20/000000/checkmark--v1.png"
+                                style={styles.checkmarkImage}
+                            />
+                        }
+                    </View>
+                    <Text style={styles.documentText}>Certificado de estudios / Cédula profesional</Text>
+                    <View style={styles.checkboxContainer}>
+                        {
+                            isChecked['Perfil de puesto.pdf'] &&
+                            <Image
+                                src="https://img.icons8.com/ios-filled/20/000000/checkmark--v1.png"
+                                style={styles.checkmarkImage}
+                            />
+                        }
+                    </View>
+                    <Text style={styles.documentText}>Perfil de puesto</Text>
                 </View>
             </View>
         </Page>

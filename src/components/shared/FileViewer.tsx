@@ -11,7 +11,7 @@ export const FileViewer: React.FC<{ file: FileWithPreview }> = ({ file }) => {
                     <iframe
                         src={url}
                         title="preview"
-                        className="w-full h-[80px] rounded-md bg-white"
+                        className="w-full h-[150px] rounded-md bg-white"
                     />
                 </div>
             );

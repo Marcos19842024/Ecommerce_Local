@@ -48,6 +48,24 @@ const FileGallery = ({ employee }: FileGalleryProps) => {
   const [send, setSend] = useState(false);
   const [download, setDownload] = useState(false);
   const [email, setEmail] = useState('');
+  const [isChecked, setIsChecked] = useState({
+    "Acta de nacimiento.pdf": Boolean(false),
+    "Alta del personal.pdf": Boolean(false),
+    "Identificacion oficial.pdf": Boolean(false),
+    "Contrato laboral.pdf": Boolean(false),
+    "Comprobante de domicilio.pdf": Boolean(false),
+    "APDN.pdf": Boolean(false),
+    "CURP.pdf": Boolean(false),
+    "Acuerdo de confidencialidad.pdf": Boolean(false),
+    "RFC.pdf": Boolean(false),
+    "Codigo de etica.pdf": Boolean(false),
+    "NSS.pdf": Boolean(false),
+    "RIBA.pdf": Boolean(false),
+    "Solicitud de empleo.pdf": Boolean(false),
+    "RIT.pdf": Boolean(false),
+    "Certificado de estudios.pdf / Cedula profesional.pdf": Boolean(false),
+    "Perfil de puesto.pdf": Boolean(false)
+  });
   const [showEmailInput, setShowEmailInput] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
@@ -72,6 +90,7 @@ const FileGallery = ({ employee }: FileGalleryProps) => {
         if (serverFiles.length > 0) {
           // Convertir archivos del backend al formato GalleryFile
           const formattedFiles: FileWithPreview[] = serverFiles.map((file: any, index: number) => {
+            setIsChecked((prev) => ({...prev, [file.name]: true}));
             const ext = file.name.split('.').pop() || ''
             const [icon, color] = getFileTypes(ext)
             return {
@@ -364,8 +383,9 @@ const FileGallery = ({ employee }: FileGalleryProps) => {
   };
 
   const handleGeneratePDF = async () => {
-  
-    const blob = await pdf(<PdfEmployeeRecord employeeData={employee} />).toBlob();
+
+    await loadFiles();
+    const blob = await pdf(<PdfEmployeeRecord employeeData={employee} isChecked={isChecked} />).toBlob();
     const formData = new FormData();
     formData.append('file', blob, 'Caratula.pdf');
 
@@ -497,18 +517,30 @@ const FileGallery = ({ employee }: FileGalleryProps) => {
       
       {/* Miniaturas */}
       <div className="mt-4">
-        <h3 className="mb-2 text-xl font-semibold text-gray-700">Todos los archivos</h3>
+        <h3 className="mb-2 text-sm font-semibold text-gray-700">Todos los archivos</h3>
         {files.length > 0 ? (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
             {files.map((file) => (
               <div
                 key={file.id}
                 className="cursor-pointer overflow-hidden rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition-all hover:shadow-md relative group"
+                onClick={() => isActive && window.open(file.url, '_blank')}
               >
-                <div className="h-20">
+                {isActive && (
+                  <div className="flex justify-end mb-1 absolute top-0.5 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => requestDeleteFile(file.name)}
+                      className="flex items-center px-1 w-full h-fullborder text-sm rounded-md shadow-sm text-white bg-slate-600 hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                    >
+                      x
+                    </button>
+                  </div>
+                )}
+                <div
+                  className="h-40">
                   <FileViewer file={file} />
                 </div>
-                <div className="m-2 w-full">
+                <div className="m-2 w-fit h-fit">
                   <div className="gap-2 flex grid-col-2 items-center justify-between text-sm text-gray-500">
                     <i className={file.icon} style={{ color: file.color }}></i>
                     <span className='w-full'>{file.name}</span>
@@ -517,24 +549,6 @@ const FileGallery = ({ employee }: FileGalleryProps) => {
                     <span className='justify-start w-fit m-2'>Subido: {file.uploadDate}</span>
                     <span className='justify-end w-fit m-2'>{file.size}</span>
                   </div>
-                  {isActive && (
-                    <div className="m-3 gap-2 flex justify-between">
-                      <a 
-                        href={file.url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-cyan-600 hover:bg-yellow-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500"
-                      >
-                        Abrir
-                      </a>
-                      <button
-                        onClick={() => requestDeleteFile(file.name)}
-                        className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-full shadow-sm text-white bg-red-600 hover:bg-yellow-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                      >
-                        Eliminar
-                      </button>
-                    </div>
-                  )}
                 </div>
               </div>
             ))}
