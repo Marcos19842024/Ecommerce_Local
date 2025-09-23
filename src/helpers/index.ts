@@ -20,7 +20,6 @@ export const prepareClients = (rows: Row[]) => {
 				telefono,
 				mascotas: [],
 				mensajes: [],
-				archivos: [],
 				status: false
 			};
 			acc.push(cliente);
@@ -119,7 +118,6 @@ export const prepareContacts = (contacts: ContactItem[]) => {
 					telefono: contact.number.slice(-10),
 					mascotas: [],
 					mensajes: [],
-					archivos: [],
 					status: false
 				});
 			}

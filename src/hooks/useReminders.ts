@@ -1,18 +1,14 @@
 import { useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
 import { getFileTypes } from "../utils/files";
-import { Cliente, MessageBubble } from "../interfaces/reminders.interface";
+import { Cliente, MessageBubble, RemindersProps } from "../interfaces/reminders.interface";
 import { url } from "../server/url";
 import { cel, center } from "../server/user";
 import { FileWithPreview } from "../interfaces/shared.interface";
+import { createNewMsg } from "../utils/messages";
 
-interface Props {
-  clientes: Cliente[];
-}
-
-export const useReminders = ({clientes}: Props) => {
+export const useReminders = ({clientes}: RemindersProps) => {
   const [messages, setMessages] = useState<MessageBubble[]>([]);
-  const [files, setFiles] = useState<FileWithPreview[]>([]);
   const [msjo, setMsjo] = useState("");
   const [loader, setLoader] = useState(false);
   const enviados = useMemo(() => clientes.filter((c) => c.status), [clientes]);
@@ -32,7 +28,7 @@ export const useReminders = ({clientes}: Props) => {
       .then((res) => res.json())
       .then((res) => {
         if (!res.err) {
-          const newFiles: FileWithPreview[] = res.statusText.map((filename: string) => {
+          const newFilesWhitPreview: FileWithPreview[] = res.statusText.map((filename: string) => {
             const ext = filename.split(".").pop() || "";
             const [icon, color] = getFileTypes(ext);
             return {
@@ -44,10 +40,23 @@ export const useReminders = ({clientes}: Props) => {
               url: `${url}media/${filename}`,
             };
           });
-          setFiles((prev) => [
-            ...prev,
-            ...newFiles.filter((nf) => !prev.find((f) => f.name === nf.name)),
-          ]);
+          const newFiles = newFilesWhitPreview.map((file) =>
+            createNewMsg(file)
+          );
+          // Evitar duplicados
+          setMessages((prev) => {
+            // Separar strings de files
+            const strings = prev.filter(msg => typeof msg.message === 'string');
+            const existingFiles = prev.filter(msg => typeof msg.message !== 'string');
+            
+            // Filtrar nuevos archivos que no existen
+            const uniqueNewFiles = newFiles.filter(nf =>
+              !existingFiles.some(f => (f.message as FileWithPreview).name === (nf.message as FileWithPreview).name)
+            );
+            
+            // Combinar strings + archivos existentes + archivos nuevos únicos
+            return [...strings, ...existingFiles, ...uniqueNewFiles];
+          });
           toast.success("Archivos subidos correctamente");
           setLoader(false);
         } else {
@@ -61,10 +70,14 @@ export const useReminders = ({clientes}: Props) => {
 
   const handleSend = async (cliente: Cliente) => {
     setLoader(true);
+    
+    // Separar strings de files
+    const messagesStrings = messages.filter(msg => typeof msg.message === 'string');
+    const messagesFiles = messages.filter(msg => typeof msg.message !== 'string');
     let data = {
-      message: [...cliente.mensajes, ...messages.map((msj) => msj.message)],
+      message: [...cliente.mensajes.map((msg) => msg.message), ...messagesStrings.map((msj) => msj.message)],
       phone: `521${cliente.telefono}`,
-      pathtofiles: files.map((file) => file.name),
+      pathtofiles: messagesFiles.map((file) => (file.message as FileWithPreview).name),
     };
     await fetch(`${url}wwebjs/send/${center}/${cel}`, {
       method: "POST",
@@ -77,50 +90,56 @@ export const useReminders = ({clientes}: Props) => {
     .then((res) => {
       if (!res.err) {
         cliente.status = true;
-        cliente.mensajes.push(...messages.map((msj) => msj.message));
-        cliente.archivos.push(...files.map((file) => file));
+        cliente.mensajes.push(...messages.map((msj) => msj));
         toast.success("Mensaje enviado correctamente");
-        setLoader(false);
       } else {
         toast.error(res.statusText);
-        setLoader(false);
       }
+
+      setLoader(false);
     })
     .catch(() => toast.error("Error en la respuesta del servidor"));
     setLoader(false);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>, newMsg: MessageBubble) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       if (msjo.trim() === "") {
         toast.error("Por favor, escribe un mensaje antes de enviar.");
       } else {
-        //newMsg.message = msjo;
-        setMessages((prev) => [...prev, newMsg]);
+        const msjob = createNewMsg(msjo);
+        setMessages((prev) => [...prev, msjob]);
         setMsjo("");
       }
     }
   };
 
-  const deleteMessage = (id?: string, fileToDelete?: FileWithPreview) => {
-    if (id) setMessages((prev) => prev.filter((msg) => msg.id !== id));
-    if (fileToDelete) {
-      setFiles((prev) => prev.filter((f) => f.id !== fileToDelete.id));
+  const deleteMessage = (id: string) => {
+    const messageToDelete = messages.find((msj) => msj.id === id);
+    
+    if (id) {
+      setMessages((prev) => prev.filter((msg) => msg.id !== id));
+    }
+    
+    if (messageToDelete?.message && typeof messageToDelete.message !== "string") {
       setLoader(true);
-      fetch(`${url}wwebjs/delete/${fileToDelete.name}`, { method: "DELETE" })
+      fetch(`${url}wwebjs/${(messageToDelete.message as FileWithPreview).name}`, { 
+        method: "DELETE" 
+      })
         .then((res) => res.json())
         .then((res) => {
           if (!res.err) {
             toast.success("Archivo eliminado correctamente");
-            setLoader(false);
           } else {
             toast.error(res.err);
-            setLoader(false);
           }
+          setLoader(false);
         })
-        .catch(() => toast.error("Error en la respuesta del servidor"));
-        setLoader(false);
+        .catch(() => {
+          toast.error("Error en la respuesta del servidor");
+          setLoader(false);
+        });
     }
   };
 
@@ -129,11 +148,8 @@ export const useReminders = ({clientes}: Props) => {
     noEnviados,
     loader,
     messages,
-    setMessages,
     msjo,
     setMsjo,
-    files,
-    setFiles,
     handleUpload,
     handleSend,
     handleKeyDown,

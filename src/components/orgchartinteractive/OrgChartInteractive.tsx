@@ -4,12 +4,11 @@ import { RiDeleteBin2Line } from "react-icons/ri";
 import { FiEdit } from "react-icons/fi";
 import { VscFileSymlinkDirectory } from "react-icons/vsc";
 import { url } from "../../server/url";
+import { Employee, OrgNode } from "../../interfaces/orgchartinteractive.interface";
 import toast from "react-hot-toast";
 import Tree from "react-d3-tree";
 import FileGallery from "./FileGallery";
 import PasswordPrompt from "../shared/PasswordPrompt";
-import { password } from "../../server/user";
-import { Employee, OrgNode } from "../../interfaces/orgchartinteractive.interface";
 import Modal from "../shared/Modal";
 import NodeAction from "./NodeAction";
 
@@ -437,7 +436,6 @@ export default function OrgChartInteractive() {
                 deleteNode();
               }}
               message="Ingrese la contraseña para eliminar el nodo"
-              correctPassword={password}
             />
           </Modal>
         )}

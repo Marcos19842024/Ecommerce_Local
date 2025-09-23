@@ -19,20 +19,21 @@ export interface Cliente {
     nombre: string;
     telefono: string;
     mascotas: Mascota[];
-    mensajes: string[];
-    archivos: FileWithPreview[];
+    mensajes: MessageBubble[];
     status: boolean;
 }
 
+export type TypeContent = string | FileWithPreview;
+
 export interface MessageBubble {
     id: string;
-    message: string;
-    file?: FileWithPreview | null;
+    message: TypeContent;
     senderName: string;
     timestamp: string; // Formato como "10:30 AM"
     avatarUrl: string;
     isOwnMessage: boolean;
     editable: boolean;
+    onDelete?: (id: string) => void;
 }
 
 export interface ContactId {
@@ -48,4 +49,8 @@ export interface ContactItem {
 
 export interface ContactResponse {
     statusText: ContactItem[];
+}
+
+export interface RemindersProps {
+  clientes: Cliente[];
 }

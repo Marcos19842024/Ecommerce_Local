@@ -429,17 +429,14 @@ export const ExpenseReport = () => {
             </div>
             {!isLoading && (
               <div className="flex col-span-2 gap-2 w-full items-center justify-end">
-                <button
-                  disabled={rows.length === 0} // 🔹 desactiva si no hay filas
-                  onClick={() => handleSendReport()}
-                  className={`flex w-full items-center gap-2 p-2 rounded-md text-white text-sm transition-all group 
-                    ${rows.length === 0 
-                      ? "bg-gray-400 cursor-not-allowed"   // 🔹 estilo deshabilitado
-                      : "bg-cyan-600 hover:bg-yellow-500 hover:scale-105"
-                    }`}
-                >
-                  <CgCalendarNext size={18} color="white"/> Terminar Reporte
-                </button>
+                {rows.length > 0 && (
+                  <button
+                    onClick={() => handleSendReport()}
+                    className="flex w-full items-center gap-2 p-2 rounded-md text-white text-sm transition-all group bg-cyan-600 hover:bg-yellow-500 hover:scale-105"
+                  >
+                    <CgCalendarNext size={18} color="white"/> Terminar Reporte
+                  </button>
+                )}
                 <button
                   onClick={() => { resetForm(); handleSelectSave(); }}
                   className="flex w-full items-center gap-2 p-2 rounded-md text-white text-sm transition-all group bg-cyan-600 hover:bg-yellow-500 hover:scale-105"

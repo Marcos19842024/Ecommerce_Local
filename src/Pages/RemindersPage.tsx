@@ -109,83 +109,83 @@ export const RemindersPage = () => {
   const handleModalContainerClick = (e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation();
 
   return (
-    <div className="relative h-full flex flex-col gap-4 p-4">
-      {showQr && 
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-          onClick={() => setShowQr(false)}
-        >
-          <div onClick={handleModalContainerClick}>
-            <div
+    <div className="flex flex-col flex-1 w-full min-h-screen p-4">
+      <div className="overflow-y-auto rounded-md bg-white p-2 shadow-md">
+        {showQr && 
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+            onClick={() => setShowQr(false)}
+          >
+            <div onClick={handleModalContainerClick}>
+              <div
                 className="bg-gray-900 rounded-lg shadow-lg text-white"
                 onClick={(e) => e.stopPropagation()} // evita cerrar al hacer clic dentro
-            >
-              <QrCode />  
+              >
+                <QrCode />  
+              </div>
             </div>
           </div>
-        </div>
-      }
-      {/* Título */}
-      <h1 className="text-2xl font-bold">Envío de mensajes</h1>
+        }
 
-      {/* Controles superiores */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        {/* Controles superiores */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
 
-        {/* Botones de control */}
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            className="flex items-center gap-2 text-white rounded-md px-3 py-2 transition-all bg-cyan-600 hover:bg-yellow-500 hover:scale-105"
-            type="button"
-            onClick={handleStatus}
-          >
-            <FaWhatsapp /> {status}
-          </button>
-
-          <button
-            className="flex items-center gap-2 text-white rounded-md px-3 py-2 transition-all bg-cyan-600 hover:bg-yellow-500 hover:scale-105"
-            type="button"
-            onClick={() => setShowQr(!showQr)}
-          >
-            <BsQrCodeScan /> Escanear QR
-          </button>
-        </div>
-
-        {/* Lista o carga de archivo */}
-        {showIb ? (
+          {/* Botones de control */}
           <div className="flex flex-wrap items-center gap-2">
-            <input
-              type="file"
-              id="inputfile"
-              accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-              onChange={handleFile}
-              hidden
-            />
+            <button
+              className="flex items-center gap-2 text-white rounded-md px-3 py-2 transition-all bg-cyan-600 hover:bg-yellow-500 hover:scale-105"
+              type="button"
+              onClick={handleStatus}
+            >
+              <FaWhatsapp /> {status}
+            </button>
 
             <button
               className="flex items-center gap-2 text-white rounded-md px-3 py-2 transition-all bg-cyan-600 hover:bg-yellow-500 hover:scale-105"
-              onClick={getContact}
+              type="button"
+              onClick={() => setShowQr(!showQr)}
             >
-              <RiMobileDownloadLine />
-              Descargar Contactos
+              <BsQrCodeScan /> Escanear QR
             </button>
+          </div>
 
-            <label
-              htmlFor="inputfile"
-              className="cursor-pointer bg-cyan-600 text-white flex items-center px-3 py-2 rounded-md gap-2 hover:bg-yellow-500 hover:scale-105 transition-all"
-            >
-              <GrDocumentUpload />
-              Subir Lista
-            </label>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 text-cyan-700 text-sm font-medium">
-            {list ? (
-              <FaWhatsapp />
-            ) : (
-              <i className="fa fa-file-excel-o text-green-600" />
-            )}
-            <span>{`${info} (${clientes?.length || 0} Registros)`}</span>
-          </div>
-        )}
+          {/* Lista o carga de archivo */}
+          {showIb ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                type="file"
+                id="inputfile"
+                accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                onChange={handleFile}
+                hidden
+              />
+
+              <button
+                className="flex items-center gap-2 text-white rounded-md px-3 py-2 transition-all bg-cyan-600 hover:bg-yellow-500 hover:scale-105"
+                onClick={getContact}
+              >
+                <RiMobileDownloadLine />
+                Descargar Contactos
+              </button>
+
+              <label
+                htmlFor="inputfile"
+                className="cursor-pointer bg-cyan-600 text-white flex items-center px-3 py-2 rounded-md gap-2 hover:bg-yellow-500 hover:scale-105 transition-all"
+              >
+                <GrDocumentUpload />
+                Subir Lista
+              </label>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-cyan-700 text-sm font-medium">
+              {list ? (
+                <FaWhatsapp />
+              ) : (
+                <i className="fa fa-file-excel-o text-green-600" />
+              )}
+              <span>{`${info} (${clientes?.length || 0} Registros)`}</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Componente de mensajes */}

@@ -2,6 +2,7 @@ import readXlsxFile from 'read-excel-file';
 import { prepareClients } from '../helpers';
 import { Cliente, Mascota, Recordatorio } from '../interfaces/reminders.interface';
 import toast from 'react-hot-toast';
+import { createNewMsg } from './messages';
 
 interface Props {
 	e: React.ChangeEvent<HTMLInputElement>;
@@ -45,7 +46,7 @@ export const getClients = async ({e}: Props) => {
         clientes.forEach(cliente => {
             const mascotas = cliente.mascotas;
             let mensaje;
-            cliente.mensajes.push(`Hola ${cliente.nombre}.`);
+            cliente.mensajes.push(createNewMsg(`Hola ${cliente.nombre}.`));
 
             if (mascotas.length === 1) {
                 mensaje = "su mascota '" + mascotas[0].nombre + "'," + ListReminders(mascotas[0]);
@@ -65,7 +66,7 @@ export const getClients = async ({e}: Props) => {
                 }
             }
             mensaje += " el día " + mascotas[0].recordatorios[0].tipos[0].fecha + ".";
-            cliente.mensajes.push(`La clínica veterinaria Baalak', le informa que ${mensaje}`)
+            cliente.mensajes.push(createNewMsg(`La clínica veterinaria Baalak', le informa que ${mensaje}`));
         });
         return clientes;
     }

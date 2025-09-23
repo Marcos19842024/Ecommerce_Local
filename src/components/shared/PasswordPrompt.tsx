@@ -1,23 +1,23 @@
 import React, { useState } from 'react';
+import { password } from '../../server/user';
 import { Password } from '../../interfaces/shared.interface';
 
 const PasswordPrompt: React.FC<Password> = ({
   onSuccess,
-  message = "Ingrese la contraseña para continuar",
-  correctPassword
+  message
 }) => {
-  const [password, setPassword] = useState('');
+  const [checkPassword, setCheckPassword] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (password === correctPassword) {
+    if (checkPassword === password) {
       onSuccess();
     } else {
       alert('❌ Contraseña incorrecta');
     }
     
-    setPassword('');
+    setCheckPassword('');
   };
 
   return (
@@ -29,8 +29,8 @@ const PasswordPrompt: React.FC<Password> = ({
       <form onSubmit={handleSubmit} className="space-y-3">
         <input
           type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          value={checkPassword}
+          onChange={(e) => setCheckPassword(e.target.value)}
           placeholder="Escribe la contraseña"
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           autoFocus

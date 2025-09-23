@@ -21,5 +21,4 @@ export interface Modal {
 export interface Password {
   onSuccess: () => void;
   message?: string;
-  correctPassword: string;
 }

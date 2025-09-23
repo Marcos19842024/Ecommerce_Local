@@ -24,10 +24,8 @@ export const TransportPage = () => {
     }
 
     return (
-        <>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full">
-                <h1 className="text-2xl font-bold">Lista de transportes</h1>
-
+        <div className="flex flex-col flex-1 w-full min-h-screen p-4">
+            <div className="overflow-y-auto rounded-md bg-white p-2 shadow-md">
                 {showIb ? (
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                         <input
@@ -55,7 +53,8 @@ export const TransportPage = () => {
                 )}
             </div>
 
+            {/* Transport Component */}
             <Transport fechas={fechas} />
-        </>
+        </div>
     );
 }

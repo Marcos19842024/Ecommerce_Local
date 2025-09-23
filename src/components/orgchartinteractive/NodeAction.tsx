@@ -1,11 +1,5 @@
 import { useState } from "react";
-import { Employee } from "../../interfaces/orgchartinteractive.interface";
-
-interface NodeActionProps {
-    modalAction?: string;
-    modalEmployee?: Employee | null;
-    onSuccess: any
-}
+import { Employee, NodeActionProps } from "../../interfaces/orgchartinteractive.interface";
 
 const NodeAction: React.FC<NodeActionProps> = ({
     modalAction,
