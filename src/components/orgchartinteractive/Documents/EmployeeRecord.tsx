@@ -1,9 +1,9 @@
 import { pdf } from "@react-pdf/renderer";
-import { Employee } from "../../interfaces/orgchartinteractive.interface";
-import { FileWithPreview } from "../../interfaces/shared.interface";
-import { PdfEmployeeRecord } from "./PdfEmployeeRecord";
-import { url } from "../../server/url";
+import { Employee } from "../../../interfaces/orgchartinteractive.interface";
+import { FileWithPreview } from "../../../interfaces/shared.interface";
+import { url } from "../../../server/url";
 import toast from "react-hot-toast";
+import { PdfEmployeeRecord } from "../PdfDocuments/PdfEmployeeRecord";
 
 interface RecordStatus {
     [key: string]: boolean;

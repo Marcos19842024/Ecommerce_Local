@@ -6,11 +6,19 @@ import { FileWithPreview } from '../../interfaces/shared.interface';
 import { FileGalleryProps } from '../../interfaces/orgchartinteractive.interface';
 import { MdOutlineRemoveRedEye } from 'react-icons/md';
 import { IoCloseOutline } from 'react-icons/io5';
-import { EmployeeRecord } from './EmployeeRecord';
+import { EmployeeRecord } from './Documents/EmployeeRecord';
 import Modal from '../shared/Modal';
 import toast from 'react-hot-toast';
 import PasswordPrompt from '../shared/PasswordPrompt';
-import StaffRecruitment from './StaffRecruitment';
+import StaffRecruitment from './Documents/StaffRecruitment';
+import EmployeementContract from './Documents/EmploymentContract';
+import APDN from './Documents/APDN';
+import ConfidentialityAgreement from './Documents/ConfidentialityAgreement';
+import CodeOfEthics from './Documents/CodeOfEthics';
+import RIBA from './Documents/RIBA';
+import RIT from './Documents/RIT';
+import JobProfile from './Documents/JobProfile';
+import PerformanceEvaluation from './Documents/PerformanceEvaluation';
 
 const RECORD_DOCUMENTS = [
   "Caratula.pdf",
@@ -22,7 +30,7 @@ const RECORD_DOCUMENTS = [
   "RIBA.pdf",
   "RIT.pdf",
   "Perfil de puesto.pdf",
-  "Evaluacion de desempeño"
+  "Evaluacion de desempeño.pdf"
 ];
 
 const INITIAL_FILES: FileWithPreview[] = [
@@ -487,7 +495,38 @@ const FileGallery = ({ employee }: FileGalleryProps) => {
               onClose={handleCloseForm}
             />
           )}
-          {/* Agrega otros formularios aquí cuando los implementes */}
+          {showComponent === "Contrato laboral.pdf" && (
+            <EmployeementContract
+            />
+          )}
+          {showComponent === "APDN.pdf" && (
+            <APDN
+            />
+          )}
+          {showComponent === "Acuerdo de confidencialidad.pdf" && (
+            <ConfidentialityAgreement
+            />
+          )}
+          {showComponent === "Codigo de etica.pdf" && (
+            <CodeOfEthics
+            />
+          )}
+          {showComponent === "RIBA.pdf" && (
+            <RIBA
+            />
+          )}
+          {showComponent === "RIT.pdf" && (
+            <RIT
+            />
+          )}
+          {showComponent === "Perfil de puesto.pdf" && (
+            <JobProfile
+            />
+          )}
+          {showComponent === "Evaluacion de desempeño.pdf" && (
+            <PerformanceEvaluation
+            />
+          )}
         </Modal>
       )}
     </div>

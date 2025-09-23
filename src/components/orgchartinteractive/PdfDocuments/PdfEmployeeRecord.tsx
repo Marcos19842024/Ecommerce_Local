@@ -1,5 +1,5 @@
 import { Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer';
-import { Employee } from '../../interfaces/orgchartinteractive.interface';
+import { Employee } from '../../../interfaces/orgchartinteractive.interface';
 
 const styles = StyleSheet.create({
     page: {
@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
 });
 
 // Componente para el documento PDF
-export const PdfRIBA = ({ employeeData, isChecked }: { employeeData: Employee, isChecked: Record<string, boolean> }) => (
+export const PdfEmployeeRecord = ({ employeeData, isChecked }: { employeeData: Employee, isChecked: Record<string, boolean> }) => (
     <Document>
         <Page size="LETTER" style={styles.page}>
             <Image

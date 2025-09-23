@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { PersonalFormData, StaffRecruitmentProps } from '../../interfaces/orgchartinteractive.interface';
-import toast from 'react-hot-toast';
-import { url } from '../../server/url';
-import { PdfStaffRecruitment } from './PdfStaffRecruitment';
+import { PersonalFormData, StaffRecruitmentProps } from '../../../interfaces/orgchartinteractive.interface';
+import { url } from '../../../server/url';
 import { pdf } from '@react-pdf/renderer';
+import { PdfStaffRecruitment } from '../PdfDocuments/PdfStaffRecruitment';
+import toast from 'react-hot-toast';
 
 const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
 

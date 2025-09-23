@@ -1,5 +1,5 @@
 import { Document, Page, Text, View, StyleSheet, Font, Image } from '@react-pdf/renderer';
-import { PersonalFormData } from '../../interfaces/orgchartinteractive.interface';
+import { PersonalFormData } from '../../../interfaces/orgchartinteractive.interface';
 
 // Registrar fuentes
 Font.register({
