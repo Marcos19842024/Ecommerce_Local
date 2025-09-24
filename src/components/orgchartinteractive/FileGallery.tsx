@@ -340,8 +340,8 @@ const FileGallery = ({employee}: {employee: Employee}) => {
   return (
     <div className="mx-auto max-w-6xl px-1 py-1 w-[80vw]">
       <div className="m-1 gap-1 flex justify-between flex-wrap">
-        <div className="m-1 gap-2 flex items-center">
-          <h2 className="text-2xl font-bold text-gray-800">{alias}</h2>
+        <div className="m-1 gap-2 flex flex-col">
+          <h2 className="text-1xl font-bold text-gray-800">{alias}</h2>
           <p className="text-gray-600">{`(${area} - ${puesto})`}</p>
         </div>
         
