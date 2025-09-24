@@ -3,7 +3,7 @@ import { url } from '../../server/url';
 import { getFileTypes } from '../../utils/files';
 import { FileViewer } from '../shared/FileViewer';
 import { FileWithPreview } from '../../interfaces/shared.interface';
-import { FileGalleryProps } from '../../interfaces/orgchartinteractive.interface';
+import { Employee } from '../../interfaces/orgchartinteractive.interface';
 import { MdOutlineRemoveRedEye } from 'react-icons/md';
 import { IoCloseOutline } from 'react-icons/io5';
 import { EmployeeRecord } from './Documents/EmployeeRecord';
@@ -46,7 +46,7 @@ const INITIAL_FILES: FileWithPreview[] = [
   }
 ];
 
-const FileGallery = ({ employee }: FileGalleryProps) => {
+const FileGallery = ({employee}: {employee: Employee}) => {
   const { name, alias, puesto, area } = employee;
   const [files, setFiles] = useState<FileWithPreview[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -497,6 +497,8 @@ const FileGallery = ({ employee }: FileGalleryProps) => {
           )}
           {showComponent === "Contrato laboral.pdf" && (
             <EmployeementContract
+              employee={employee}
+              onClose={handleCloseForm}
             />
           )}
           {showComponent === "APDN.pdf" && (

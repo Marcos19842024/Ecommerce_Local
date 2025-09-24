@@ -21,12 +21,12 @@ const PasswordPrompt: React.FC<Password> = ({
   };
 
   return (
-    <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
+    <div className="container mx-auto p-2 gap-2 bg-gray-50">
       <p className="text-center text-gray-700 mb-4">
         {message}
       </p>
       
-      <form onSubmit={handleSubmit} className="space-y-3">
+      <form onSubmit={handleSubmit} className="space-y-1">
         <input
           type="password"
           value={checkPassword}
@@ -36,10 +36,10 @@ const PasswordPrompt: React.FC<Password> = ({
           autoFocus
         />
         
-        <div className="flex gap-2">
+        <div className="flex gap-2 px-3 py-2">
           <button
             type="submit"
-            className="flex-1 bg-cyan-600 text-white py-2 px-4 rounded-md hover:bg-yellow-500"
+            className="flex-1 bg-cyan-600 text-white py-2 px-3 rounded-md hover:bg-yellow-500"
           >
             Verificar
           </button>

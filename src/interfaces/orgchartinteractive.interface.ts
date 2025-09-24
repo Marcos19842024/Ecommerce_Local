@@ -23,10 +23,6 @@ export interface NodeActionProps {
   onSuccess: any
 }
 
-export interface FileGalleryProps {
-  employee: Employee;
-}
-
 export interface StaffRecruitmentProps {
   employee: Employee;
   onClose: () => void;
@@ -73,4 +69,15 @@ export interface PersonalFormData {
       parentesco: string;
     };
   };
+}
+
+export interface ContractData {
+  trabajador: string;
+  estadoOrigen: string;
+  curp: string;
+  rfc: string;
+  duracionContrato: string;
+  salarioDiario: string;
+  salarioSemanal: string;
+  fechaContrato: string;
 }

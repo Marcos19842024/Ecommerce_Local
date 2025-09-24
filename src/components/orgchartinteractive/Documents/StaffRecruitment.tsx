@@ -108,7 +108,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
     }
   };
 
-  const handleGeneratePDF = async () => {
+  const handleGeneratePdf = async () => {
     try {
       const blob = await pdf(<PdfStaffRecruitment data={formData} />).toBlob();
       const formDataUpload = new FormData();
@@ -138,7 +138,10 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
           <h2 className="text-xl font-semibold mb-4">Información Personal</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nombre(s)</label>
+              <label 
+                className="block text-sm font-medium text-gray-700 mb-1"
+                htmlFor="nombres">Nombre(s)
+              </label>
               <input
                 type="text"
                 name="nombres"
@@ -148,7 +151,10 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Apellido Paterno</label>
+              <label
+                className="block text-sm font-medium text-gray-700 mb-1"
+                htmlFor="apellidoPaterno">Apellido Paterno
+              </label>
               <input
                 type="text"
                 name="apellidoPaterno"
@@ -158,7 +164,10 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Apellido Materno</label>
+              <label
+                className="block text-sm font-medium text-gray-700 mb-1"
+                htmlFor="apellidoMaterno">Apellido Materno
+              </label>
               <input
                 type="text"
                 name="apellidoMaterno"
@@ -175,7 +184,10 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
           <h2 className="text-xl font-semibold mb-4">Domicilio</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Calle</label>
+              <label
+                className="block text-sm font-medium text-gray-700 mb-1"
+                htmlFor="domicilio.calle">Calle
+              </label>
               <input
                 type="text"
                 name="domicilio.calle"
@@ -185,7 +197,10 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Número</label>
+              <label
+                className="block text-sm font-medium text-gray-700 mb-1"
+                htmlFor="domicilio.numero">Número
+              </label>
               <input
                 type="text"
                 name="domicilio.numero"
@@ -197,7 +212,10 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Colonia</label>
+              <label 
+                className="block text-sm font-medium text-gray-700 mb-1"
+                htmlFor="domicilio.colonia">Colonia
+              </label>
               <input
                 type="text"
                 name="domicilio.colonia"
@@ -207,7 +225,10 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">C.P.</label>
+              <label
+                className="block text-sm font-medium text-gray-700 mb-1"
+                htmlFor="domicilio.cp">C.P.
+              </label>
               <input
                 type="text"
                 name="domicilio.cp"
@@ -219,7 +240,10 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Ciudad</label>
+              <label
+                className="block text-sm font-medium text-gray-700 mb-1"
+                htmlFor="domicilio.ciudad">Ciudad
+              </label>
               <input
                 type="text"
                 name="domicilio.ciudad"
@@ -229,7 +253,10 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+              <label
+                className="block text-sm font-medium text-gray-700 mb-1"
+                htmlFor="domicilio.estado">Estado
+              </label>
               <input
                 type="text"
                 name="domicilio.estado"
@@ -246,7 +273,10 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
           <h2 className="text-xl font-semibold mb-4">Datos Personales</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Número de celular</label>
+              <label
+                className="block text-sm font-medium text-gray-700 mb-1"
+                htmlFor="datosPersonales.celular">Número de celular
+              </label>
               <input
                 type="text"
                 name="datosPersonales.celular"
@@ -256,7 +286,10 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">RFC</label>
+              <label
+                className="block text-sm font-medium text-gray-700 mb-1"
+                htmlFor="datosPersonales.rfc">RFC
+              </label>
               <input
                 type="text"
                 name="datosPersonales.rfc"
@@ -268,7 +301,10 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de nacimiento</label>
+              <label
+                className="block text-sm font-medium text-gray-700 mb-1"
+                htmlFor="datosPersonales.fechaNacimiento">Fecha de nacimiento
+              </label>
               <input
                 type="date"
                 name="datosPersonales.fechaNacimiento"
@@ -278,7 +314,10 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">CURP</label>
+              <label
+                className="block text-sm font-medium text-gray-700 mb-1"
+                htmlFor="datosPersonales.curp">CURP
+              </label>
               <input
                 type="text"
                 name="datosPersonales.curp"
@@ -290,7 +329,10 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Ciudad de nacimiento</label>
+              <label
+                className="block text-sm font-medium text-gray-700 mb-1"
+                htmlFor="datosPersonales.ciudadNacimiento">Ciudad de nacimiento
+              </label>
               <input
                 type="text"
                 name="datosPersonales.ciudadNacimiento"
@@ -300,7 +342,10 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Estado de nacimiento</label>
+              <label
+                className="block text-sm font-medium text-gray-700 mb-1"
+                htmlFor="datosPersonales.estadoNacimiento">Estado de nacimiento
+              </label>
               <input
                 type="text"
                 name="datosPersonales.estadoNacimiento"
@@ -312,7 +357,10 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Número IMSS</label>
+              <label
+                className="block text-sm font-medium text-gray-700 mb-1"
+                htmlFor="datosPersonales.numeroIMSS">Número IMSS
+              </label>
               <input
                 type="text"
                 name="datosPersonales.numeroIMSS"
@@ -322,7 +370,10 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de ingreso</label>
+              <label
+                className="block text-sm font-medium text-gray-700 mb-1"
+                htmlFor="datosPersonales.fechaIngreso">Fecha de ingreso
+              </label>
               <input
                 type="date"
                 name="datosPersonales.fechaIngreso"
@@ -338,7 +389,10 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
         <div className="mb-6">
           <h2 className="text-xl font-semibold mb-4">Datos Familiares</h2>
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nombre del cónyuge</label>
+            <label
+              className="block text-sm font-medium text-gray-700 mb-1"
+              htmlFor="datosFamiliares.nombreConyuge">Nombre del cónyuge
+            </label>
             <input
               type="text"
               name="datosFamiliares.nombreConyuge"
@@ -349,7 +403,10 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Colonia</label>
+              <label
+                className="block text-sm font-medium text-gray-700 mb-1"
+                htmlFor="datosFamiliares.colonia">Colonia
+              </label>
               <input
                 type="text"
                 name="datosFamiliares.colonia"
@@ -359,7 +416,10 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">C.P.</label>
+              <label
+                className="block text-sm font-medium text-gray-700 mb-1"
+                htmlFor="datosFamiliares.cp">C.P.
+              </label>
               <input
                 type="text"
                 name="datosFamiliares.cp"
@@ -371,7 +431,10 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Ciudad</label>
+              <label
+                className="block text-sm font-medium text-gray-700 mb-1"
+                htmlFor="datosFamiliares.ciudad">Ciudad
+              </label>
               <input
                 type="text"
                 name="datosFamiliares.ciudad"
@@ -381,7 +444,10 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+              <label 
+                className="block text-sm font-medium text-gray-700 mb-1"
+                htmlFor="datosFamiliares.estado">Estado
+              </label>
               <input
                 type="text"
                 name="datosFamiliares.estado"
@@ -400,7 +466,10 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
             <h3 className="text-lg font-medium mb-2">Persona 1</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+                <label
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                  htmlFor="datosEmergencia.persona1.nombre">Nombre
+                </label>
                 <input
                   type="text"
                   name="datosEmergencia.persona1.nombre"
@@ -410,7 +479,10 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Número de celular</label>
+                <label
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                  htmlFor="datosEmergencia.persona1.celular">Número de celular
+                </label>
                 <input
                   type="text"
                   name="datosEmergencia.persona1.celular"
@@ -421,7 +493,10 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Parentesco</label>
+              <label
+                className="block text-sm font-medium text-gray-700 mb-1"
+                htmlFor="datosEmergencia.persona1.parentesco">Parentesco
+              </label>
               <input
                 type="text"
                 name="datosEmergencia.persona1.parentesco"
@@ -436,7 +511,10 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
             <h3 className="text-lg font-medium mb-2">Persona 2</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+                <label
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                  htmlFor="datosEmergencia.persona2.nombre">Nombre
+                </label>
                 <input
                   type="text"
                   name="datosEmergencia.persona2.nombre"
@@ -446,7 +524,10 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Número de celular</label>
+                <label
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                  htmlFor="datosEmergencia.persona2.celular">Número de celular
+                </label>
                 <input
                   type="text"
                   name="datosEmergencia.persona2.celular"
@@ -457,7 +538,10 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Parentesco</label>
+              <label
+                className="block text-sm font-medium text-gray-700 mb-1"
+                htmlFor="datosEmergencia.persona2.parentesco">Parentesco
+              </label>
               <input
                 type="text"
                 name="datosEmergencia.persona2.parentesco"
@@ -472,10 +556,10 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
         <div className="flex justify-center mt-8">
           <button
             type="button"
-            onClick={handleGeneratePDF}
+            onClick={handleGeneratePdf}
             className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-md"
           >
-            Generar PDF
+            Generar Pdf
           </button>
         </div>
       </form>
