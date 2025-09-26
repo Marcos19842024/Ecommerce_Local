@@ -316,6 +316,10 @@ const FileGallery = ({employee}: {employee: Employee}) => {
       EmployeeRecord(files, employee, loadFiles);
       setOptionSelected('');
     }
+    else if (optionSelected === "Contrato laboral.pdf") {
+      const fileExists = checkIfFileExists("Alta del personal.pdf");
+      fileExists ? setShowComponent(optionSelected) : toast.error('Error: No existe el documento "Alta del personal.pdf" para crear el contrato "laboral.pdf" debes crear primero el "Alta del personal.pdf"');
+    }
     else {
       setShowComponent(optionSelected);
     }
@@ -497,7 +501,8 @@ const FileGallery = ({employee}: {employee: Employee}) => {
           )}
           {showComponent === "Contrato laboral.pdf" && (
             <EmployeementContract
-              employee={employee}
+              file={files.find((file) => file.name === "Alta del personal.pdf")}
+              name={name}
               onClose={handleCloseForm}
             />
           )}

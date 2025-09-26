@@ -1,3 +1,5 @@
+import { FileWithPreview } from "./shared.interface";
+
 export interface OrgNode {
   id?: string;
   name: string;
@@ -25,6 +27,12 @@ export interface NodeActionProps {
 
 export interface StaffRecruitmentProps {
   employee: Employee;
+  onClose: () => void;
+}
+
+export interface EmployeeContractProps {
+  file: FileWithPreview | undefined;
+  name: string;
   onClose: () => void;
 }
 

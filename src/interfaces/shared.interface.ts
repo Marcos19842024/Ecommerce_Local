@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 
 export interface FileWithPreview {
+  [x: string]: any;
   id: string
   name: string;
   url: string;

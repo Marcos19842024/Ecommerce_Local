@@ -148,6 +148,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                 value={formData.nombres}
                 onChange={handleInputChange}
                 className="w-full p-2 border border-gray-300 rounded-md"
+                required
               />
             </div>
             <div>
@@ -161,6 +162,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                 value={formData.apellidoPaterno}
                 onChange={handleInputChange}
                 className="w-full p-2 border border-gray-300 rounded-md"
+                required
               />
             </div>
             <div>
@@ -174,6 +176,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                 value={formData.apellidoMaterno}
                 onChange={handleInputChange}
                 className="w-full p-2 border border-gray-300 rounded-md"
+                required
               />
             </div>
           </div>
@@ -194,6 +197,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                 value={formData.domicilio.calle}
                 onChange={handleInputChange}
                 className="w-full p-2 border border-gray-300 rounded-md"
+                required
               />
             </div>
             <div>
@@ -207,6 +211,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                 value={formData.domicilio.numero}
                 onChange={handleInputChange}
                 className="w-full p-2 border border-gray-300 rounded-md"
+                required
               />
             </div>
           </div>
@@ -222,6 +227,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                 value={formData.domicilio.colonia}
                 onChange={handleInputChange}
                 className="w-full p-2 border border-gray-300 rounded-md"
+                required
               />
             </div>
             <div>
@@ -235,6 +241,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                 value={formData.domicilio.cp}
                 onChange={handleInputChange}
                 className="w-full p-2 border border-gray-300 rounded-md"
+                required
               />
             </div>
           </div>
@@ -250,6 +257,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                 value={formData.domicilio.ciudad}
                 onChange={handleInputChange}
                 className="w-full p-2 border border-gray-300 rounded-md"
+                required
               />
             </div>
             <div>
@@ -263,6 +271,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                 value={formData.domicilio.estado}
                 onChange={handleInputChange}
                 className="w-full p-2 border border-gray-300 rounded-md"
+                required
               />
             </div>
           </div>
@@ -283,6 +292,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                 value={formData.datosPersonales.celular}
                 onChange={handleInputChange}
                 className="w-full p-2 border border-gray-300 rounded-md"
+                required
               />
             </div>
             <div>
@@ -296,6 +306,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                 value={formData.datosPersonales.rfc}
                 onChange={handleInputChange}
                 className="w-full p-2 border border-gray-300 rounded-md"
+                required
               />
             </div>
           </div>
@@ -311,6 +322,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                 value={formData.datosPersonales.fechaNacimiento}
                 onChange={handleInputChange}
                 className="w-full p-2 border border-gray-300 rounded-md"
+                required
               />
             </div>
             <div>
@@ -324,6 +336,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                 value={formData.datosPersonales.curp}
                 onChange={handleInputChange}
                 className="w-full p-2 border border-gray-300 rounded-md"
+                required
               />
             </div>
           </div>
@@ -339,6 +352,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                 value={formData.datosPersonales.ciudadNacimiento}
                 onChange={handleInputChange}
                 className="w-full p-2 border border-gray-300 rounded-md"
+                required
               />
             </div>
             <div>
@@ -352,6 +366,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                 value={formData.datosPersonales.estadoNacimiento}
                 onChange={handleInputChange}
                 className="w-full p-2 border border-gray-300 rounded-md"
+                required
               />
             </div>
           </div>
@@ -367,6 +382,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                 value={formData.datosPersonales.numeroIMSS}
                 onChange={handleInputChange}
                 className="w-full p-2 border border-gray-300 rounded-md"
+                required
               />
             </div>
             <div>
@@ -380,6 +396,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                 value={formData.datosPersonales.fechaIngreso}
                 onChange={handleInputChange}
                 className="w-full p-2 border border-gray-300 rounded-md"
+                required
               />
             </div>
           </div>
@@ -399,6 +416,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
               value={formData.datosFamiliares.nombreConyuge}
               onChange={handleInputChange}
               className="w-full p-2 border border-gray-300 rounded-md"
+              required
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -413,6 +431,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                 value={formData.datosFamiliares.colonia}
                 onChange={handleInputChange}
                 className="w-full p-2 border border-gray-300 rounded-md"
+                required
               />
             </div>
             <div>
@@ -426,6 +445,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                 value={formData.datosFamiliares.cp}
                 onChange={handleInputChange}
                 className="w-full p-2 border border-gray-300 rounded-md"
+                required
               />
             </div>
           </div>
@@ -441,6 +461,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                 value={formData.datosFamiliares.ciudad}
                 onChange={handleInputChange}
                 className="w-full p-2 border border-gray-300 rounded-md"
+                required
               />
             </div>
             <div>
@@ -454,6 +475,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                 value={formData.datosFamiliares.estado}
                 onChange={handleInputChange}
                 className="w-full p-2 border border-gray-300 rounded-md"
+                required
               />
             </div>
           </div>
@@ -476,6 +498,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                   value={formData.datosEmergencia.persona1.nombre}
                   onChange={handleInputChange}
                   className="w-full p-2 border border-gray-300 rounded-md"
+                  required
                 />
               </div>
               <div>
@@ -489,6 +512,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                   value={formData.datosEmergencia.persona1.celular}
                   onChange={handleInputChange}
                   className="w-full p-2 border border-gray-300 rounded-md"
+                  required
                 />
               </div>
             </div>
@@ -503,6 +527,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                 value={formData.datosEmergencia.persona1.parentesco}
                 onChange={handleInputChange}
                 className="w-full p-2 border border-gray-300 rounded-md"
+                required
               />
             </div>
           </div>
@@ -521,6 +546,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                   value={formData.datosEmergencia.persona2.nombre}
                   onChange={handleInputChange}
                   className="w-full p-2 border border-gray-300 rounded-md"
+                  required
                 />
               </div>
               <div>
@@ -534,6 +560,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                   value={formData.datosEmergencia.persona2.celular}
                   onChange={handleInputChange}
                   className="w-full p-2 border border-gray-300 rounded-md"
+                  required
                 />
               </div>
             </div>
@@ -548,6 +575,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                 value={formData.datosEmergencia.persona2.parentesco}
                 onChange={handleInputChange}
                 className="w-full p-2 border border-gray-300 rounded-md"
+                required
               />
             </div>
           </div>

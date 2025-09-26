@@ -61,7 +61,7 @@ export const ReadBill: React.FC<PdfReaderFacturaProps> = ({ file, info }) => {
 
             <details className="mt-6">
                 <summary className="text-sm text-blue-600 cursor-pointer hover:underline">
-                  Ver texto completo
+                    Ver texto completo
                 </summary>
                 <pre className="bg-gray-100 p-3 rounded mt-2 max-h-64 overflow-auto whitespace-pre-wrap text-sm">
                     {rawText}
