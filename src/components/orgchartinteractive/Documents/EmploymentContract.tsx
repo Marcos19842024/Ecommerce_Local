@@ -1,16 +1,12 @@
 import { pdf } from "@react-pdf/renderer";
 import { useState, useEffect } from "react";
-import { ContractData, EmployeeContractProps } from "../../../interfaces/orgchartinteractive.interface";
+import { ContractData, EmployeeContractProps, PersonalFormData } from "../../../interfaces/orgchartinteractive.interface";
 import { url } from "../../../server/url";
 import { PdfEmployeeContract } from "../PdfDocuments/PdfEmployeeContract";
 import { formatDateLong } from "../../../helpers";
 import toast from "react-hot-toast";
-import { getDocument } from "pdfjs-dist";
 
-// Configurar pdfjs-dist
-import * as pdfjs from 'pdfjs-dist';
-
-const EmployeementContract = ({ file, name, onClose }: EmployeeContractProps) => {
+const EmployeementContract = ({ file, onClose }: EmployeeContractProps) => {
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
     const [contractData, setContractData] = useState<ContractData>({
@@ -29,129 +25,50 @@ const EmployeementContract = ({ file, name, onClose }: EmployeeContractProps) =>
     const [isTemporal, setIsTemporal] = useState<boolean>(true);
     const [fechaInput, setFechaInput] = useState<string>(new Date().toISOString().split('T')[0]);
 
-    const parseFacturaData = (texto: string): ContractData => {
-
-        // EXTRAER VALORES BASADO EN LAS POSICIONES EXACTAS DEL CONSOLE.LOG
-        let rfc = '';
-        let curp = '';
-        let estadoOrigen = '';
-        let fechaIngreso = '';
-
-        // Buscar después de "RFC"
-        const afterRfc = texto.split('RFC')[1];
-        if (afterRfc) {
-            const parts = afterRfc.split(/\s+/).filter(p => p.trim() !== '');
-            
-            if (parts.length > 3) {
-                rfc = parts[3];
-            }
-        }
-
-        // Buscar después de "CURP" 
-        const afterCurp = texto.split('CURP')[1];
-        if (afterCurp) {
-            const parts = afterCurp.split(/\s+/).filter(p => p.trim() !== '');
-            
-            if (parts.length > 5) {
-                curp = parts[5];
-            }
-        }
-
-        // Buscar después de "Estado nac."
-        const afterEstado = texto.split('Estado nac.')[1];
-        if (afterEstado) {
-            const parts = afterEstado.split(/\s+/).filter(p => p.trim() !== '');
-
-            if (parts.length > 7) {
-                estadoOrigen = parts[7]; // "Camp."
-            }
-        }
-
-        // Buscar después de "Ingreso"
-        const afterIngreso = texto.split('Ingreso')[1];
-        if (afterIngreso) {
-            const parts = afterIngreso.split(/\s+/).filter(p => p.trim() !== '');
-
-            if (parts.length > 8) {
-                fechaIngreso = parts[6] + ' ' + parts[7] + ' ' + parts[8];
-            }
-        }
-
-        if (estadoOrigen === 'Camp.') estadoOrigen = 'Campeche';
-
-        // Formatear fecha
-        const formatFecha = (fechaStr: string): string => {
-            if (!fechaStr) return new Date().toISOString().split('T')[0];
-            
-            try {
-                const meses: { [key: string]: string } = {
-                    'ene': '01', 'feb': '02', 'mar': '03', 'abr': '04',
-                    'may': '05', 'jun': '06', 'jul': '07', 'ago': '08',
-                    'sep': '09', 'oct': '10', 'nov': '11', 'dic': '12'
-                };
-                
-                const parts = fechaStr.toLowerCase().split(/\s+/);
-                if (parts.length === 3) {
-                    const dia = parts[0].padStart(2, '0');
-                    const mes = meses[parts[1]] || '01';
-                    const anio = parts[2];
-                    return `${anio}-${mes}-${dia}`;
-                }
-            } catch (error) {
-                console.error('Error formateando fecha:', error);
-            }
-            
-            return new Date().toISOString().split('T')[0];
-        };
-
-        const fechaIngresoFormateada = formatFecha(fechaIngreso);
-
-        return {
-            trabajador: name,
-            estadoOrigen: estadoOrigen,
-            curp: curp,
-            rfc: rfc,
+    // Función para procesar el JSON
+    const parseJsonData = (jsonData: PersonalFormData): ContractData => {
+        
+        // Construir nombre completo
+        const nombreCompleto = `${jsonData.nombres} ${jsonData.apellidoPaterno} ${jsonData.apellidoMaterno}`.trim();
+        
+        // Extraer los datos específicos
+        const extractedData = {
+            trabajador: nombreCompleto || '',
+            estadoOrigen: jsonData.datosPersonales?.estadoNacimiento || '',
+            curp: jsonData.datosPersonales?.curp || '',
+            rfc: jsonData.datosPersonales?.rfc || '',
             duracionContrato: '30',
             salarioDiario: '$0.00',
             salarioSemanal: '',
-            fechaContrato: formatDateLong(fechaIngresoFormateada)
+            fechaContrato: jsonData.datosPersonales?.fechaIngreso ? 
+                formatDateLong(jsonData.datosPersonales.fechaIngreso) : 
+                formatDateLong(new Date().toISOString().split('T')[0])
         };
+        
+        return extractedData;
     };
 
-    // Leer el contenido del PDF desde la URL
+    // Leer el contenido del JSON desde la URL
     useEffect(() => {
-        const readPdfFromUrl = async () => {
+        const readJsonFromUrl = async () => {
             if (!file || !file.url) {
                 setIsLoading(false);
-                toast.error('No hay archivo PDF para procesar');
+                toast.error('No hay archivo JSON para procesar');
                 onClose();
                 return;
             }
             
             setIsLoading(true);
             try {
-                // Configurar el worker de pdfjs
-                pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
-
-                // Descargar el PDF desde la URL
+                // Descargar el JSON desde la URL
                 const response = await fetch(file.url);
                 if (!response.ok) {
-                    throw new Error(`Error al descargar el PDF: ${response.status}`);
+                    throw new Error(`Error al descargar el JSON: ${response.status}`);
                 }
 
-                const arrayBuffer = await response.arrayBuffer();
-                const typedArray = new Uint8Array(arrayBuffer);
-                const pdfDoc = await getDocument({ data: typedArray }).promise;
+                const jsonData: PersonalFormData = await response.json();
 
-                let fullText = "";
-                for (let i = 1; i <= pdfDoc.numPages; i++) {
-                    const page = await pdfDoc.getPage(i);
-                    const content = await page.getTextContent();
-                    const strings = content.items.map((item: any) => item.str);
-                    fullText += strings.join(" ") + "\n";
-                }
-
-                const extractedData = parseFacturaData(fullText);
+                const extractedData = parseJsonData(jsonData);
                 
                 setContractData(prev => ({
                     ...prev,
@@ -160,25 +77,27 @@ const EmployeementContract = ({ file, name, onClose }: EmployeeContractProps) =>
                 
             } catch (error) {
                 onClose();
-                toast.error('Error al leer el archivo PDF');
+                toast.error('Error al leer el archivo JSON');
             } finally {
                 setIsLoading(false);
             }
         };
 
-        readPdfFromUrl();
+        readJsonFromUrl();
     }, [file, name, onClose]);
 
-    // Resto del código se mantiene igual...
+    // Función para extraer valor numérico del salario
     const extractNumericValue = (salaryString: string): number => {
         const numericString = salaryString.replace(/[^\d.]/g, '');
         return parseFloat(numericString) || 0;
     };
 
+    // Función para formatear moneda
     const formatCurrency = (amount: number): string => {
         return `$${amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
     };
 
+    // Efecto para calcular salario semanal
     useEffect(() => {
         const dailySalary = extractNumericValue(contractData.salarioDiario);
         const weeklySalary = dailySalary * 7;
@@ -189,6 +108,7 @@ const EmployeementContract = ({ file, name, onClose }: EmployeeContractProps) =>
         }));
     }, [contractData.salarioDiario]);
 
+    // Efecto para sincronizar fecha
     useEffect(() => {
         if (fechaInput) {
             const fechaFormateada = formatDateLong(fechaInput);
@@ -199,6 +119,7 @@ const EmployeementContract = ({ file, name, onClose }: EmployeeContractProps) =>
         }
     }, [fechaInput]);
 
+    // Manejar cambios en los inputs
     const handleInputChange = (field: keyof ContractData, value: string) => {
         setContractData(prev => ({
             ...prev,
@@ -206,6 +127,7 @@ const EmployeementContract = ({ file, name, onClose }: EmployeeContractProps) =>
         }));
     };
 
+    // Manejar cambio de tipo de contrato
     const handleTipoContratoChange = (tipo: 'indefinido' | 'temporal') => {
         if (tipo === 'indefinido') {
             setIsIndefinido(true);
@@ -220,6 +142,7 @@ const EmployeementContract = ({ file, name, onClose }: EmployeeContractProps) =>
         }
     };
 
+    // Generar PDF
     const handleGeneratePdf = async () => {
         try {
             if (!isIndefinido && !isTemporal) {
@@ -247,7 +170,7 @@ const EmployeementContract = ({ file, name, onClose }: EmployeeContractProps) =>
             const formDataUpload = new FormData();
             formDataUpload.append('file', blob, "Contrato laboral.pdf");
             
-            const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(name)}`, {
+            const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(contractData.trabajador)}`, {
                 method: 'POST',
                 body: formDataUpload,
             });
@@ -266,7 +189,7 @@ const EmployeementContract = ({ file, name, onClose }: EmployeeContractProps) =>
             <div className="container mx-auto p-6 bg-gray-50 min-h-screen flex items-center justify-center">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Leyendo PDF y extrayendo datos...</p>
+                    <p className="mt-4 text-gray-600">Leyendo JSON y extrayendo datos...</p>
                 </div>
             </div>
         );
@@ -276,7 +199,7 @@ const EmployeementContract = ({ file, name, onClose }: EmployeeContractProps) =>
         <div className="container mx-auto p-6 bg-gray-50 min-h-screen">
             <h1 className="text-2xl font-bold mb-6 text-center">Contrato laboral</h1>
             <form className="bg-white p-6 rounded-lg shadow-md">
-                <h2 className="text-xl font-bold m-4">Información Personal (extraída del PDF)</h2>
+                <h2 className="text-xl font-bold m-4">Información Personal</h2>
                 <div className="bg-gray-100 p-2 rounded-md grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <span className="font-semibold">Nombre del Trabajador:</span>
@@ -320,7 +243,7 @@ const EmployeementContract = ({ file, name, onClose }: EmployeeContractProps) =>
                     </div>
                 </div>
 
-                <h2 className="text-xl font-bold m-4">Información del contrato (a completar)</h2>
+                <h2 className="text-xl font-bold m-4">Información del contrato</h2>
                 <div className="bg-gray-100 p-2 rounded-md grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="m-1 gap-2 flex flex-col">
                         <label className="block text-sm font-medium font-semibold mb-1">

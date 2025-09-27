@@ -501,8 +501,7 @@ const FileGallery = ({employee}: {employee: Employee}) => {
           )}
           {showComponent === "Contrato laboral.pdf" && (
             <EmployeementContract
-              file={files.find((file) => file.name === "Alta del personal.pdf")}
-              name={name}
+              file={files.find((file) => file.name === "Alta del personal.json")}
               onClose={handleCloseForm}
             />
           )}

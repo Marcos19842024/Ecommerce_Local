@@ -112,8 +112,13 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
     try {
       const blob = await pdf(<PdfStaffRecruitment data={formData} />).toBlob();
       const formDataUpload = new FormData();
+
+      // Agregar archivo PDF
       formDataUpload.append('file', blob, "Alta del personal.pdf");
       
+      // Agregar JSON
+      formDataUpload.append('jsonData', JSON.stringify({ ...formData }));
+
       const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(employee.name)}`, {
         method: 'POST',
         body: formDataUpload,
