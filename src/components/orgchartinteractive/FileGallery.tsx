@@ -440,7 +440,9 @@ const FileGallery = ({employee}: {employee: Employee}) => {
         <h3 className="mb-2 text-sm font-semibold text-gray-700">Todos los archivos</h3>
         {files.length > 0 ? (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-            {files.map((file) => (
+            {files
+              .filter(file => !file.name.endsWith('.json'))
+              .map((file) => ( 
               <div key={file.id} className="cursor-pointer overflow-hidden rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition-all hover:shadow-md relative">
                 <div className="flex flex-row-reverse items-center gap-1 max-w-md">
                   <div className="w-full">
@@ -507,6 +509,8 @@ const FileGallery = ({employee}: {employee: Employee}) => {
           )}
           {showComponent === "APDN.pdf" && (
             <APDN
+              employee={employee}
+              onClose={handleCloseForm}
             />
           )}
           {showComponent === "Acuerdo de confidencialidad.pdf" && (

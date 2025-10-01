@@ -1,12 +1,12 @@
 import { pdf } from "@react-pdf/renderer";
 import { useState, useEffect } from "react";
-import { ContractData, EmployeeContractProps, PersonalFormData } from "../../../interfaces/orgchartinteractive.interface";
+import { ContractData, EmploymentContractProps, PersonalFormData } from "../../../interfaces/orgchartinteractive.interface";
 import { url } from "../../../server/url";
-import { PdfEmployeeContract } from "../PdfDocuments/PdfEmployeeContract";
 import { formatDateLong } from "../../../helpers";
 import toast from "react-hot-toast";
+import { PdfEmploymentContract } from "../PdfDocuments/PdfEmploymentContract";
 
-const EmployeementContract = ({ file, onClose }: EmployeeContractProps) => {
+const EmployeementContract = ({ file, onClose }: EmploymentContractProps) => {
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
     const [contractData, setContractData] = useState<ContractData>({
@@ -14,16 +14,20 @@ const EmployeementContract = ({ file, onClose }: EmployeeContractProps) => {
         estadoOrigen: '',
         curp: '',
         rfc: '',
+        type: '',
         duracionContrato: '',
+        puesto: '',
         salarioDiario: '',
         salarioSemanal: '',
-        fechaContrato: ''
+        fechaContrato: '',
+        actividades: []
     });
 
     // Estados para controlar los checkboxes
     const [isIndefinido, setIsIndefinido] = useState<boolean>(false);
-    const [isTemporal, setIsTemporal] = useState<boolean>(true);
+    const [isDefinido, setIsDefinido] = useState<boolean>(true);
     const [fechaInput, setFechaInput] = useState<string>(new Date().toISOString().split('T')[0]);
+    const [nuevaActividad, setNuevaActividad] = useState<string>('');
 
     // Función para procesar el JSON
     const parseJsonData = (jsonData: PersonalFormData): ContractData => {
@@ -37,12 +41,15 @@ const EmployeementContract = ({ file, onClose }: EmployeeContractProps) => {
             estadoOrigen: jsonData.datosPersonales?.estadoNacimiento || '',
             curp: jsonData.datosPersonales?.curp || '',
             rfc: jsonData.datosPersonales?.rfc || '',
+            type: 'DETERMINADO',
             duracionContrato: '30',
             salarioDiario: '$0.00',
+            puesto: '',
             salarioSemanal: '',
             fechaContrato: jsonData.datosPersonales?.fechaIngreso ? 
                 formatDateLong(jsonData.datosPersonales.fechaIngreso) : 
-                formatDateLong(new Date().toISOString().split('T')[0])
+                formatDateLong(new Date().toISOString().split('T')[0]),
+            actividades: []
         };
         
         return extractedData;
@@ -128,29 +135,61 @@ const EmployeementContract = ({ file, onClose }: EmployeeContractProps) => {
     };
 
     // Manejar cambio de tipo de contrato
-    const handleTipoContratoChange = (tipo: 'indefinido' | 'temporal') => {
-        if (tipo === 'indefinido') {
+    const handleTipoContratoChange = (tipo: 'indeterminado' | 'determinado') => {
+        if (tipo === 'indeterminado') {
             setIsIndefinido(true);
-            setIsTemporal(false);
-            setContractData(prev => ({ ...prev, duracionContrato: '' }));
+            setIsDefinido(false);
+            setContractData(prev => ({ ...prev, duracionContrato: '', type: 'INDETERMINADO' }));
         } else {
             setIsIndefinido(false);
-            setIsTemporal(true);
+            setIsDefinido(true);
             if (!contractData.duracionContrato || contractData.duracionContrato === '') {
-                setContractData(prev => ({ ...prev, duracionContrato: '30' }));
+                setContractData(prev => ({ ...prev, duracionContrato: '30', type: 'DETERMINADO' }));
             }
         }
+    };
+
+    // Manejar actividades
+    const handleAgregarActividad = () => {
+        if (nuevaActividad.trim() === '') {
+            toast.error('La actividad no puede estar vacía');
+            return;
+        }
+
+        setContractData(prev => ({
+            ...prev,
+            actividades: [...prev.actividades, nuevaActividad.trim()]
+        }));
+
+        setNuevaActividad('');
+    };
+
+    const handleEliminarActividad = (index: number) => {
+        setContractData(prev => ({
+            ...prev,
+            actividades: prev.actividades.filter((_, i) => i !== index)
+        }));
+    };
+
+    const handleEditarActividad = (index: number, nuevoTexto: string) => {
+        const nuevasActividades = [...contractData.actividades];
+        nuevasActividades[index] = nuevoTexto;
+        
+        setContractData(prev => ({
+            ...prev,
+            actividades: nuevasActividades
+        }));
     };
 
     // Generar PDF
     const handleGeneratePdf = async () => {
         try {
-            if (!isIndefinido && !isTemporal) {
+            if (!isIndefinido && !isDefinido) {
                 toast.error("Por favor, seleccione un tipo de contrato");
                 return;
             }
 
-            if (isTemporal && (!contractData.duracionContrato || contractData.duracionContrato.trim() === '')) {
+            if (isDefinido && (!contractData.duracionContrato || contractData.duracionContrato.trim() === '')) {
                 toast.error("Para contrato temporal, ingrese la duración en días");
                 return;
             }
@@ -166,7 +205,7 @@ const EmployeementContract = ({ file, onClose }: EmployeeContractProps) => {
                 return;
             }
 
-            const blob = await pdf(<PdfEmployeeContract data={contractData} />).toBlob();
+            const blob = await pdf(<PdfEmploymentContract data={contractData} />).toBlob();
             const formDataUpload = new FormData();
             formDataUpload.append('file', blob, "Contrato laboral.pdf");
             
@@ -253,7 +292,7 @@ const EmployeementContract = ({ file, onClose }: EmployeeContractProps) => {
                             <input 
                                 type="checkbox" 
                                 checked={isIndefinido} 
-                                onChange={() => handleTipoContratoChange('indefinido')}
+                                onChange={() => handleTipoContratoChange('indeterminado')}
                                 className="rounded text-cyan-600 focus:ring-cyan-500"
                             />
                             Indefinido
@@ -261,14 +300,14 @@ const EmployeementContract = ({ file, onClose }: EmployeeContractProps) => {
                         <label className="flex items-center gap-1 text-cyan-600 cursor-pointer">
                             <input 
                                 type="checkbox" 
-                                checked={isTemporal} 
-                                onChange={() => handleTipoContratoChange('temporal')}
+                                checked={isDefinido} 
+                                onChange={() => handleTipoContratoChange('determinado')}
                                 className="rounded text-cyan-600 focus:ring-cyan-500"
                             />
                             Temporal
                         </label>
                         
-                        {isTemporal && (
+                        {isDefinido && (
                             <div>
                                 <label className="block text-sm font-medium font-semibold mb-1">
                                     Duración del Contrato (días):
@@ -278,13 +317,25 @@ const EmployeementContract = ({ file, onClose }: EmployeeContractProps) => {
                                     value={contractData.duracionContrato}
                                     onChange={(e) => handleInputChange('duracionContrato', e.target.value)}
                                     className="w-full p-2 border border-gray-300 rounded-md text-sm"
-                                    required={isTemporal}
+                                    required={isDefinido}
                                 />
                             </div>
                         )}
                     </div>
 
                     <div>
+                        <label className="block text-sm font-medium font-semibold mb-1">
+                            Puesto:
+                        </label>
+                        <input
+                            type="text"
+                            value={contractData.puesto}
+                            onChange={(e) => handleInputChange('puesto', e.target.value)}
+                            className="w-full p-2 border border-gray-300 rounded-md text-sm"
+                            required
+                            placeholder="Puesto"
+                        />
+
                         <label className="block text-sm font-medium font-semibold mb-1">
                             Salario diario *:
                         </label>
@@ -313,6 +364,70 @@ const EmployeementContract = ({ file, onClose }: EmployeeContractProps) => {
                         <p className="text-sm text-gray-600 mt-1">
                             <strong>Fecha formateada:</strong> {contractData.fechaContrato}
                         </p>
+                    </div>
+
+                    {/* Sección de Actividades Dinámicas */}
+                    <h2 className="text-xl font-bold m-4">Actividades del Trabajador</h2>
+                    <div className="bg-gray-100 p-4 rounded-md">
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium font-semibold mb-2">
+                                Agregar Nueva Actividad:
+                            </label>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={nuevaActividad}
+                                    onChange={(e) => setNuevaActividad(e.target.value)}
+                                    className="flex-1 p-2 border border-gray-300 rounded-md text-sm"
+                                    placeholder="Escriba una nueva actividad..."
+                                    onKeyPress={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            handleAgregarActividad();
+                                        }
+                                    }}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handleAgregarActividad}
+                                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm"
+                                >
+                                    Agregar
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <label className="block text-sm font-medium font-semibold mb-2">
+                                Lista de Actividades ({contractData.actividades.length}):
+                            </label>
+                            {contractData.actividades.map((actividad, index) => (
+                                <div key={index} className="flex items-start gap-2 bg-white p-3 rounded border">
+                                    <div className="flex-1">
+                                        <input
+                                            type="text"
+                                            value={actividad}
+                                            onChange={(e) => handleEditarActividad(index, e.target.value)}
+                                            className="w-full p-2 border border-gray-300 rounded-md text-sm"
+                                            placeholder="Descripción de la actividad..."
+                                        />
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleEliminarActividad(index)}
+                                        className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm"
+                                    >
+                                        Eliminar
+                                    </button>
+                                </div>
+                            ))}
+                            
+                            {contractData.actividades.length === 0 && (
+                                <p className="text-center text-gray-500 py-4">
+                                    No hay actividades agregadas. Agregue al menos una actividad.
+                                </p>
+                            )}
+                        </div>
                     </div>
                 </div>
             </form>

@@ -30,7 +30,7 @@ export interface StaffRecruitmentProps {
   onClose: () => void;
 }
 
-export interface EmployeeContractProps {
+export interface EmploymentContractProps {
   file: FileWithPreview | undefined;
   onClose: () => void;
 }
@@ -83,8 +83,22 @@ export interface ContractData {
   estadoOrigen: string;
   curp: string;
   rfc: string;
+  type: string;
   duracionContrato: string;
+  puesto: string;
   salarioDiario: string;
   salarioSemanal: string;
   fechaContrato: string;
+  actividades: string[];
+}
+
+export interface APDNData {
+  fechaDia: string;
+  fechaMes: string;
+  fechaAnio: string;
+  banco: string;
+  numeroCuenta: string;
+  numeroTarjeta: string;
+  email: string;
+  trabajador: string;
 }

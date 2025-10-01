@@ -160,17 +160,6 @@ const styles = StyleSheet.create({
     padding: 4,
     fontSize: 9,
   },
-  footer: {
-    position: 'absolute',
-    bottom: 20,
-    left: 20,
-    right: 20,
-    textAlign: 'center',
-    fontSize: 7,
-    color: '#64748b',
-    borderTop: '1pt solid #e2e8f0',
-    paddingTop: 8,
-  },
   generationDate: {
     fontSize: 8,
     color: '#64748b',
@@ -353,11 +342,6 @@ export const PdfStaffRecruitment = ({ data }: { data: PersonalFormData }) => {
             </View>
           </View>
         </View>
-
-        {/* Pie de página */}
-        <Text style={styles.footer} fixed>
-          Documento confidencial - Generado por Sistema de Recursos Humanos el {new Date().toLocaleDateString('es-MX')}
-        </Text>
       </Page>
     </Document>
   );

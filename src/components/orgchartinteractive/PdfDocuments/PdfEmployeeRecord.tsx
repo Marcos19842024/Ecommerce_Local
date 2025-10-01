@@ -115,7 +115,6 @@ export const PdfEmployeeRecord = ({ employeeData, isChecked }: { employeeData: E
                     </View>
                     <Text style={styles.documentText}>Acta de nacimiento</Text>
                     <View style={styles.checkboxContainer}>
-                    
                         {
                             isChecked['Alta del personal.pdf'] &&
                             <Image
