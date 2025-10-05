@@ -49,16 +49,23 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   signatureSection: {
-    marginTop: 80,
+    marginTop: 30,
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
   signatureBox: {
     width: '45%',
-    borderTop: '1pt solid black',
-    paddingTop: 8,
-    textAlign: 'center',
+    alignItems: 'center',
+    marginTop: 40,
+  },
+  signatureLine: {
+    width: '100%',
+    borderBottom: '1px solid black',
+    marginBottom: 5,
+  },
+  signatureText: {
     fontSize: 9,
+    textAlign: 'center',
   },
   table: {
     border: '1pt solid black',
@@ -631,23 +638,26 @@ export const PdfEmploymentContract = ({ data }: { data: ContractData }) => (
 
       {/* Sección de firmas */}
       <View style={styles.signatureSection}>
-        <View style={styles.signatureBox}>
-          <Text>PATRÓN Y PROPIETARIO DE LA FUENTE</Text>
-          <Text>DE TRABAJO.</Text>
-          <Text> </Text>
-          <Text>FRANCISCO JULIAN GOMEZ CANCINO</Text>
-        </View>
+          {/* Patrón */}
+          <View style={styles.signatureBox}>
+            <Text style={styles.signatureText}>FRANCISCO JULIAN GOMEZ CANCINO</Text>
+            <View style={styles.signatureLine} />
+            <Text style={styles.signatureText}>PATRÓN Y PROPIETARIO DE LA FUENTE</Text>
+            <Text style={styles.signatureText}>DE TRABAJO.</Text>
+          </View>
+
+          {/* Trabajador */}
+          <View style={styles.signatureBox}>
+            <Text style={styles.signatureText}>{data.trabajador}</Text>
+            <View style={styles.signatureLine} />
+            <Text style={styles.signatureText}>TRABAJADOR</Text>
+          </View>
       </View>
-
       <View style={styles.signatureSection}>
+        {/* Huella del Trabajador */}
         <View style={styles.signatureBox}>
-          <Text>TRABAJADOR.</Text>
-          <Text> </Text>
-          <Text style={styles.bold}>{data.trabajador}</Text>
-        </View>
-
-        <View style={styles.signatureBox}>
-          <Text>HUELLA del trabajador</Text>
+          <View style={styles.signatureLine} />
+          <Text style={styles.signatureText}>HUELLA del trabajador</Text>
         </View>
       </View>
     </Page>

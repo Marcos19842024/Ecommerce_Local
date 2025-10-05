@@ -13,12 +13,12 @@ import PasswordPrompt from '../shared/PasswordPrompt';
 import StaffRecruitment from './Documents/StaffRecruitment';
 import EmployeementContract from './Documents/EmploymentContract';
 import APDN from './Documents/APDN';
-import ConfidentialityAgreement from './Documents/ConfidentialityAgreement';
 import CodeOfEthics from './Documents/CodeOfEthics';
 import RIBA from './Documents/RIBA';
 import RIT from './Documents/RIT';
 import JobProfile from './Documents/JobProfile';
 import PerformanceEvaluation from './Documents/PerformanceEvaluation';
+import { ConfidentialityAgreement } from './Documents/ConfidentialityAgreement';
 
 const RECORD_DOCUMENTS = [
   "Caratula.pdf",
@@ -515,6 +515,8 @@ const FileGallery = ({employee}: {employee: Employee}) => {
           )}
           {showComponent === "Acuerdo de confidencialidad.pdf" && (
             <ConfidentialityAgreement
+              employee={employee}
+              onClose={handleCloseForm}
             />
           )}
           {showComponent === "Codigo de etica.pdf" && (

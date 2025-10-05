@@ -19,6 +19,7 @@
     "@tiptap/pm": "^2.6.6",
     "@tiptap/react": "^2.6.6",
     "@tiptap/starter-kit": "^2.6.6",
+    "buffer": "^6.0.3",
     "connect-history-api-fallback": "^2.0.0",
     "file-saver": "^2.0.5",
     "html2canvas": "^1.4.1",
