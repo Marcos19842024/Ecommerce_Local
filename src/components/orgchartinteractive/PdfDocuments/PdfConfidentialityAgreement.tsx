@@ -71,15 +71,8 @@ const styles = StyleSheet.create({
     bold: {
         fontWeight: 'bold',
     },
-    footer: {
-        marginTop: 20,
-        fontSize: 8,
-        textAlign: 'center',
-        color: '#666',
-    },
 });
 
-// CORRECCIÓN: Definir la interfaz correctamente
 interface PdfConfidentialityAgreementProps {
     name: string;
 }
@@ -397,8 +390,8 @@ export const PdfConfidentialityAgreement: React.FC<PdfConfidentialityAgreementPr
                 {/* Fecha y lugar */}
                 <View style={styles.paragraph}>
                     <Text>
-                        Se firma, por duplicado, en <Text style={styles.underline}>{city}</Text> municipio de 
-                        <Text style={styles.underline}> {municipality}</Text>, a los <Text style={styles.underline}>{day}</Text> 
+                        Se firma, por duplicado, en <Text style={styles.underline}>{city}</Text>, municipio de 
+                        <Text style={styles.underline}> {municipality}</Text>, a los <Text style={styles.underline}>{`${day} `}</Text> 
                         días del mes de <Text style={styles.underline}>{month}</Text> del Año <Text style={styles.underline}>{year}</Text>. 
                         Quedando un ejemplar de poder de cada una de las partes.
                     </Text>

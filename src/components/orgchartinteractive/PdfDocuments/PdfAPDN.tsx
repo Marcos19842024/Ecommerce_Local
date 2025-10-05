@@ -242,7 +242,7 @@ export const PdfAPDN = ({ data }: {data: APDNData}) => {
 
                 <Text style={styles.atttext}>Atentamente.</Text>
 
-                {/* Sección de firma - Réplica exacta del formato del documento */}
+                {/* Sección de firma */}
                 <View style={styles.firmaSection}>
                     <View style={styles.firmaRow}>
                         {/* Columna izquierda - Trabajador */}
