@@ -102,3 +102,50 @@ export interface APDNData {
   email: string;
   trabajador: string;
 }
+
+export interface GeneralInfo {
+  position: string;
+  numberOfPositions: string;
+  location: string;
+  department: string;
+  reportsTo: string;
+  objective: string;
+  schedule: string;
+}
+
+export interface Requirements {
+  education: string;
+  degree: string;
+  experience: string;
+}
+
+export interface Responsibility {
+  id: number;
+  description: string;
+}
+
+export interface SpecificFunction {
+  id: number;
+  description: string;
+}
+
+export interface Skill {
+  id: number;
+  skill: string;
+  level: 'basic' | 'competent' | 'expert';
+}
+
+export interface Competency {
+  id: number;
+  competency: string;
+  level: 'basic' | 'competent' | 'expert';
+}
+
+export interface JobProfileData {
+  generalInfo: GeneralInfo;
+  requirements: Requirements;
+  responsibilities: Responsibility[];
+  specificFunctions: SpecificFunction[];
+  skills: Skill[];
+  competencies: Competency[];
+}
