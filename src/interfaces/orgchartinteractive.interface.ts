@@ -111,6 +111,7 @@ export interface GeneralInfo {
   reportsTo: string;
   objective: string;
   schedule: string;
+  capacity: {physical: 'si' | 'no', mental: 'si' | 'no'};
 }
 
 export interface Requirements {
@@ -127,6 +128,7 @@ export interface Responsibility {
 export interface SpecificFunction {
   id: number;
   description: string;
+  periodicidadData: { periodicidad: string, indicador: string };
 }
 
 export interface Skill {
