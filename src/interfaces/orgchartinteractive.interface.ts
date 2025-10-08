@@ -151,3 +151,52 @@ export interface JobProfileData {
   skills: Skill[];
   competencies: Competency[];
 }
+
+export interface EvaluationData {
+  // Información general
+  ciudad: string;
+  fecha: {
+    dia: string;
+    mes: string;
+    año: string;
+  };
+  nombreTrabajador: string;
+  area: string;
+  puesto: string;
+  
+  // Evaluación
+  actitudTrabajo: {
+    interesErrores: number;
+    aprendizaje: number;
+    seguimientoReglas: number;
+    sentidoUrgencia: number;
+  };
+  cooperacion: {
+    cooperacionSolicitada: number;
+    cooperacionNoSolicitada: number;
+    sugerencias: number;
+    integracion: number;
+  };
+  calidadTrabajo: {
+    calidadForma: number;
+    calidadTiempo: number;
+    adaptacion: number;
+    dominio: number;
+  };
+  relaciones: {
+    conCompaneros: number;
+    conSuperiores: number;
+    conSubordinados: number;
+    conClientes: number;
+  };
+  asistencia: {
+    asistencia: number;
+    puntualidad: number;
+    rotarTurno: number;
+    guardias: number;
+  };
+  
+  // Decisión del contrato
+  decisionContrato: 'prorroga' | 'indefinido' | 'termina';
+  nombreEvaluador: string;
+}

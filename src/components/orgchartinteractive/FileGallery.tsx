@@ -545,6 +545,8 @@ const FileGallery = ({employee}: {employee: Employee}) => {
           )}
           {showComponent === "Evaluacion de desempeño.pdf" && (
             <PerformanceEvaluation
+              employee={employee}
+              onClose={handleCloseForm}
             />
           )}
         </Modal>
