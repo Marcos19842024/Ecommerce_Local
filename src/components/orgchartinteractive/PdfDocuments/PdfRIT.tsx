@@ -149,6 +149,8 @@ export const PdfRIT: React.FC<PdfRITProps> = ({ name }) => {
                         <Text style={styles.companySubtitle}>Animalia - Baalak</Text>
                         <Text style={styles.companySubtitle}>Clínica Veterinaria</Text>
                     </View>
+                    <View style={styles.logoContainer}>
+                    </View>
                 </View>
 
                 {/* Capítulo I - Disposiciones Generales */}
@@ -260,6 +262,8 @@ export const PdfRIT: React.FC<PdfRITProps> = ({ name }) => {
                         <Text style={styles.companySubtitle}>Animalia - Baalak</Text>
                         <Text style={styles.companySubtitle}>Clínica Veterinaria</Text>
                     </View>
+                    <View style={styles.logoContainer}>
+                    </View>
                 </View>
 
                 {/* Capítulo IV - Limpieza */}
@@ -357,6 +361,8 @@ export const PdfRIT: React.FC<PdfRITProps> = ({ name }) => {
                         <Text style={styles.companySubtitle}>Animalia - Baalak</Text>
                         <Text style={styles.companySubtitle}>Clínica Veterinaria</Text>
                     </View>
+                    <View style={styles.logoContainer}>
+                    </View>
                 </View>
 
                 {/* Capítulo VII - Seguridad y Salud */}
@@ -409,6 +415,8 @@ export const PdfRIT: React.FC<PdfRITProps> = ({ name }) => {
                         <Text style={styles.companyTitle}>REGLAMENTO INTERIOR DE TRABAJO</Text>
                         <Text style={styles.companySubtitle}>Animalia - Baalak</Text>
                         <Text style={styles.companySubtitle}>Clínica Veterinaria</Text>
+                    </View>
+                    <View style={styles.logoContainer}>
                     </View>
                 </View>
 
@@ -519,6 +527,8 @@ export const PdfRIT: React.FC<PdfRITProps> = ({ name }) => {
                         <Text style={styles.companySubtitle}>Animalia - Baalak</Text>
                         <Text style={styles.companySubtitle}>Clínica Veterinaria</Text>
                     </View>
+                    <View style={styles.logoContainer}>
+                    </View>
                 </View>
 
                 <Text style={styles.subsectionTitle}>Artículo 31</Text>
@@ -624,6 +634,8 @@ export const PdfRIT: React.FC<PdfRITProps> = ({ name }) => {
                         <Text style={styles.companyTitle}>REGLAMENTO INTERIOR DE TRABAJO</Text>
                         <Text style={styles.companySubtitle}>Animalia - Baalak</Text>
                         <Text style={styles.companySubtitle}>Clínica Veterinaria</Text>
+                    </View>
+                    <View style={styles.logoContainer}>
                     </View>
                 </View>
 
@@ -737,6 +749,8 @@ export const PdfRIT: React.FC<PdfRITProps> = ({ name }) => {
                         <Text style={styles.companySubtitle}>Animalia - Baalak</Text>
                         <Text style={styles.companySubtitle}>Clínica Veterinaria</Text>
                     </View>
+                    <View style={styles.logoContainer}>
+                    </View>
                 </View>
 
                 <Text style={styles.subsectionTitle}>Artículo 49</Text>
@@ -807,6 +821,8 @@ export const PdfRIT: React.FC<PdfRITProps> = ({ name }) => {
                         <Text style={styles.companyTitle}>REGLAMENTO INTERIOR DE TRABAJO</Text>
                         <Text style={styles.companySubtitle}>Animalia - Baalak</Text>
                         <Text style={styles.companySubtitle}>Clínica Veterinaria</Text>
+                    </View>
+                    <View style={styles.logoContainer}>
                     </View>
                 </View>
 

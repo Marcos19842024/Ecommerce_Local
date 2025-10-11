@@ -149,6 +149,8 @@ export const PdfRIBA: React.FC<PdfRIBAProps> = ({ name }) => {
                         <Text style={styles.companySubtitle}>Animalia - Baalak</Text>
                         <Text style={styles.companySubtitle}>Clínica Veterinaria</Text>
                     </View>
+                    <View style={styles.logoContainer}>
+                    </View>
                 </View>
 
                 {/* Texto introductorio */}
@@ -299,6 +301,8 @@ export const PdfRIBA: React.FC<PdfRIBAProps> = ({ name }) => {
                         <Text style={styles.companySubtitle}>Animalia - Baalak</Text>
                         <Text style={styles.companySubtitle}>Clínica Veterinaria</Text>
                     </View>
+                    <View style={styles.logoContainer}>
+                    </View>
                 </View>
 
                 {/* Sección d) 12 Criterios */}
@@ -414,12 +418,14 @@ export const PdfRIBA: React.FC<PdfRIBAProps> = ({ name }) => {
                         <Text style={styles.companySubtitle}>Animalia - Baalak</Text>
                         <Text style={styles.companySubtitle}>Clínica Veterinaria</Text>
                     </View>
+                    <View style={styles.logoContainer}>
+                    </View>
                 </View>
 
                 {/* Sección f) Manejo del perro y del gato en la clínica */}
                 <Text style={styles.sectionTitle}>f) Manejo del perro y del gato en la clínica</Text>
 
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16].map((num) => (
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map((num) => (
                     <View key={num} style={styles.listItem}>
                         <Text style={styles.listNumber}>{num}.</Text>
                         <Text style={styles.listText}>
@@ -444,10 +450,12 @@ export const PdfRIBA: React.FC<PdfRIBAProps> = ({ name }) => {
                         <Text style={styles.companySubtitle}>Animalia - Baalak</Text>
                         <Text style={styles.companySubtitle}>Clínica Veterinaria</Text>
                     </View>
+                    <View style={styles.logoContainer}>
+                    </View>
                 </View>
 
                 {/* Continuación Sección f) */}
-                {[17, 18, 19, 20].map((num) => (
+                {[16, 17, 18, 19, 20].map((num) => (
                     <View key={num} style={styles.listItem}>
                         <Text style={styles.listNumber}>{num}.</Text>
                         <Text style={styles.listText}>
@@ -459,7 +467,7 @@ export const PdfRIBA: React.FC<PdfRIBAProps> = ({ name }) => {
                 {/* Sección g) Comportamientos que pueden aparecer durante la hospitalización */}
                 <Text style={styles.sectionTitle}>g) Comportamientos que pueden aparecer durante la hospitalización</Text>
 
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26].map((num) => (
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13].map((num) => (
                     <View key={num} style={styles.listItem}>
                         <Text style={styles.listNumber}>{num}.</Text>
                         <Text style={styles.listText}>
@@ -483,6 +491,37 @@ export const PdfRIBA: React.FC<PdfRIBAProps> = ({ name }) => {
                         <Text style={styles.companyTitle}>REGLAMENTO INTERNO DE BIENESTAR ANIMAL</Text>
                         <Text style={styles.companySubtitle}>Animalia - Baalak</Text>
                         <Text style={styles.companySubtitle}>Clínica Veterinaria</Text>
+                    </View>
+                    <View style={styles.logoContainer}>
+                    </View>
+                </View>
+
+                {[14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26].map((num) => (
+                    <View key={num} style={styles.listItem}>
+                        <Text style={styles.listNumber}>{num}.</Text>
+                        <Text style={styles.listText}>
+                            {getComportamientosText(num)}
+                        </Text>
+                    </View>
+                ))}
+            </Page>
+
+            {/* Página 6 - Firmas */}
+            <Page size="LETTER" style={styles.page}>
+                {/* Encabezado con logo e información de la empresa */}
+                <View style={styles.header}>
+                    <View style={styles.logoContainer}>
+                        <Image
+                            style={styles.logo}
+                            src="./media/Logo Small.png"
+                        />
+                    </View>
+                    <View style={styles.companyInfo}>
+                        <Text style={styles.companyTitle}>REGLAMENTO INTERNO DE BIENESTAR ANIMAL</Text>
+                        <Text style={styles.companySubtitle}>Animalia - Baalak</Text>
+                        <Text style={styles.companySubtitle}>Clínica Veterinaria</Text>
+                    </View>
+                    <View style={styles.logoContainer}>
                     </View>
                 </View>
 

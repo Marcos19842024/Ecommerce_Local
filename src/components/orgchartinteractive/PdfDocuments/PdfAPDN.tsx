@@ -170,6 +170,8 @@ export const PdfAPDN = ({ data }: {data: APDNData}) => {
                         <Text style={styles.companySubtitle}>Animalia - Baalak</Text>
                         <Text style={styles.companySubtitle}>Clínica Veterinaria</Text>
                     </View>
+                    <View style={styles.logoContainer}>
+                    </View>
                 </View>
 
                 {/* Fecha */}

@@ -133,13 +133,25 @@ export const prepareContacts = (contacts: ContactItem[]) => {
 
 // Función para formatear la fecha a formato 3 de enero de 2022
 export const formatDateLong = (date: string): string => {
-	const dateObject = new Date(date);
-
-	return dateObject.toLocaleDateString('es-ES', {
-		year: 'numeric',
-		month: 'long',
-		day: 'numeric',
-	});
+    let dateObject;
+    
+    // Si la fecha está en formato ISO (YYYY-MM-DD)
+    if (date.includes('-')) {
+        const [year, month, day] = date.split('-').map(Number);
+        dateObject = new Date(year, month - 1, day);
+    } 
+    // Si ya es un string de fecha válido
+    else {
+        dateObject = new Date(date);
+        // Ajustar por diferencia de zona horaria
+        dateObject.setMinutes(dateObject.getMinutes() + dateObject.getTimezoneOffset());
+    }
+    
+    return dateObject.toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
 };
 
 // Función para formatear la fecha a formato dd/mm/yyyy

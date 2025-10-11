@@ -118,6 +118,7 @@ const EmployeementContract = ({ file, onClose }: EmploymentContractProps) => {
     // Efecto para sincronizar fecha
     useEffect(() => {
         if (fechaInput) {
+            // Si fechaInput viene como YYYY-MM-DD, usar solución 2
             const fechaFormateada = formatDateLong(fechaInput);
             setContractData(prev => ({
                 ...prev,

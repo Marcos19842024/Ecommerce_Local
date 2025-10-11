@@ -128,7 +128,7 @@ export interface Responsibility {
 export interface SpecificFunction {
   id: number;
   description: string;
-  periodicidadData: { periodicidad: string, indicador: string };
+  periodicidadData: { periodicidad: string };
 }
 
 export interface Skill {

@@ -26,7 +26,7 @@ export const initialJobProfileData: JobProfileData = {
         { id: 1, description: '' },
     ],
     specificFunctions: [
-        { id: 1, description: '', periodicidadData: { periodicidad: '', indicador: '' } }
+        { id: 1, description: '', periodicidadData: { periodicidad: 'diario' } }
     ],
     skills: [
         { id: 1, skill: '', level: 'basic' },
@@ -84,22 +84,23 @@ export const JobProfile = (data: StaffRecruitmentProps) => {
     };
 
     const handleFunctionChange = (
-        index: number,
-        field: string,
-        value: string
-    ) => {
-        setFormData(prev => ({
-            ...prev,
-            specificFunctions: prev.specificFunctions.map((func, i) =>
-                i === index ? { 
-                    ...func, 
-                    [field]: field === 'periodicidad' || field === 'indicador' 
-                        ? { ...func.periodicidadData, [field]: value }
-                        : value 
-                } : func
-            )
-        }));
-    };
+    index: number,
+    field: string,
+    value: string
+) => {
+    setFormData(prev => ({
+        ...prev,
+        specificFunctions: prev.specificFunctions.map((func, i) =>
+            i === index ? { 
+                ...func, 
+                periodicidadData: {
+                    ...func.periodicidadData,
+                    [field]: value
+                }
+            } : func
+        )
+    }));
+};
 
     const addResponsibility = () => {
         setFormData(prev => ({
@@ -401,26 +402,19 @@ export const JobProfile = (data: StaffRecruitmentProps) => {
                                 rows={2}
                                 className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical"
                             />
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-white rounded border border-gray-300">
                                 <div className="flex flex-col">
-                                    <label className="font-medium mb-2 text-gray-700">Periodicidad:</label>
-                                    <input
-                                        type="text"
+                                    <label className="font-medium mb-2 text-gray-700">Periodicidad</label>
+                                    <select
                                         value={func.periodicidadData.periodicidad}
                                         onChange={(e) => handleFunctionChange(index, 'periodicidad', e.target.value)}
                                         className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        placeholder="Ej: Diario, Semanal, Mensual"
-                                    />
-                                </div>
-                                <div className="flex flex-col">
-                                    <label className="font-medium mb-2 text-gray-700">Indicador:</label>
-                                    <input
-                                        type="text"
-                                        value={func.periodicidadData.indicador}
-                                        onChange={(e) => handleFunctionChange(index, 'indicador', e.target.value)}
-                                        className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        placeholder="Ej: Plantilla completa"
-                                    />
+                                    >
+                                        <option value="diario">Diario</option>
+                                        <option value="semanal">Semanal</option>
+                                        <option value="mensual">Mensual</option>
+                                        <option value="siempre">Siempre</option>
+                                    </select>
                                 </div>
                             </div>
                             {formData.specificFunctions.length > 1 && (

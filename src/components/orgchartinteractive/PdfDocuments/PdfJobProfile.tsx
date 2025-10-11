@@ -142,8 +142,29 @@ const styles = StyleSheet.create({
         padding: 3,
         fontSize: 8,
     },
+    tableColFunc80: {
+        width: '80%',
+        borderStyle: 'solid',
+        borderWidth: 1,
+        borderLeftWidth: 0,
+        borderTopWidth: 0,
+        padding: 3,
+        fontSize: 8,
+    },
     tableColHeaderFunc70: {
         width: '70%',
+        borderStyle: 'solid',
+        borderWidth: 1,
+        borderLeftWidth: 0,
+        borderTopWidth: 0,
+        padding: 3,
+        backgroundColor: '#f8f8f8',
+        fontWeight: 'bold',
+        fontSize: 9,
+        textAlign: 'center'
+    },
+    tableColHeaderFunc85: {
+        width: '85%',
         borderStyle: 'solid',
         borderWidth: 1,
         borderLeftWidth: 0,
@@ -316,10 +337,10 @@ export const PdfJobProfile: React.FC<{ data: JobProfileData }> = ({ data }) => (
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>3. Responsabilidades clave del puesto</Text>
                 <View style={styles.table}>
-                    {data.responsibilities.map((func) => (
-                        <View key={func.id} style={styles.tableRow}>
+                    {data.responsibilities.map((func, index) => (
+                        <View key={index} style={styles.tableRow}>
                             <View style={styles.tableColHeaderReq5}>
-                                <Text style={styles.bold}>{func.id}.</Text>
+                                <Text style={styles.bold}>{index}</Text>
                             </View>
                             <View style={[styles.tableColReq5, {width: '95%'}]}>
                                 <Text>{func.description}</Text>
@@ -336,29 +357,25 @@ export const PdfJobProfile: React.FC<{ data: JobProfileData }> = ({ data }) => (
                 
                 <View style={styles.table}>
                     <View style={styles.tableRow}>
-                        <View style={styles.tableColHeaderFunc70}><Text>Funciones y Actividades</Text></View>
+                        <View style={styles.tableColHeaderFunc85}><Text>Funciones y Actividades</Text></View>
                         <View style={styles.tableColHeaderFunc15}>
                             <Text>Periodicidad</Text>
                             <Text style={styles.italic}>(diario, semanal,</Text>
                             <Text style={styles.italic}>mensual, siempre)</Text>
-                        </View>
-                        <View style={styles.tableColHeaderFunc15}>
-                            <Text>Indicador</Text>
-                            <Text>a Evaluar</Text>
                         </View>
                     </View>
                 
                     {/* Primera página - primeras 7 funciones */}
                     {data.specificFunctions.slice(0, 7).map((func, index) => (
                         <View key={func.id} style={styles.tableRow}>
-                            <View style={styles.tableColFunc70}>
-                                <Text>{String.fromCharCode(97 + index)}) {func.description}</Text>
+                            <View style={styles.tableColHeaderReq5}>
+                                <Text style={styles.bold}>{index}</Text>
+                            </View>
+                            <View style={styles.tableColFunc80}>
+                                <Text>{func.description}</Text>
                             </View>
                             <View style={styles.tableColFunc15}>
                                 <Text>{func.periodicidadData.periodicidad}</Text>
-                            </View>
-                            <View style={styles.tableColFunc15}>
-                                <Text>{func.periodicidadData.indicador}</Text>
                             </View>
                         </View>
                     ))}
@@ -390,7 +407,7 @@ export const PdfJobProfile: React.FC<{ data: JobProfileData }> = ({ data }) => (
                 <View style={styles.section}>
                     <View style={styles.table}>
                         <View style={styles.tableRow}>
-                            <View style={styles.tableColHeaderFunc70}><Text>Funciones y Actividades</Text></View>
+                            <View style={styles.tableColHeaderFunc85}><Text>Funciones y Actividades</Text></View>
                             <View style={styles.tableColHeaderFunc15}>
                                 <Text>Periodicidad</Text>
                                 <Text style={styles.italic}>(diario, semanal,</Text>
@@ -402,18 +419,18 @@ export const PdfJobProfile: React.FC<{ data: JobProfileData }> = ({ data }) => (
                             </View>
                         </View>
 
-                        {/* Continuación de la tabla desde la función h) */}
+                        {/* Continuación de la tabla desde la función 7) */}
                         {data.specificFunctions.map((func, index) => (
                             <View key={func.id} style={styles.tableRow}>
-                            <View style={styles.tableColFunc70}>
-                                <Text>{String.fromCharCode(97 + 7 + index)}) {func.description}</Text>
-                            </View>
-                            <View style={styles.tableColFunc15}>
-                                <Text>{func.periodicidadData.periodicidad}</Text>
-                            </View>
-                            <View style={styles.tableColFunc15}>
-                                <Text>{func.periodicidadData.indicador}</Text>
-                            </View>
+                                <View style={styles.tableColHeaderReq5}>
+                                    <Text style={styles.bold}>{index}</Text>
+                                </View>
+                                <View style={styles.tableColFunc80}>
+                                    <Text>{func.description}</Text>
+                                </View>
+                                <View style={styles.tableColFunc15}>
+                                    <Text>{func.periodicidadData.periodicidad}</Text>
+                                </View>
                             </View>
                         ))}
                     </View>

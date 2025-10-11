@@ -127,6 +127,8 @@ export const PdfCodeOfEthics: React.FC<PdfCodeOfEthicsProps> = ({ name }) => {
                         <Text style={styles.companySubtitle}>Animalia - Baalak</Text>
                         <Text style={styles.companySubtitle}>Clínica Veterinaria</Text>
                     </View>
+                    <View style={styles.logoContainer}>
+                    </View>
                 </View>
 
                 {/* Sección 1: Criterios */}
@@ -252,6 +254,8 @@ export const PdfCodeOfEthics: React.FC<PdfCodeOfEthicsProps> = ({ name }) => {
                         <Text style={styles.companySubtitle}>Animalia - Baalak</Text>
                         <Text style={styles.companySubtitle}>Clínica Veterinaria</Text>
                     </View>
+                    <View style={styles.logoContainer}>
+                    </View>
                 </View>
 
                 {/* Continuación Sección 3 */}
@@ -376,6 +380,8 @@ export const PdfCodeOfEthics: React.FC<PdfCodeOfEthicsProps> = ({ name }) => {
                         <Text style={styles.companySubtitle}>Animalia - Baalak</Text>
                         <Text style={styles.companySubtitle}>Clínica Veterinaria</Text>
                     </View>
+                    <View style={styles.logoContainer}>
+                    </View>
                 </View>
 
                 {/* Sección 5: De la relación con los colegas */}
@@ -495,6 +501,8 @@ export const PdfCodeOfEthics: React.FC<PdfCodeOfEthicsProps> = ({ name }) => {
                         <Text style={styles.companyTitle}>CÓDIGO DE ÉTICA</Text>
                         <Text style={styles.companySubtitle}>Animalia - Baalak</Text>
                         <Text style={styles.companySubtitle}>Clínica Veterinaria</Text>
+                    </View>
+                    <View style={styles.logoContainer}>
                     </View>
                 </View>
 
