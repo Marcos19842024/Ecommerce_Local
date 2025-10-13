@@ -142,8 +142,8 @@ const styles = StyleSheet.create({
         padding: 3,
         fontSize: 8,
     },
-    tableColFunc80: {
-        width: '80%',
+    tableColFunc65: {
+        width: '65%',
         borderStyle: 'solid',
         borderWidth: 1,
         borderLeftWidth: 0,
@@ -153,18 +153,6 @@ const styles = StyleSheet.create({
     },
     tableColHeaderFunc70: {
         width: '70%',
-        borderStyle: 'solid',
-        borderWidth: 1,
-        borderLeftWidth: 0,
-        borderTopWidth: 0,
-        padding: 3,
-        backgroundColor: '#f8f8f8',
-        fontWeight: 'bold',
-        fontSize: 9,
-        textAlign: 'center'
-    },
-    tableColHeaderFunc85: {
-        width: '85%',
         borderStyle: 'solid',
         borderWidth: 1,
         borderLeftWidth: 0,
@@ -357,11 +345,15 @@ export const PdfJobProfile: React.FC<{ data: JobProfileData }> = ({ data }) => (
                 
                 <View style={styles.table}>
                     <View style={styles.tableRow}>
-                        <View style={styles.tableColHeaderFunc85}><Text>Funciones y Actividades</Text></View>
+                        <View style={styles.tableColHeaderFunc70}><Text>Funciones y Actividades</Text></View>
                         <View style={styles.tableColHeaderFunc15}>
                             <Text>Periodicidad</Text>
                             <Text style={styles.italic}>(diario, semanal,</Text>
                             <Text style={styles.italic}>mensual, siempre)</Text>
+                        </View>
+                        <View style={styles.tableColHeaderFunc15}>
+                            <Text>Indicador a</Text>
+                            <Text>Evaluar</Text>
                         </View>
                     </View>
                 
@@ -371,11 +363,14 @@ export const PdfJobProfile: React.FC<{ data: JobProfileData }> = ({ data }) => (
                             <View style={styles.tableColHeaderReq5}>
                                 <Text style={styles.bold}>{index}</Text>
                             </View>
-                            <View style={styles.tableColFunc80}>
+                            <View style={styles.tableColFunc65}>
                                 <Text>{func.description}</Text>
                             </View>
                             <View style={styles.tableColFunc15}>
                                 <Text>{func.periodicidadData.periodicidad}</Text>
+                            </View>
+                            <View style={styles.tableColFunc15}>
+                                <Text>{func.periodicidadData.indicador}</Text>
                             </View>
                         </View>
                     ))}
@@ -407,7 +402,7 @@ export const PdfJobProfile: React.FC<{ data: JobProfileData }> = ({ data }) => (
                 <View style={styles.section}>
                     <View style={styles.table}>
                         <View style={styles.tableRow}>
-                            <View style={styles.tableColHeaderFunc85}><Text>Funciones y Actividades</Text></View>
+                            <View style={styles.tableColHeaderFunc70}><Text>Funciones y Actividades</Text></View>
                             <View style={styles.tableColHeaderFunc15}>
                                 <Text>Periodicidad</Text>
                                 <Text style={styles.italic}>(diario, semanal,</Text>
@@ -425,7 +420,7 @@ export const PdfJobProfile: React.FC<{ data: JobProfileData }> = ({ data }) => (
                                 <View style={styles.tableColHeaderReq5}>
                                     <Text style={styles.bold}>{index}</Text>
                                 </View>
-                                <View style={styles.tableColFunc80}>
+                                <View style={styles.tableColFunc65}>
                                     <Text>{func.description}</Text>
                                 </View>
                                 <View style={styles.tableColFunc15}>

@@ -9,7 +9,7 @@ export const initialJobProfileData: JobProfileData = {
     generalInfo: {
         position: '',
         numberOfPositions: '',
-        location: '',
+        location: '', 
         department: '',
         reportsTo: '',
         objective: '',
@@ -26,7 +26,7 @@ export const initialJobProfileData: JobProfileData = {
         { id: 1, description: '' },
     ],
     specificFunctions: [
-        { id: 1, description: '', periodicidadData: { periodicidad: 'diario' } }
+        { id: 1, description: '', periodicidadData: { periodicidad: 'diario', indicador: 'Logro de meta ' } }
     ],
     skills: [
         { id: 1, skill: '', level: 'basic' },
@@ -414,6 +414,20 @@ export const JobProfile = (data: StaffRecruitmentProps) => {
                                         <option value="semanal">Semanal</option>
                                         <option value="mensual">Mensual</option>
                                         <option value="siempre">Siempre</option>
+                                    </select>
+                                </div>
+                                <div className="flex flex-col">
+                                    <label className="font-medium mb-2 text-gray-700">Indicador</label>
+                                    <select
+                                        value={func.periodicidadData.indicador}
+                                        onChange={(e) => handleFunctionChange(index, 'indicador', e.target.value)}
+                                        className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        <option value="Logro de meta">Logro de meta</option>
+                                        <option value="5S's">5S's</option>
+                                        <option value="Satisfacción del cliente">Satisfacción del cliente</option>
+                                        <option value="Logro de objetivo mensual">Logro de objetivo mensual</option>
+                                        <option value="Errores en nómina">Errores en nómina</option>
                                     </select>
                                 </div>
                             </div>
