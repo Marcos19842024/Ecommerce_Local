@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { JobProfileData, StaffRecruitmentProps } from '../../../interfaces/orgchartinteractive.interface';
 import { PdfJobProfile } from '../PdfDocuments/PdfJobProfile';
 import { url } from '../../../server/url';
@@ -15,7 +15,6 @@ export const initialJobProfileData: JobProfileData = {
         objective: '',
         schedule: '',
         capacity: {physical: 'no', mental: 'si'},
-
     },
     requirements: {
         education: '',
@@ -26,7 +25,7 @@ export const initialJobProfileData: JobProfileData = {
         { id: 1, description: '' },
     ],
     specificFunctions: [
-        { id: 1, description: '', periodicidadData: { periodicidad: 'diario', indicador: 'Logro de meta ' } }
+        { id: 1, description: '', periodicidadData: { periodicidad: 'diario', indicador: 'Logro de meta' } }
     ],
     skills: [
         { id: 1, skill: '', level: 'basic' },
@@ -38,6 +37,35 @@ export const initialJobProfileData: JobProfileData = {
 
 export const JobProfile = (data: StaffRecruitmentProps) => {
     const [formData, setFormData] = useState<JobProfileData>(initialJobProfileData);
+    const [isLoading, setIsLoading] = useState(true);
+
+    // Cargar datos existentes
+    useEffect(() => {
+        const loadExistingData = async () => {
+            try {
+                const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(data.employee.name)}`);
+                
+                if (response.ok) {
+                    const serverFiles = await response.json();
+                    const jobProfileJsonFile = serverFiles.find((file: any) => file.name === 'Perfil de puesto.json');
+                    
+                    if (jobProfileJsonFile) {
+                        const jsonResponse = await fetch(`${url}orgchart/employees/${encodeURIComponent(data.employee.name)}/${encodeURIComponent('Perfil de puesto.json')}`);
+                        if (jsonResponse.ok) {
+                            const existingData = await jsonResponse.json();
+                            setFormData(existingData);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading existing job profile data:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        loadExistingData();
+    }, [data.employee.name]);
 
     const handleNestedChange = (
         section: keyof JobProfileData,
@@ -84,23 +112,23 @@ export const JobProfile = (data: StaffRecruitmentProps) => {
     };
 
     const handleFunctionChange = (
-    index: number,
-    field: string,
-    value: string
-) => {
-    setFormData(prev => ({
-        ...prev,
-        specificFunctions: prev.specificFunctions.map((func, i) =>
-            i === index ? { 
-                ...func, 
-                periodicidadData: {
-                    ...func.periodicidadData,
-                    [field]: value
-                }
-            } : func
-        )
-    }));
-};
+        index: number,
+        field: string,
+        value: string
+    ) => {
+        setFormData(prev => ({
+            ...prev,
+            specificFunctions: prev.specificFunctions.map((func, i) =>
+                i === index ? { 
+                    ...func,
+                    periodicidadData: {
+                        ...func.periodicidadData,
+                        [field]: value
+                    }
+                } : func
+            )
+        }));
+    };
 
     const addResponsibility = () => {
         setFormData(prev => ({
@@ -124,7 +152,14 @@ export const JobProfile = (data: StaffRecruitmentProps) => {
             ...prev,
             specificFunctions: [
                 ...prev.specificFunctions,
-                { id: Date.now(), description: '', periodicidadData: { periodicidad: '', indicador: ''}}
+                { 
+                    id: Date.now(), 
+                    description: '', 
+                    periodicidadData: { 
+                        periodicidad: 'diario', 
+                        indicador: 'Logro de meta' 
+                    }
+                }
             ]
         }));
     };
@@ -172,12 +207,11 @@ export const JobProfile = (data: StaffRecruitmentProps) => {
 
     const handleSave = async () => {
         try {
-            // Validar que employee esté definido
             if (!data.employee) {
                 throw new Error("Perfil de puesto no proporcionados");
             }
             
-            // Generar el PDF
+            // Generar el PDF y enviar con JSON en una sola operación
             const blob = await pdf(<PdfJobProfile data={formData} />).toBlob();
             
             if (!blob) {
@@ -190,6 +224,7 @@ export const JobProfile = (data: StaffRecruitmentProps) => {
 
             const formDatasend = new FormData();
             formDatasend.append('file', blob, "Perfil de puesto.pdf");
+            formDatasend.append('jsonData', JSON.stringify(formData));
             
             const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(data.employee.name)}`, {
                 method: 'POST',
@@ -202,7 +237,6 @@ export const JobProfile = (data: StaffRecruitmentProps) => {
             }
 
             toast.success("Perfil de puesto.pdf creado correctamente");
-            
             data.onClose();
 
         } catch (error) {
@@ -210,9 +244,21 @@ export const JobProfile = (data: StaffRecruitmentProps) => {
         }
     };
 
+    if (isLoading) {
+        return (
+            <div className="max-w-6xl mx-auto p-6 font-sans flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+                    <p className="mt-4 text-gray-600">Cargando datos...</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="max-w-6xl mx-auto p-6 font-sans">
             <h1 className="text-2xl font-bold mb-8 text-gray-800">Perfil de Puesto</h1>
+            
             {/* Información General */}
             <section className="mb-8 p-6 border border-gray-300 rounded-lg bg-gray-50">
                 <h2 className="text-xl font-semibold mb-4 text-gray-700 border-b border-gray-300 pb-2">1. Información General</h2>
@@ -549,14 +595,14 @@ export const JobProfile = (data: StaffRecruitmentProps) => {
                     + Agregar Competencia
                 </button>
             </section>
-
+            
             <div className="text-center mt-8">
                 <button 
                     type="button" 
                     onClick={handleSave}
                     className="px-6 py-3 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-lg font-medium"
                 >
-                    Guardar y Generar PDF
+                    {formData.generalInfo.position ? 'Actualizar PDF' : 'Guardar y Generar PDF'}
                 </button>
             </div>
         </div>

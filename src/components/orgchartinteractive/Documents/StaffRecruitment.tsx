@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PersonalFormData, StaffRecruitmentProps } from '../../../interfaces/orgchartinteractive.interface';
 import { url } from '../../../server/url';
 import { pdf } from '@react-pdf/renderer';
@@ -6,6 +6,7 @@ import { PdfStaffRecruitment } from '../PdfDocuments/PdfStaffRecruitment';
 import toast from 'react-hot-toast';
 
 const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
+  const [isLoading, setIsLoading] = useState(true);
 
   // Función para dividir el nombre completo si es necesario
   const splitFullName = (fullName: string) => {
@@ -108,23 +109,68 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
     }
   };
 
-  const handleGeneratePdf = async () => {
+  useEffect(() => {
+    const loadExistingData = async () => {
+      try {
+        const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(employee.name)}`);
+        
+        if (response.ok) {
+          const serverFiles = await response.json();
+          const altaJsonFile = serverFiles.find((file: any) => file.name === 'Alta del personal.json');
+          
+          if (altaJsonFile) {
+            const jsonResponse = await fetch(`${url}orgchart/employees/${encodeURIComponent(employee.name)}/${encodeURIComponent('Alta del personal.json')}`);
+            if (jsonResponse.ok) {
+              const existingData = await jsonResponse.json();
+              setFormData(existingData);
+            }
+          }
+        }
+      } catch (error) {
+        toast.error('Error loading existing data:');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadExistingData();
+  }, [employee.name]);
+
+  // Guardar datos en JSON - MODIFICADO
+  const saveFormDataAsJson = async () => {
     try {
-      const blob = await pdf(<PdfStaffRecruitment data={formData} />).toBlob();
       const formDataUpload = new FormData();
-
-      // Agregar archivo PDF
-      formDataUpload.append('file', blob, "Alta del personal.pdf");
       
-      // Agregar JSON
-      formDataUpload.append('jsonData', JSON.stringify({ ...formData }));
-
+      // Crear blob para el PDF
+      const pdfBlob = await pdf(<PdfStaffRecruitment data={formData} />).toBlob();
+      
+      // Agregar archivo PDF
+      formDataUpload.append('file', pdfBlob, "Alta del personal.pdf");
+      
+      // Agregar JSON como string en formData
+      formDataUpload.append('jsonData', JSON.stringify(formData));
+      
       const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(employee.name)}`, {
         method: 'POST',
         body: formDataUpload,
       });
 
-      if (!response.ok) throw new Error("Error al guardar en el servidor");
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Error al guardar: ${response.status} - ${errorText}`);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error saving data:', error);
+      throw error;
+    }
+  };
+
+  const handleGeneratePdf = async () => {
+    try {
+      // Guardar datos en JSON y generar PDF en una sola operación
+      await saveFormDataAsJson();
 
       toast.success("Alta del personal.pdf creado correctamente");
       onClose(); // Cerrar el modal después de generar
@@ -132,6 +178,17 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
       toast.error("Error al generar el Alta de personal.pdf");
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto p-6 bg-gray-50 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Cargando datos...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-6 bg-gray-50 min-h-screen">
@@ -154,7 +211,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                 onChange={handleInputChange}
                 className="w-full p-2 border border-gray-300 rounded-md"
                 required
-              />
+               />
             </div>
             <div>
               <label
@@ -536,7 +593,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
               />
             </div>
           </div>
-          
+        
           <div>
             <h3 className="text-lg font-medium mb-2">Persona 2</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -585,17 +642,16 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
             </div>
           </div>
         </div>
-
-        <div className="flex justify-center mt-8">
-          <button
-            type="button"
-            onClick={handleGeneratePdf}
-            className="bg-cyan-600 hover:bg-yellow-500 text-white font-bold py-2 px-6 rounded-md"
-          >
-            Generar Pdf
-          </button>
-        </div>
       </form>
+      <div className="flex justify-center mt-8">
+        <button
+          type="button"
+          onClick={handleGeneratePdf}
+          className="bg-cyan-600 hover:bg-yellow-500 text-white font-bold py-2 px-6 rounded-md"
+        >
+          {formData.nombres ? 'Actualizar PDF' : 'Generar PDF'}
+        </button>
+      </div>
     </div>
   );
 };

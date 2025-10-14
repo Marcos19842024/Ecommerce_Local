@@ -358,7 +358,7 @@ export const PdfJobProfile: React.FC<{ data: JobProfileData }> = ({ data }) => (
                     </View>
                 
                     {/* Primera página - primeras 7 funciones */}
-                    {data.specificFunctions.slice(0, 7).map((func, index) => (
+                    {data.specificFunctions.slice(0, 8).map((func, index) => (
                         <View key={func.id} style={styles.tableRow}>
                             <View style={styles.tableColHeaderReq5}>
                                 <Text style={styles.bold}>{index}</Text>
@@ -398,7 +398,7 @@ export const PdfJobProfile: React.FC<{ data: JobProfileData }> = ({ data }) => (
             </View>
 
             {/* Continuación de Funciones Específicas */}
-            {data.specificFunctions.length > 7 &&
+            {data.specificFunctions.length > 8 &&
                 <View style={styles.section}>
                     <View style={styles.table}>
                         <View style={styles.tableRow}>
@@ -414,17 +414,20 @@ export const PdfJobProfile: React.FC<{ data: JobProfileData }> = ({ data }) => (
                             </View>
                         </View>
 
-                        {/* Continuación de la tabla desde la función 7) */}
-                        {data.specificFunctions.map((func, index) => (
+                        {/* Continuación de la tabla desde la función 8) */}
+                        {data.specificFunctions.slice(8).map((func, index) => (
                             <View key={func.id} style={styles.tableRow}>
                                 <View style={styles.tableColHeaderReq5}>
-                                    <Text style={styles.bold}>{index}</Text>
+                                    <Text style={styles.bold}>{index + 8}</Text>
                                 </View>
                                 <View style={styles.tableColFunc65}>
                                     <Text>{func.description}</Text>
                                 </View>
                                 <View style={styles.tableColFunc15}>
                                     <Text>{func.periodicidadData.periodicidad}</Text>
+                                </View>
+                                <View style={styles.tableColFunc15}>
+                                    <Text>{func.periodicidadData.indicador}</Text>
                                 </View>
                             </View>
                         ))}

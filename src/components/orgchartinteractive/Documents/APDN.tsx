@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { APDNData, StaffRecruitmentProps } from '../../../interfaces/orgchartinteractive.interface';
 import toast from 'react-hot-toast';
 import { PdfAPDN } from '../PdfDocuments/PdfAPDN';
@@ -16,6 +16,39 @@ const APDN = ({employee, onClose }: StaffRecruitmentProps) => {
         email: '',
         trabajador: employee.name
     });
+    const [isLoading, setIsLoading] = useState(true);
+
+    // Cargar datos existentes al montar el componente
+    useEffect(() => {
+        const loadExistingData = async () => {
+            try {
+                const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(employee.name)}`);
+                
+                if (response.ok) {
+                    const serverFiles = await response.json();
+                    const apdnJsonFile = serverFiles.find((file: any) => file.name === 'APDN.json');
+                    
+                    if (apdnJsonFile) {
+                        const jsonResponse = await fetch(`${url}orgchart/employees/${encodeURIComponent(employee.name)}/${encodeURIComponent('APDN.json')}`);
+                        if (jsonResponse.ok) {
+                            const existingData = await jsonResponse.json();
+                            setFormData(prev => ({
+                                ...prev,
+                                ...existingData,
+                                trabajador: employee.name
+                            }));
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading existing APDN data:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        loadExistingData();
+    }, [employee.name]);
 
     const handleChange = (field: keyof APDNData, value: string) => {
         const newData = {
@@ -69,9 +102,11 @@ const APDN = ({employee, onClose }: StaffRecruitmentProps) => {
                 return;
             }
 
+            // Generar y subir PDF con JSON en una sola operación
             const blob = await pdf(<PdfAPDN data={formData} />).toBlob();
             const formDataUpload = new FormData();
             formDataUpload.append('file', blob, "APDN.pdf");
+            formDataUpload.append('jsonData', JSON.stringify(formData));
             
             const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(formData.trabajador)}`, {
                 method: 'POST',
@@ -87,9 +122,20 @@ const APDN = ({employee, onClose }: StaffRecruitmentProps) => {
         }
     };
 
+    if (isLoading) {
+        return (
+            <div className="max-w-2xl mx-auto rounded-lg shadow-md bg-white p-6 w-[500px] space-y-3">
+                <div className="flex justify-center items-center h-32">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <form className="max-w-2xl mx-auto rounded-lg shadow-md bg-white p-6 w-[500px] space-y-3">
             <h2 className="text-2xl font-bold mb-6 text-gray-800">Autorización de Pago de Nómina</h2>
+            
             {/* Fecha */}
             <label className="block text-sm font-medium text-gray-700 mb-2">Fecha</label>
             <div className="flex space-x-4">
@@ -194,14 +240,14 @@ const APDN = ({employee, onClose }: StaffRecruitmentProps) => {
                     required
                 />
             </div>
-
+            
             <div className="flex justify-center mt-8 gap-4">
                 <button
                     type="button"
                     onClick={handleGeneratePdf}
                     className="bg-cyan-600 hover:bg-yellow-500 text-white font-bold py-2 px-6 rounded-md"
                 >
-                    Generar PDF
+                    {formData.fechaDia ? 'Actualizar PDF' : 'Generar PDF'}
                 </button>
             </div>
         </form>

@@ -31,6 +31,7 @@ export interface StaffRecruitmentProps {
 }
 
 export interface EmploymentContractProps {
+  employee: Employee;
   file: FileWithPreview | undefined;
   onClose: () => void;
 }

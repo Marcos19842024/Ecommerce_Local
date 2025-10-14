@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { EvaluationData, StaffRecruitmentProps } from '../../../interfaces/orgchartinteractive.interface';
 import { url } from '../../../server/url';
@@ -14,6 +14,7 @@ interface RadioGroupProps {
 }
 
 const PerformanceEvaluation: React.FC<StaffRecruitmentProps> = ({ employee, onClose }) => {
+    const [isLoading, setIsLoading] = useState(true);
     const [evaluationData, setEvaluationData] = useState<EvaluationData>({
         ciudad: 'Campeche, Campeche.',
         fecha: {
@@ -58,6 +59,34 @@ const PerformanceEvaluation: React.FC<StaffRecruitmentProps> = ({ employee, onCl
         nombreEvaluador: ''
     });
 
+    // Cargar datos existentes
+    useEffect(() => {
+        const loadExistingData = async () => {
+            try {
+                const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(employee.name)}`);
+                
+                if (response.ok) {
+                    const serverFiles = await response.json();
+                    const evaluationJsonFile = serverFiles.find((file: any) => file.name === 'Evaluacion de desempeño.json');
+                    
+                    if (evaluationJsonFile) {
+                        const jsonResponse = await fetch(`${url}orgchart/employees/${encodeURIComponent(employee.name)}/${encodeURIComponent('Evaluacion de desempeño.json')}`);
+                        if (jsonResponse.ok) {
+                            const existingData = await jsonResponse.json();
+                            setEvaluationData(existingData);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading existing evaluation data:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        loadExistingData();
+    }, [employee.name]);
+
     const handleInputChange = (
         section: EvaluationSection,
         field: string,
@@ -91,12 +120,11 @@ const PerformanceEvaluation: React.FC<StaffRecruitmentProps> = ({ employee, onCl
 
     const handleSave = async () => {
         try {
-            // Validar que employee esté definido
             if (!employee) {
                 throw new Error("Perfil de puesto no proporcionados");
             }
             
-            // Generar el PDF
+            // Generar el PDF y enviar con JSON en una sola operación
             const blob = await pdf(<PdfPerformanceEvaluation data={evaluationData} />).toBlob();
             
             if (!blob) {
@@ -109,6 +137,7 @@ const PerformanceEvaluation: React.FC<StaffRecruitmentProps> = ({ employee, onCl
 
             const formDatasend = new FormData();
             formDatasend.append('file', blob, "Evaluacion de desempeño.pdf");
+            formDatasend.append('jsonData', JSON.stringify(evaluationData));
             
             const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(employee.name)}`, {
                 method: 'POST',
@@ -121,7 +150,6 @@ const PerformanceEvaluation: React.FC<StaffRecruitmentProps> = ({ employee, onCl
             }
 
             toast.success("Evaluacion de desempeño.pdf creado correctamente");
-            
             onClose();
 
         } catch (error) {
@@ -162,6 +190,17 @@ const PerformanceEvaluation: React.FC<StaffRecruitmentProps> = ({ employee, onCl
             </div>
         </div>
     );
+
+    if (isLoading) {
+        return (
+            <div className="max-w-4xl mx-auto flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+                    <p className="mt-4 text-gray-600">Cargando datos...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="max-w-4xl mx-auto">
@@ -292,15 +331,15 @@ const PerformanceEvaluation: React.FC<StaffRecruitmentProps> = ({ employee, onCl
                 <h3 className="text-lg font-semibold mb-4">DECISIÓN DEL CONTRATO</h3>
                 <div className="space-y-2">
                     <label className="flex items-center">
-                    <input
-                        type="radio"
-                        name="decisionContrato"
-                        value="prorroga"
-                        checked={evaluationData.decisionContrato === 'prorroga'}
-                        onChange={(e) => handleGeneralChange('decisionContrato', e.target.value)}
-                        className="text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="ml-2">Se prorroga por un mes</span>
+                        <input
+                            type="radio"
+                            name="decisionContrato"
+                            value="prorroga"
+                            checked={evaluationData.decisionContrato === 'prorroga'}
+                            onChange={(e) => handleGeneralChange('decisionContrato', e.target.value)}
+                            className="text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="ml-2">Se prorroga por un mes</span>
                     </label>
                     <label className="flex items-center">
                         <input
@@ -336,14 +375,13 @@ const PerformanceEvaluation: React.FC<StaffRecruitmentProps> = ({ employee, onCl
                     />
                 </div>
             </div>
-
-            {/* Botones de acción */}
+            
             <div className="mt-6 flex justify-end space-x-4">
                 <button
                     onClick={handleSave}
                     className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700"
                 >
-                    Guardar Evaluación
+                    {evaluationData.nombreEvaluador ? 'Actualizar Evaluación' : 'Guardar Evaluación'}
                 </button>
             </div>
         </div>

@@ -6,7 +6,7 @@ import { formatDateLong } from "../../../helpers";
 import toast from "react-hot-toast";
 import { PdfEmploymentContract } from "../PdfDocuments/PdfEmploymentContract";
 
-const EmployeementContract = ({ file, onClose }: EmploymentContractProps) => {
+const EmployeementContract = ({ file, onClose, employee }: EmploymentContractProps) => {
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
     const [contractData, setContractData] = useState<ContractData>({
@@ -29,9 +29,83 @@ const EmployeementContract = ({ file, onClose }: EmploymentContractProps) => {
     const [fechaInput, setFechaInput] = useState<string>(new Date().toISOString().split('T')[0]);
     const [nuevaActividad, setNuevaActividad] = useState<string>('');
 
+    // Cargar datos existentes del JSON
+    useEffect(() => {
+        const loadExistingData = async () => {
+            try {
+                // Primero intentar cargar datos del JSON específico del contrato
+                const responsejson = await fetch(`${url}orgchart/employees/${encodeURIComponent(employee.name)}`);
+                
+                if (responsejson.ok) {
+                    const serverFiles = await responsejson.json();
+                    const contractJsonFile = serverFiles.find((file: any) => file.name === 'Contrato laboral.json');
+                    
+                    if (contractJsonFile) {
+                        // Cargar datos existentes del contrato
+                        const jsonResponse = await fetch(`${url}orgchart/employees/${encodeURIComponent(employee.name)}/${encodeURIComponent('Contrato laboral.json')}`);
+                        if (jsonResponse.ok) {
+                            const existingData = await jsonResponse.json();
+                            
+                            setContractData(prev => ({
+                                ...prev,
+                                ...existingData
+                            }));
+                            
+                            // Configurar checkboxes según el tipo de contrato
+                            if (existingData.type === 'INDETERMINADO') {
+                                setIsIndefinido(true);
+                                setIsDefinido(false);
+                            } else {
+                                setIsIndefinido(false);
+                                setIsDefinido(true);
+                            }
+                            
+                            if (existingData.fechaContrato) {
+                                // Convertir fecha formateada a formato input (asumiendo formato DD/MM/YYYY)
+                                const [dia, mes, anio] = existingData.fechaContrato.split('/');
+                                if (dia && mes && anio) {
+                                    setFechaInput(`${anio}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`);
+                                }
+                            }
+                            
+                            setIsLoading(false);
+                            return;
+                        }
+                    }
+                }
+
+                // Si no existe JSON del contrato, procesar el JSON de alta de personal
+                if (!file || !file.url) {
+                    setIsLoading(false);
+                    return;
+                }
+                
+                // Descargar el JSON desde la URL
+                const response = await fetch(file.url);
+                if (!response.ok) {
+                    throw new Error(`Error al descargar el JSON: ${response.status}`);
+                }
+
+                const jsonData: PersonalFormData = await response.json();
+                const extractedData = parseJsonData(jsonData);
+                
+                setContractData(prev => ({
+                    ...prev,
+                    ...extractedData
+                }));
+                
+            } catch (error) {
+                console.error('Error loading contract data:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        loadExistingData();
+    }, [file, employee.name, onClose]);
+
     // Función para procesar el JSON
-    const parseJsonData = (jsonData: PersonalFormData): ContractData => {
-        
+    const parseJsonData = (jsonData: PersonalFormData): Partial<ContractData> => {
         // Construir nombre completo
         const nombreCompleto = `${jsonData.nombres} ${jsonData.apellidoPaterno} ${jsonData.apellidoMaterno}`.trim();
         
@@ -44,7 +118,7 @@ const EmployeementContract = ({ file, onClose }: EmploymentContractProps) => {
             type: 'DETERMINADO',
             duracionContrato: '30',
             salarioDiario: '$0.00',
-            puesto: '',
+            puesto: employee.puesto || '',
             salarioSemanal: '',
             fechaContrato: jsonData.datosPersonales?.fechaIngreso ? 
                 formatDateLong(jsonData.datosPersonales.fechaIngreso) : 
@@ -54,44 +128,6 @@ const EmployeementContract = ({ file, onClose }: EmploymentContractProps) => {
         
         return extractedData;
     };
-
-    // Leer el contenido del JSON desde la URL
-    useEffect(() => {
-        const readJsonFromUrl = async () => {
-            if (!file || !file.url) {
-                setIsLoading(false);
-                toast.error('No hay archivo JSON para procesar');
-                onClose();
-                return;
-            }
-            
-            setIsLoading(true);
-            try {
-                // Descargar el JSON desde la URL
-                const response = await fetch(file.url);
-                if (!response.ok) {
-                    throw new Error(`Error al descargar el JSON: ${response.status}`);
-                }
-
-                const jsonData: PersonalFormData = await response.json();
-
-                const extractedData = parseJsonData(jsonData);
-                
-                setContractData(prev => ({
-                    ...prev,
-                    ...extractedData
-                }));
-                
-            } catch (error) {
-                onClose();
-                toast.error('Error al leer el archivo JSON');
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        readJsonFromUrl();
-    }, [file, name, onClose]);
 
     // Función para extraer valor numérico del salario
     const extractNumericValue = (salaryString: string): number => {
@@ -118,7 +154,6 @@ const EmployeementContract = ({ file, onClose }: EmploymentContractProps) => {
     // Efecto para sincronizar fecha
     useEffect(() => {
         if (fechaInput) {
-            // Si fechaInput viene como YYYY-MM-DD, usar solución 2
             const fechaFormateada = formatDateLong(fechaInput);
             setContractData(prev => ({
                 ...prev,
@@ -206,9 +241,11 @@ const EmployeementContract = ({ file, onClose }: EmploymentContractProps) => {
                 return;
             }
 
+            // Generar y subir PDF con JSON en una sola operación
             const blob = await pdf(<PdfEmploymentContract data={contractData} />).toBlob();
             const formDataUpload = new FormData();
             formDataUpload.append('file', blob, "Contrato laboral.pdf");
+            formDataUpload.append('jsonData', JSON.stringify(contractData));
             
             const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(contractData.trabajador)}`, {
                 method: 'POST',
@@ -229,7 +266,7 @@ const EmployeementContract = ({ file, onClose }: EmploymentContractProps) => {
             <div className="container mx-auto p-6 bg-gray-50 min-h-screen flex items-center justify-center">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Leyendo JSON y extrayendo datos...</p>
+                    <p className="mt-4 text-gray-600">Cargando datos...</p>
                 </div>
             </div>
         );
@@ -440,7 +477,7 @@ const EmployeementContract = ({ file, onClose }: EmploymentContractProps) => {
                     className="bg-cyan-600 hover:bg-yellow-500 text-white font-bold py-2 px-6 rounded-md"
                     disabled={isLoading}
                 >
-                    {isLoading ? 'Procesando...' : 'Generar PDF'}
+                    {contractData.trabajador ? 'Actualizar PDF' : 'Generar PDF'}
                 </button>
             </div>
         </div>
