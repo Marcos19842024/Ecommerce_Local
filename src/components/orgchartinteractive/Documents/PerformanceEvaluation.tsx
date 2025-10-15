@@ -67,10 +67,10 @@ const PerformanceEvaluation: React.FC<StaffRecruitmentProps> = ({ employee, onCl
                 
                 if (response.ok) {
                     const serverFiles = await response.json();
-                    const evaluationJsonFile = serverFiles.find((file: any) => file.name === 'Evaluacion de desempeño.json');
+                    const evaluationJsonFile = serverFiles.find((file: any) => file.name === 'Evaluacion de desempeno.json');
                     
                     if (evaluationJsonFile) {
-                        const jsonResponse = await fetch(`${url}orgchart/employees/${encodeURIComponent(employee.name)}/${encodeURIComponent('Evaluacion de desempeño.json')}`);
+                        const jsonResponse = await fetch(`${url}orgchart/employees/${encodeURIComponent(employee.name)}/${encodeURIComponent('Evaluacion de desempeno.json')}`);
                         if (jsonResponse.ok) {
                             const existingData = await jsonResponse.json();
                             setEvaluationData(existingData);
@@ -78,7 +78,7 @@ const PerformanceEvaluation: React.FC<StaffRecruitmentProps> = ({ employee, onCl
                     }
                 }
             } catch (error) {
-                console.error('Error loading existing evaluation data:', error);
+                toast.error('Error loading existing evaluation data:');
             } finally {
                 setIsLoading(false);
             }
@@ -121,7 +121,7 @@ const PerformanceEvaluation: React.FC<StaffRecruitmentProps> = ({ employee, onCl
     const handleSave = async () => {
         try {
             if (!employee) {
-                throw new Error("Perfil de puesto no proporcionados");
+                throw new Error("Datos no proporcionados");
             }
             
             // Generar el PDF y enviar con JSON en una sola operación
@@ -136,7 +136,7 @@ const PerformanceEvaluation: React.FC<StaffRecruitmentProps> = ({ employee, onCl
             }
 
             const formDatasend = new FormData();
-            formDatasend.append('file', blob, "Evaluacion de desempeño.pdf");
+            formDatasend.append('file', blob, "Evaluacion de desempeno.pdf");
             formDatasend.append('jsonData', JSON.stringify(evaluationData));
             
             const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(employee.name)}`, {
