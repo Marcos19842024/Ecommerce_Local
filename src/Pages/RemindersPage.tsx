@@ -10,7 +10,7 @@ import { prepareContacts } from "../helpers";
 import { GrDocumentUpload } from "react-icons/gr";
 import { RiMobileDownloadLine } from "react-icons/ri";
 import { Loader } from "../components/shared/Loader";
-import { url } from "../server/url";
+import { apiService } from "../services/api";
 import { center, cel } from "../server/user";
 
 export const RemindersPage = () => {
@@ -22,89 +22,88 @@ export const RemindersPage = () => {
   const [list, setList] = useState(false);
   const [loader, setLoader] = useState(false);
 
-  const handleStatus = () => {
+  const handleStatus = async () => {
     setLoader(true);
-    fetch(`${url}wwebjs/status/${center}/${cel}`, {
-      method: "GET",
-    })
-    .then(res => res.json())
-    .then(res => {
-      if (!res.err) {
-        setStatus(res.statusText)
-        toast.success(res.statusText, {
+    try {
+      // ✅ Usar apiService para obtener el estado de WhatsApp
+      const response = await apiService.getWhatsAppStatus(center, cel);
+      
+      if (!response.err) {
+        setStatus(response.statusText);
+        toast.success(response.statusText, {
           position: "top-right"
         });
-        setLoader(false);
       } else {
-        setStatus(res.statusText)
-        toast.error(`Error ${res.status}: ${res.statusText}`, {
+        setStatus(response.statusText);
+        toast.error(`Error ${response.status}: ${response.statusText}`, {
           position: "top-right"
         });
         setTimeout(() => setStatus('Conectar WhatsApp al Servidor'), 4000);
-        setLoader(false);
       }
-    })
-    .catch(() => {
+    } catch (error) {
+      console.error('Error checking WhatsApp status:', error);
       toast.error("Error en la respuesta del servidor", {
         position: "top-right"
       });
-      setStatus("Error en la respuesta del servidor")
-      setTimeout(() => setStatus('Conectar WhatsApp al Servidor'), 4000)
+      setStatus("Error en la respuesta del servidor");
+      setTimeout(() => setStatus('Conectar WhatsApp al Servidor'), 4000);
+    } finally {
       setLoader(false);
-    })
-    .finally();
+    }
   };
 
   const getContact = async () => {
     setLoader(true);
-    fetch(`${url}wwebjs/contact`, {
-      method: "GET",
-    })
-    .then(res => res.json())
-    .then(res => {
-      if (!res.err) {
-        const clientes: Cliente[] = prepareContacts((res as ContactResponse).statusText)
+    try {
+      // ✅ Usar apiService para obtener contactos de WhatsApp
+      const response = await apiService.getWhatsAppContacts();
+      
+      if (!response.err) {
+        const clientes: Cliente[] = prepareContacts((response as ContactResponse).statusText);
         setClientes(clientes);
         setInfo('Contactos de WhatsApp');
         setShowIb(false);
         setList(true);
-        toast.success('Contactos obtenidos con exito!', {
+        toast.success('Contactos obtenidos con éxito!', {
           position: "top-right"
         });
-        setLoader(false);
       } else {
-        toast.error(`Error ${res.status}: ${res.statusText}`, {
+        toast.error(`Error ${response.status}: ${response.statusText}`, {
           position: "top-right"
         });
-        setLoader(false);
       }
-    })
-    .catch(() => {
+    } catch (error) {
+      console.error('Error getting WhatsApp contacts:', error);
       toast.error("Error en la respuesta del servidor", {
         position: "top-right"
       });
+    } finally {
       setLoader(false);
-    })
-    .finally();
+    }
   };
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       setLoader(true);
-      const { data } = useClients({ e });
-      if ((await data).length > 0) {
-        setClientes(await data);
-        setInfo(e.target.files[0].name);
-        setShowIb(false);
-        setList(false);
+      try {
+        const { data } = useClients({ e });
+        if ((await data).length > 0) {
+          setClientes(await data);
+          setInfo(e.target.files[0].name);
+          setShowIb(false);
+          setList(false);
+        } else {
+          setClientes([]);
+          e.target.value = "";
+        }
+      } catch (error) {
+        console.error('Error processing file:', error);
+        toast.error("Error al procesar el archivo");
+      } finally {
         setLoader(false);
-      } else {
-        setClientes([]);
-        setLoader(false);
-        e.target.value = "";
       }
     }
-  }
+  };
 
   const handleModalContainerClick = (e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation();
 
@@ -112,13 +111,14 @@ export const RemindersPage = () => {
     <div className="flex flex-col flex-1 w-full min-h-screen p-4">
       <div className="overflow-y-auto rounded-md bg-white p-2 shadow-md">
         {showQr && 
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
             onClick={() => setShowQr(false)}
           >
             <div onClick={handleModalContainerClick}>
               <div
                 className="bg-gray-900 rounded-lg shadow-lg text-white"
-                onClick={(e) => e.stopPropagation()} // evita cerrar al hacer clic dentro
+                onClick={(e) => e.stopPropagation()}
               >
                 <QrCode />  
               </div>
@@ -132,11 +132,13 @@ export const RemindersPage = () => {
           {/* Botones de control */}
           <div className="flex flex-wrap items-center gap-2">
             <button
-              className="flex items-center gap-2 text-white rounded-md px-3 py-2 transition-all bg-cyan-600 hover:bg-yellow-500 hover:scale-105"
+              className="flex items-center gap-2 text-white rounded-md px-3 py-2 transition-all bg-cyan-600 hover:bg-yellow-500 hover:scale-105 disabled:bg-gray-400 disabled:cursor-not-allowed"
               type="button"
               onClick={handleStatus}
+              disabled={loader}
             >
-              <FaWhatsapp /> {status}
+              <FaWhatsapp /> 
+              {loader ? "Verificando..." : status}
             </button>
 
             <button
@@ -160,16 +162,17 @@ export const RemindersPage = () => {
               />
 
               <button
-                className="flex items-center gap-2 text-white rounded-md px-3 py-2 transition-all bg-cyan-600 hover:bg-yellow-500 hover:scale-105"
+                className="flex items-center gap-2 text-white rounded-md px-3 py-2 transition-all bg-cyan-600 hover:bg-yellow-500 hover:scale-105 disabled:bg-gray-400 disabled:cursor-not-allowed"
                 onClick={getContact}
+                disabled={loader}
               >
                 <RiMobileDownloadLine />
-                Descargar Contactos
+                {loader ? "Cargando..." : "Descargar Contactos"}
               </button>
 
               <label
                 htmlFor="inputfile"
-                className="cursor-pointer bg-cyan-600 text-white flex items-center px-3 py-2 rounded-md gap-2 hover:bg-yellow-500 hover:scale-105 transition-all"
+                className="cursor-pointer bg-cyan-600 text-white flex items-center px-3 py-2 rounded-md gap-2 hover:bg-yellow-500 hover:scale-105 transition-all disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
                 <GrDocumentUpload />
                 Subir Lista
@@ -191,5 +194,5 @@ export const RemindersPage = () => {
       {/* Componente de mensajes */}
       {loader ? <Loader /> : <Reminders clientes={clientes} />}
     </div>
-  )
-}
+  );
+};

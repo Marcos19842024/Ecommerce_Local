@@ -1,10 +1,10 @@
 import { pdf } from "@react-pdf/renderer";
 import { useState, useEffect } from "react";
 import { ContractData, EmploymentContractProps, PersonalFormData } from "../../../interfaces/orgchartinteractive.interface";
-import { url } from "../../../server/url";
 import { formatDateLong } from "../../../helpers";
 import toast from "react-hot-toast";
 import { PdfEmploymentContract } from "../PdfDocuments/PdfEmploymentContract";
+import { apiService } from "../../../services/api";
 
 const EmployeementContract = ({ file, onClose, employee }: EmploymentContractProps) => {
     const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -33,44 +33,42 @@ const EmployeementContract = ({ file, onClose, employee }: EmploymentContractPro
     useEffect(() => {
         const loadExistingData = async () => {
             try {
-                // Primero intentar cargar datos del JSON específico del contrato
-                const responsejson = await fetch(`${url}orgchart/employees/${encodeURIComponent(employee.name)}`);
+                // ✅ Primero intentar cargar datos del JSON específico del contrato usando apiService
+                const serverFiles = await apiService.getEmployeeFiles(employee.name);
                 
-                if (responsejson.ok) {
-                    const serverFiles = await responsejson.json();
-                    const contractJsonFile = serverFiles.find((file: any) => file.name === 'Contrato laboral.json');
-                    
-                    if (contractJsonFile) {
-                        // Cargar datos existentes del contrato
-                        const jsonResponse = await fetch(`${url}orgchart/employees/${encodeURIComponent(employee.name)}/${encodeURIComponent('Contrato laboral.json')}`);
-                        if (jsonResponse.ok) {
-                            const existingData = await jsonResponse.json();
-                            
-                            setContractData(prev => ({
-                                ...prev,
-                                ...existingData
-                            }));
-                            
-                            // Configurar checkboxes según el tipo de contrato
-                            if (existingData.type === 'INDETERMINADO') {
-                                setIsIndefinido(true);
-                                setIsDefinido(false);
-                            } else {
-                                setIsIndefinido(false);
-                                setIsDefinido(true);
-                            }
-                            
-                            if (existingData.fechaContrato) {
-                                // Convertir fecha formateada a formato input (asumiendo formato DD/MM/YYYY)
-                                const [dia, mes, anio] = existingData.fechaContrato.split('/');
-                                if (dia && mes && anio) {
-                                    setFechaInput(`${anio}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`);
-                                }
-                            }
-                            
-                            setIsLoading(false);
-                            return;
+                const contractJsonFile = serverFiles.find((file: any) => file.name === 'Contrato laboral.json');
+                
+                if (contractJsonFile) {
+                    // ✅ Cargar datos existentes del contrato usando apiService
+                    try {
+                        const existingData = await apiService.getEmployeeFiles(`${employee.name}/Contrato laboral.json`);
+                        
+                        setContractData(prev => ({
+                            ...prev,
+                            ...existingData
+                        }));
+                        
+                        // Configurar checkboxes según el tipo de contrato
+                        if (existingData.type === 'INDETERMINADO') {
+                            setIsIndefinido(true);
+                            setIsDefinido(false);
+                        } else {
+                            setIsIndefinido(false);
+                            setIsDefinido(true);
                         }
+                        
+                        if (existingData.fechaContrato) {
+                            // Convertir fecha formateada a formato input (asumiendo formato DD/MM/YYYY)
+                            const [dia, mes, anio] = existingData.fechaContrato.split('/');
+                            if (dia && mes && anio) {
+                                setFechaInput(`${anio}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`);
+                            }
+                        }
+                        
+                        setIsLoading(false);
+                        return;
+                    } catch (jsonError) {
+                        console.error('Error loading contract JSON:', jsonError);
                     }
                 }
 
@@ -80,12 +78,8 @@ const EmployeementContract = ({ file, onClose, employee }: EmploymentContractPro
                     return;
                 }
                 
-                // Descargar el JSON desde la URL
-                const response = await fetch(file.url);
-                if (!response.ok) {
-                    throw new Error(`Error al descargar el JSON: ${response.status}`);
-                }
-
+                // ✅ Descargar el JSON usando apiService.fetchDirect
+                const response = await apiService.fetchDirect(file.url);
                 const jsonData: PersonalFormData = await response.json();
                 const extractedData = parseJsonData(jsonData);
                 
@@ -241,22 +235,18 @@ const EmployeementContract = ({ file, onClose, employee }: EmploymentContractPro
                 return;
             }
 
-            // Generar y subir PDF con JSON en una sola operación
+            // ✅ Generar y subir PDF con JSON usando apiService
             const blob = await pdf(<PdfEmploymentContract data={contractData} />).toBlob();
             const formDataUpload = new FormData();
             formDataUpload.append('file', blob, "Contrato laboral.pdf");
             formDataUpload.append('jsonData', JSON.stringify(contractData));
             
-            const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(contractData.trabajador)}`, {
-                method: 'POST',
-                body: formDataUpload,
-            });
-
-            if (!response.ok) throw new Error("Error al guardar en el servidor");
+            await apiService.uploadEmployeeFile(contractData.trabajador, formDataUpload);
 
             toast.success("Contrato laboral.pdf creado correctamente");
             onClose();
         } catch (error) {
+            console.error('Error generating Employment Contract:', error);
             toast.error("Error al generar el Contrato laboral.pdf");
         }
     };

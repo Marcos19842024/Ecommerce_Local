@@ -10,10 +10,11 @@ import { TfiPrinter } from "react-icons/tfi";
 import { pdf, PDFViewer } from "@react-pdf/renderer";
 import { formatString } from "../../helpers";
 import { FormValues, SelectValues } from "../../interfaces/report.interface";
-import { url } from "../../server/url";
 import FilePreviewModal from "./FilePreviewModal";
 import { Loader } from "../shared/Loader";
 import { PdfExpense } from "./PdfExpense";
+import { apiService } from "../../services/api"; // ✅ Importar apiService
+import { runtimeConfig } from "../../services/config"; // ✅ Importar runtimeConfig
 
 const currencyFormatter = new Intl.NumberFormat("es-MX", {
   style: "currency",
@@ -58,6 +59,11 @@ export const ExpenseReport = () => {
   });
   const [isDraggingXml, setIsDraggingXml] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // ✅ Función para obtener la URL base de la API
+  const getApiUrl = () => {
+    return runtimeConfig.getApiUrl();
+  };
 
   // ✅ calcular total con useMemo
   const total = useMemo(() => {
@@ -188,11 +194,8 @@ export const ExpenseReport = () => {
     }
 
     try {
-      const res = await fetch(`${url}invoices`, {
-        method: "POST", // siempre POST
-        body: formData,
-      });
-      if (!res.ok) throw new Error("Error en el servidor");
+      // ✅ Usar apiService en lugar de fetch directo
+      await apiService.uploadInvoice(formData);
 
       let nuevasFilas = [...rows];
       if (editIndex !== null) {
@@ -245,11 +248,8 @@ export const ExpenseReport = () => {
     }
 
     try {
-      const res = await fetch(
-          `${url}invoices/${row.fecha}/${row.proveedor}/${row.factura}`,{ method: "DELETE" }
-      );
-
-      if (!res.ok) throw new Error("Error al eliminar en el servidor");
+      // ✅ Usar apiService en lugar de fetch directo
+      await apiService.delete(`/invoices/${row.fecha}/${row.proveedor}/${row.factura}`);
 
       // ✅ eliminar en estado local
       setRows(rows.filter((_, i) => i !== index));
@@ -275,44 +275,50 @@ export const ExpenseReport = () => {
       formData.append("send", send.toString());
       formData.append("download", download.toString());
 
-      const res = await fetch(`${url}invoices/download-send-mail-zip`, {
-        method: "POST",
-        body: formData,
-      });
-
-      const contentType = res.headers.get("content-type");
-      
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.message || `Error HTTP: ${res.status}`);
-      }
+      // ✅ Usar apiService para enviar el reporte
+      const res = await apiService.uploadInvoice(formData);
 
       // Manejar respuesta según el tipo de contenido
-      if (contentType?.includes("application/json")) {
+      if (res && typeof res === 'object' && 'message' in res) {
         // Solo enviar por correo (sin descarga)
-        const data = await res.json();
         if (send) {
-          toast.success(data.message || "Reporte enviado por correo correctamente");
+          toast.success(res.message || "Reporte enviado por correo correctamente");
         }
-      } else if (contentType?.includes("application/zip")) {
-        // Descargar ZIP
-        const zipBlob = await res.blob();
-        const urlZip = window.URL.createObjectURL(zipBlob);
-        const a = document.createElement("a");
-        a.href = urlZip;
-        a.download = `Reporte de Gastos ${selectValues.tipoPago} ${selectValues.mes} ${selectValues.anio}.zip`;
-        document.body.appendChild(a);
-        a.click();
+      } else {
+        // Para respuestas binarias (ZIP), necesitamos usar fetch directamente
+        // ya que apiService espera JSON
+        const apiUrl = getApiUrl();
+        const fetchRes = await fetch(`${apiUrl}/invoices/download-send-mail-zip`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!fetchRes.ok) {
+          throw new Error(`Error HTTP: ${fetchRes.status}`);
+        }
+
+        const contentType = fetchRes.headers.get("content-type");
         
-        setTimeout(() => {
-          window.URL.revokeObjectURL(urlZip);
-          document.body.removeChild(a);
-        }, 100);
-        
-        if (send) {
-          toast.success("Reporte generado, enviado y descargado correctamente");
-        } else {
-          toast.success("Reporte descargado correctamente");
+        if (contentType?.includes("application/zip")) {
+          // Descargar ZIP
+          const zipBlob = await fetchRes.blob();
+          const urlZip = window.URL.createObjectURL(zipBlob);
+          const a = document.createElement("a");
+          a.href = urlZip;
+          a.download = `Reporte de Gastos ${selectValues.tipoPago} ${selectValues.mes} ${selectValues.anio}.zip`;
+          document.body.appendChild(a);
+          a.click();
+          
+          setTimeout(() => {
+            window.URL.revokeObjectURL(urlZip);
+            document.body.removeChild(a);
+          }, 100);
+          
+          if (send) {
+            toast.success("Reporte generado, enviado y descargado correctamente");
+          } else {
+            toast.success("Reporte descargado correctamente");
+          }
         }
       }
 
@@ -324,15 +330,11 @@ export const ExpenseReport = () => {
         anio: null,
       });
       
-      if (resetForm) {
-        resetForm();
-      }
+      resetForm();
 
     } catch (error) {
-      const errorMessage = typeof error === "object" && error !== null && "message" in error
-        ? (error as { message?: string }).message
-        : undefined;
-      toast.error(errorMessage || "Error al procesar el reporte");
+      const errorMessage = error instanceof Error ? error.message : "Error al procesar el reporte";
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -349,7 +351,7 @@ export const ExpenseReport = () => {
           <>
             <label className="flex items-center gap-1 text-cyan-600">
               <input
-                disabled={rows.length === 0} // 🔹 desactiva si no hay filas
+                disabled={rows.length === 0}
                 type="checkbox"
                 checked={send}
                 onChange={(e) => setSend(e.target.checked)}
@@ -358,7 +360,7 @@ export const ExpenseReport = () => {
             </label>
             <label className="flex items-center gap-1 text-cyan-600">
               <input
-                disabled={rows.length === 0} // 🔹 desactiva si no hay filas
+                disabled={rows.length === 0}
                 type="checkbox"
                 checked={download}
                 onChange={(e) => setDownload(e.target.checked)}
@@ -644,7 +646,7 @@ export const ExpenseReport = () => {
                             <BsFiletypePdf
                               onClick={() => {
                                 if (row.factura) {
-                                  setPreviewFile({ url: `${url}invoices/${row.fecha}/${row.proveedor}/${row.factura}.pdf`, type: "pdf" });
+                                  setPreviewFile({ url: `${getApiUrl()}/invoices/${row.fecha}/${row.proveedor}/${row.factura}.pdf`, type: "pdf" });
                                 } else {
                                   toast.error("No hay PDF disponible");
                                 }
@@ -656,7 +658,7 @@ export const ExpenseReport = () => {
                             <BsFiletypeXml
                               onClick={() => {
                                 if (row.factura) {
-                                  setPreviewFile({ url: `${url}invoices/${row.fecha}/${row.proveedor}/${row.factura}.xml`, type: "xml" });
+                                  setPreviewFile({ url: `${getApiUrl()}/invoices/${row.fecha}/${row.proveedor}/${row.factura}.xml`, type: "xml" });
                                 } else {
                                   toast.error("No hay XML disponible");
                                 }

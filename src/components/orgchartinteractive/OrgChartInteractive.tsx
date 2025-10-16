@@ -3,7 +3,7 @@ import { SiAwsorganizations } from "react-icons/si";
 import { RiDeleteBin2Line } from "react-icons/ri";
 import { FiEdit } from "react-icons/fi";
 import { VscFileSymlinkDirectory } from "react-icons/vsc";
-import { url } from "../../server/url";
+import { apiService } from "../../services/api";
 import { Employee, OrgNode } from "../../interfaces/orgchartinteractive.interface";
 import toast from "react-hot-toast";
 import Tree from "react-d3-tree";
@@ -31,15 +31,18 @@ export default function OrgChartInteractive() {
   const [selectEmployee, setSelectEmployee] = useState<Employee | null>(null);
   const dataMemo = treeData ? [treeData] : [];
 
-  // 🌐 Cargar datos iniciales
+  // 🌐 Cargar datos iniciales - ✅ ACTUALIZADO
   useEffect(() => {
-    fetch(`${url}orgchart`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Error en la respuesta");
-        return res.json()
-      })
-      .then((data: OrgNode) => setTreeData(withIds(data)))
-      .catch(() => toast.error("Error al cargar organigrama"));
+    const loadOrgChart = async () => {
+      try {
+        const data = await apiService.getOrgChart();
+        setTreeData(withIds(data));
+      } catch (error) {
+        toast.error("Error al cargar organigrama");
+      }
+    };
+
+    loadOrgChart();
   }, []);
 
   // Sincronizar datos del nodo seleccionado
@@ -111,20 +114,12 @@ export default function OrgChartInteractive() {
     return { ...node, children: node.children?.map((c) => removeNode(c, id)).filter(Boolean) as OrgNode[] };
   };
 
-  // Guardar cambios en backend
+  // Guardar cambios en backend - ✅ ACTUALIZADO
   const saveTree = async (tree: OrgNode) => {
     try {
       setTreeData(tree);
       
-      const res = await fetch(`${url}orgchart`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(tree),
-      });
-
-      if (!res.ok) throw new Error("Error al guardar");
+      await apiService.saveOrgChart(tree);
       toast.success("Cambios guardados correctamente");
     } catch {
       if (treeData) setTreeData(treeData);

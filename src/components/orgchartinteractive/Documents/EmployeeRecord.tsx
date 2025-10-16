@@ -1,9 +1,9 @@
 import { pdf } from "@react-pdf/renderer";
 import { Employee } from "../../../interfaces/orgchartinteractive.interface";
 import { FileWithPreview } from "../../../interfaces/shared.interface";
-import { url } from "../../../server/url";
 import toast from "react-hot-toast";
 import { PdfEmployeeRecord } from "../PdfDocuments/PdfEmployeeRecord";
+import { apiService } from "../../../services/api";
 
 interface RecordStatus {
     [key: string]: boolean;
@@ -74,19 +74,16 @@ export const EmployeeRecord = async (
         const formData = new FormData();
         formData.append('file', blob, "Caratula.pdf");
         
-        const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(employee.name)}`, {
-            method: 'POST',
-            body: formData,
-        });
-
-        if (!response.ok) throw new Error("Error al guardar en el servidor");
+        // ✅ Usar apiService en lugar de fetch directo
+        await apiService.uploadEmployeeFile(employee.name, formData);
 
         toast.success("Caratula.pdf creada correctamente");
         
         await loadFiles();
 
     } catch (error) {
+        console.error('Error generating Employee Record:', error);
         toast.error("No se pudo generar el documento Caratula.pdf");
     }
-    return
+    return;
 };

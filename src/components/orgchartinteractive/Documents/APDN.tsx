@@ -3,7 +3,7 @@ import { APDNData, StaffRecruitmentProps } from '../../../interfaces/orgchartint
 import toast from 'react-hot-toast';
 import { PdfAPDN } from '../PdfDocuments/PdfAPDN';
 import { pdf } from '@react-pdf/renderer';
-import { url } from '../../../server/url';
+import { apiService } from "../../../services/api";
 
 const APDN = ({employee, onClose }: StaffRecruitmentProps) => {
     const [formData, setFormData] = useState<APDNData>({
@@ -22,22 +22,24 @@ const APDN = ({employee, onClose }: StaffRecruitmentProps) => {
     useEffect(() => {
         const loadExistingData = async () => {
             try {
-                const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(employee.name)}`);
+                // ✅ Usar apiService en lugar de fetch directo
+                const serverFiles = await apiService.getEmployeeFiles(employee.name);
                 
-                if (response.ok) {
-                    const serverFiles = await response.json();
-                    const apdnJsonFile = serverFiles.find((file: any) => file.name === 'APDN.json');
-                    
-                    if (apdnJsonFile) {
-                        const jsonResponse = await fetch(`${url}orgchart/employees/${encodeURIComponent(employee.name)}/${encodeURIComponent('APDN.json')}`);
-                        if (jsonResponse.ok) {
-                            const existingData = await jsonResponse.json();
+                const apdnJsonFile = serverFiles.find((file: any) => file.name === 'APDN.json');
+                
+                if (apdnJsonFile) {
+                    // ✅ Usar apiService para obtener el archivo JSON
+                    try {
+                        const jsonData = await apiService.getEmployeeFiles(`${employee.name}/APDN.json`);
+                        if (jsonData) {
                             setFormData(prev => ({
                                 ...prev,
-                                ...existingData,
+                                ...jsonData,
                                 trabajador: employee.name
                             }));
                         }
+                    } catch (jsonError) {
+                        console.error('Error loading APDN.json:', jsonError);
                     }
                 }
             } catch (error) {
@@ -102,22 +104,19 @@ const APDN = ({employee, onClose }: StaffRecruitmentProps) => {
                 return;
             }
 
-            // Generar y subir PDF con JSON en una sola operación
+            // ✅ Generar y subir PDF con JSON usando apiService
             const blob = await pdf(<PdfAPDN data={formData} />).toBlob();
             const formDataUpload = new FormData();
             formDataUpload.append('file', blob, "APDN.pdf");
             formDataUpload.append('jsonData', JSON.stringify(formData));
             
-            const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(formData.trabajador)}`, {
-                method: 'POST',
-                body: formDataUpload,
-            });
-
-            if (!response.ok) throw new Error("Error al guardar en el servidor");
+            // ✅ Usar apiService en lugar de fetch directo
+            await apiService.uploadEmployeeFile(formData.trabajador, formDataUpload);
 
             toast.success("APDN.pdf creado correctamente");
             onClose();
         } catch (error) {
+            console.error('Error generating APDN:', error);
             toast.error("Error al generar el APDN.pdf");
         }
     };

@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { PersonalFormData, StaffRecruitmentProps } from '../../../interfaces/orgchartinteractive.interface';
-import { url } from '../../../server/url';
 import { pdf } from '@react-pdf/renderer';
 import { PdfStaffRecruitment } from '../PdfDocuments/PdfStaffRecruitment';
 import toast from 'react-hot-toast';
+import { apiService } from '../../../services/api';
 
 const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Función para dividir el nombre completo si es necesario
   const splitFullName = (fullName: string) => {
@@ -109,25 +110,32 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
     }
   };
 
+  // Cargar datos existentes usando apiService
   useEffect(() => {
     const loadExistingData = async () => {
       try {
-        const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(employee.name)}`);
+        setIsLoading(true);
         
-        if (response.ok) {
-          const serverFiles = await response.json();
-          const altaJsonFile = serverFiles.find((file: any) => file.name === 'Alta del personal.json');
+        // ✅ Usar apiService para obtener archivos del empleado
+        const serverFiles = await apiService.getEmployeeFiles(employee.name);
+        
+        const altaJsonFile = serverFiles.find((file: any) => file.name === 'Alta del personal.json');
+        
+        if (altaJsonFile) {
+          // ✅ Usar fetchDirect para cargar el JSON específico
+          const jsonResponse = await apiService.fetchDirect(
+            `/orgchart/employees/${encodeURIComponent(employee.name)}/${encodeURIComponent('Alta del personal.json')}`
+          );
           
-          if (altaJsonFile) {
-            const jsonResponse = await fetch(`${url}orgchart/employees/${encodeURIComponent(employee.name)}/${encodeURIComponent('Alta del personal.json')}`);
-            if (jsonResponse.ok) {
-              const existingData = await jsonResponse.json();
-              setFormData(existingData);
-            }
-          }
+          const existingData = await jsonResponse.json();
+          setFormData(existingData);
         }
       } catch (error) {
-        toast.error('Error loading existing data:');
+        console.error('Error loading existing data:', error);
+        // No mostrar error si no existe el archivo (es normal en primer uso)
+        if (!(error instanceof Error && error.message.includes('404'))) {
+          toast.error('Error al cargar los datos existentes');
+        }
       } finally {
         setIsLoading(false);
       }
@@ -136,7 +144,39 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
     loadExistingData();
   }, [employee.name]);
 
-  // Guardar datos en JSON - MODIFICADO
+  // Validar formulario antes de guardar
+  const validateForm = (): boolean => {
+    const { nombres, apellidoPaterno, datosPersonales } = formData;
+    
+    if (!nombres?.trim()) {
+      toast.error('El campo "Nombres" es requerido');
+      return false;
+    }
+    
+    if (!apellidoPaterno?.trim()) {
+      toast.error('El campo "Apellido Paterno" es requerido');
+      return false;
+    }
+    
+    if (!datosPersonales.celular?.trim()) {
+      toast.error('El campo "Número de celular" es requerido');
+      return false;
+    }
+    
+    if (!datosPersonales.rfc?.trim()) {
+      toast.error('El campo "RFC" es requerido');
+      return false;
+    }
+    
+    if (!datosPersonales.fechaNacimiento) {
+      toast.error('El campo "Fecha de nacimiento" es requerido');
+      return false;
+    }
+    
+    return true;
+  };
+
+  // Guardar datos en JSON usando apiService
   const saveFormDataAsJson = async () => {
     try {
       const formDataUpload = new FormData();
@@ -150,15 +190,8 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
       // Agregar JSON como string en formData
       formDataUpload.append('jsonData', JSON.stringify(formData));
       
-      const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(employee.name)}`, {
-        method: 'POST',
-        body: formDataUpload,
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Error al guardar: ${response.status} - ${errorText}`);
-      }
+      // ✅ Usar apiService para subir el archivo
+      await apiService.uploadEmployeeFile(employee.name, formDataUpload);
       
       return true;
     } catch (error) {
@@ -169,13 +202,39 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
 
   const handleGeneratePdf = async () => {
     try {
+      if (!validateForm()) return;
+      
+      setIsSaving(true);
+      
       // Guardar datos en JSON y generar PDF en una sola operación
       await saveFormDataAsJson();
 
       toast.success("Alta del personal.pdf creado correctamente");
       onClose(); // Cerrar el modal después de generar
     } catch (error) {
+      console.error('Error generating PDF:', error);
       toast.error("Error al generar el Alta de personal.pdf");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Eliminar datos existentes
+  const handleDelete = async () => {
+    if (!confirm('¿Estás seguro de que deseas eliminar los datos de alta de personal?')) {
+      return;
+    }
+
+    try {
+      // ✅ Usar apiService para eliminar archivos
+      await apiService.deleteEmployeeFile(employee.name, 'Alta del personal.json');
+      await apiService.deleteEmployeeFile(employee.name, 'Alta del personal.pdf');
+      
+      toast.success("Datos de alta eliminados correctamente");
+      onClose();
+    } catch (error: any) {
+      console.error('Error deleting data:', error);
+      toast.error(`Error al eliminar los datos: ${error.message}`);
     }
   };
 
@@ -192,38 +251,46 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
 
   return (
     <div className="container mx-auto p-6 bg-gray-50 min-h-screen">
-      <h1 className="text-2xl font-bold mb-6 text-center">Alta de Personal</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-800">Alta de Personal</h1>
+        <button
+          onClick={onClose}
+          className="text-gray-500 hover:text-gray-700 text-2xl"
+        >
+          ×
+        </button>
+      </div>
       
       <form className="bg-white p-6 rounded-lg shadow-md">
         {/* Información básica */}
         <div className="mb-6">
-          <h2 className="text-xl font-semibold mb-4">Información Personal</h2>
+          <h2 className="text-xl font-semibold mb-4 text-gray-700">Información Personal</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label 
                 className="block text-sm font-medium text-gray-700 mb-1"
-                htmlFor="nombres">Nombre(s)
+                htmlFor="nombres">Nombre(s) *
               </label>
               <input
                 type="text"
                 name="nombres"
                 value={formData.nombres}
                 onChange={handleInputChange}
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                 required
                />
             </div>
             <div>
               <label
                 className="block text-sm font-medium text-gray-700 mb-1"
-                htmlFor="apellidoPaterno">Apellido Paterno
+                htmlFor="apellidoPaterno">Apellido Paterno *
               </label>
               <input
                 type="text"
                 name="apellidoPaterno"
                 value={formData.apellidoPaterno}
                 onChange={handleInputChange}
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                 required
               />
             </div>
@@ -237,7 +304,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                 name="apellidoMaterno"
                 value={formData.apellidoMaterno}
                 onChange={handleInputChange}
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                 required
               />
             </div>
@@ -246,33 +313,33 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
 
         {/* Domicilio */}
         <div className="mb-6">
-          <h2 className="text-xl font-semibold mb-4">Domicilio</h2>
+          <h2 className="text-xl font-semibold mb-4 text-gray-700">Domicilio</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <label
                 className="block text-sm font-medium text-gray-700 mb-1"
-                htmlFor="domicilio.calle">Calle
+                htmlFor="domicilio.calle">Calle *
               </label>
               <input
                 type="text"
                 name="domicilio.calle"
                 value={formData.domicilio.calle}
                 onChange={handleInputChange}
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                 required
               />
             </div>
             <div>
               <label
                 className="block text-sm font-medium text-gray-700 mb-1"
-                htmlFor="domicilio.numero">Número
+                htmlFor="domicilio.numero">Número *
               </label>
               <input
                 type="text"
                 name="domicilio.numero"
                 value={formData.domicilio.numero}
                 onChange={handleInputChange}
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                 required
               />
             </div>
@@ -281,28 +348,28 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
             <div>
               <label 
                 className="block text-sm font-medium text-gray-700 mb-1"
-                htmlFor="domicilio.colonia">Colonia
+                htmlFor="domicilio.colonia">Colonia *
               </label>
               <input
                 type="text"
                 name="domicilio.colonia"
                 value={formData.domicilio.colonia}
                 onChange={handleInputChange}
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                 required
               />
             </div>
             <div>
               <label
                 className="block text-sm font-medium text-gray-700 mb-1"
-                htmlFor="domicilio.cp">C.P.
+                htmlFor="domicilio.cp">C.P. *
               </label>
               <input
                 type="text"
                 name="domicilio.cp"
                 value={formData.domicilio.cp}
                 onChange={handleInputChange}
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                 required
               />
             </div>
@@ -311,28 +378,28 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
             <div>
               <label
                 className="block text-sm font-medium text-gray-700 mb-1"
-                htmlFor="domicilio.ciudad">Ciudad
+                htmlFor="domicilio.ciudad">Ciudad *
               </label>
               <input
                 type="text"
                 name="domicilio.ciudad"
                 value={formData.domicilio.ciudad}
                 onChange={handleInputChange}
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                 required
               />
             </div>
             <div>
               <label
                 className="block text-sm font-medium text-gray-700 mb-1"
-                htmlFor="domicilio.estado">Estado
+                htmlFor="domicilio.estado">Estado *
               </label>
               <input
                 type="text"
                 name="domicilio.estado"
                 value={formData.domicilio.estado}
                 onChange={handleInputChange}
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                 required
               />
             </div>
@@ -341,33 +408,33 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
 
         {/* Datos personales */}
         <div className="mb-6">
-          <h2 className="text-xl font-semibold mb-4">Datos Personales</h2>
+          <h2 className="text-xl font-semibold mb-4 text-gray-700">Datos Personales</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <label
                 className="block text-sm font-medium text-gray-700 mb-1"
-                htmlFor="datosPersonales.celular">Número de celular
+                htmlFor="datosPersonales.celular">Número de celular *
               </label>
               <input
                 type="text"
                 name="datosPersonales.celular"
                 value={formData.datosPersonales.celular}
                 onChange={handleInputChange}
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                 required
               />
             </div>
             <div>
               <label
                 className="block text-sm font-medium text-gray-700 mb-1"
-                htmlFor="datosPersonales.rfc">RFC
+                htmlFor="datosPersonales.rfc">RFC *
               </label>
               <input
                 type="text"
                 name="datosPersonales.rfc"
                 value={formData.datosPersonales.rfc}
                 onChange={handleInputChange}
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                 required
               />
             </div>
@@ -376,28 +443,28 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
             <div>
               <label
                 className="block text-sm font-medium text-gray-700 mb-1"
-                htmlFor="datosPersonales.fechaNacimiento">Fecha de nacimiento
+                htmlFor="datosPersonales.fechaNacimiento">Fecha de nacimiento *
               </label>
               <input
                 type="date"
                 name="datosPersonales.fechaNacimiento"
                 value={formData.datosPersonales.fechaNacimiento}
                 onChange={handleInputChange}
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                 required
               />
             </div>
             <div>
               <label
                 className="block text-sm font-medium text-gray-700 mb-1"
-                htmlFor="datosPersonales.curp">CURP
+                htmlFor="datosPersonales.curp">CURP *
               </label>
               <input
                 type="text"
                 name="datosPersonales.curp"
                 value={formData.datosPersonales.curp}
                 onChange={handleInputChange}
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                 required
               />
             </div>
@@ -406,28 +473,28 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
             <div>
               <label
                 className="block text-sm font-medium text-gray-700 mb-1"
-                htmlFor="datosPersonales.ciudadNacimiento">Ciudad de nacimiento
+                htmlFor="datosPersonales.ciudadNacimiento">Ciudad de nacimiento *
               </label>
               <input
                 type="text"
                 name="datosPersonales.ciudadNacimiento"
                 value={formData.datosPersonales.ciudadNacimiento}
                 onChange={handleInputChange}
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                 required
               />
             </div>
             <div>
               <label
                 className="block text-sm font-medium text-gray-700 mb-1"
-                htmlFor="datosPersonales.estadoNacimiento">Estado de nacimiento
+                htmlFor="datosPersonales.estadoNacimiento">Estado de nacimiento *
               </label>
               <input
                 type="text"
                 name="datosPersonales.estadoNacimiento"
                 value={formData.datosPersonales.estadoNacimiento}
                 onChange={handleInputChange}
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                 required
               />
             </div>
@@ -436,28 +503,28 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
             <div>
               <label
                 className="block text-sm font-medium text-gray-700 mb-1"
-                htmlFor="datosPersonales.numeroIMSS">Número IMSS
+                htmlFor="datosPersonales.numeroIMSS">Número IMSS *
               </label>
               <input
                 type="text"
                 name="datosPersonales.numeroIMSS"
                 value={formData.datosPersonales.numeroIMSS}
                 onChange={handleInputChange}
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                 required
               />
             </div>
             <div>
               <label
                 className="block text-sm font-medium text-gray-700 mb-1"
-                htmlFor="datosPersonales.fechaIngreso">Fecha de ingreso
+                htmlFor="datosPersonales.fechaIngreso">Fecha de ingreso *
               </label>
               <input
                 type="date"
                 name="datosPersonales.fechaIngreso"
                 value={formData.datosPersonales.fechaIngreso}
                 onChange={handleInputChange}
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                 required
               />
             </div>
@@ -466,7 +533,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
 
         {/* Datos familiares */}
         <div className="mb-6">
-          <h2 className="text-xl font-semibold mb-4">Datos Familiares</h2>
+          <h2 className="text-xl font-semibold mb-4 text-gray-700">Datos Familiares</h2>
           <div className="mb-4">
             <label
               className="block text-sm font-medium text-gray-700 mb-1"
@@ -477,7 +544,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
               name="datosFamiliares.nombreConyuge"
               value={formData.datosFamiliares.nombreConyuge}
               onChange={handleInputChange}
-              className="w-full p-2 border border-gray-300 rounded-md"
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
               required
             />
           </div>
@@ -492,7 +559,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                 name="datosFamiliares.colonia"
                 value={formData.datosFamiliares.colonia}
                 onChange={handleInputChange}
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                 required
               />
             </div>
@@ -506,7 +573,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                 name="datosFamiliares.cp"
                 value={formData.datosFamiliares.cp}
                 onChange={handleInputChange}
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                 required
               />
             </div>
@@ -522,7 +589,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                 name="datosFamiliares.ciudad"
                 value={formData.datosFamiliares.ciudad}
                 onChange={handleInputChange}
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                 required
               />
             </div>
@@ -536,7 +603,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                 name="datosFamiliares.estado"
                 value={formData.datosFamiliares.estado}
                 onChange={handleInputChange}
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                 required
               />
             </div>
@@ -545,7 +612,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
 
         {/* Datos de emergencia */}
         <div className="mb-6">
-          <h2 className="text-xl font-semibold mb-4">Datos de Emergencia</h2>
+          <h2 className="text-xl font-semibold mb-4 text-gray-700">Datos de Emergencia</h2>
           <div className="mb-4">
             <h3 className="text-lg font-medium mb-2">Persona 1</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -559,7 +626,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                   name="datosEmergencia.persona1.nombre"
                   value={formData.datosEmergencia.persona1.nombre}
                   onChange={handleInputChange}
-                  className="w-full p-2 border border-gray-300 rounded-md"
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                   required
                 />
               </div>
@@ -573,7 +640,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                   name="datosEmergencia.persona1.celular"
                   value={formData.datosEmergencia.persona1.celular}
                   onChange={handleInputChange}
-                  className="w-full p-2 border border-gray-300 rounded-md"
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                   required
                 />
               </div>
@@ -588,7 +655,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                 name="datosEmergencia.persona1.parentesco"
                 value={formData.datosEmergencia.persona1.parentesco}
                 onChange={handleInputChange}
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                 required
               />
             </div>
@@ -607,7 +674,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                   name="datosEmergencia.persona2.nombre"
                   value={formData.datosEmergencia.persona2.nombre}
                   onChange={handleInputChange}
-                  className="w-full p-2 border border-gray-300 rounded-md"
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                   required
                 />
               </div>
@@ -621,7 +688,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                   name="datosEmergencia.persona2.celular"
                   value={formData.datosEmergencia.persona2.celular}
                   onChange={handleInputChange}
-                  className="w-full p-2 border border-gray-300 rounded-md"
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                   required
                 />
               </div>
@@ -636,20 +703,45 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                 name="datosEmergencia.persona2.parentesco"
                 value={formData.datosEmergencia.persona2.parentesco}
                 onChange={handleInputChange}
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                 required
               />
             </div>
           </div>
         </div>
       </form>
-      <div className="flex justify-center mt-8">
+      
+      <div className="flex justify-end space-x-4 mt-8 border-t pt-6">
+        <button
+          onClick={onClose}
+          className="bg-gray-300 text-gray-700 px-6 py-2 rounded-md hover:bg-gray-400 transition-colors"
+          disabled={isSaving}
+        >
+          Cancelar
+        </button>
+        
+        <button
+          onClick={handleDelete}
+          className="bg-red-600 text-white px-6 py-2 rounded-md hover:bg-red-700 transition-colors"
+          disabled={isSaving}
+        >
+          Eliminar
+        </button>
+        
         <button
           type="button"
           onClick={handleGeneratePdf}
-          className="bg-cyan-600 hover:bg-yellow-500 text-white font-bold py-2 px-6 rounded-md"
+          disabled={isSaving}
+          className="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-6 rounded-md disabled:bg-cyan-300 transition-colors flex items-center"
         >
-          {formData.nombres ? 'Actualizar PDF' : 'Generar PDF'}
+          {isSaving ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              Guardando...
+            </>
+          ) : (
+            formData.nombres ? 'Actualizar PDF' : 'Guardar y Generar PDF'
+          )}
         </button>
       </div>
     </div>

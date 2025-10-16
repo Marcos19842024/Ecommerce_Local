@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { url } from '../../server/url';
+import { apiService } from '../../services/api';
 import { getFileTypes } from '../../utils/files';
 import { FileViewer } from '../shared/FileViewer';
 import { FileWithPreview } from '../../interfaces/shared.interface';
@@ -20,6 +20,11 @@ import { RIBA } from './Documents/RIBA';
 import { RIT } from './Documents/RIT';
 import { JobProfile } from './Documents/JobProfile';
 
+// ✅ FUNCIÓN HELPER PARA GENERAR IDs ÚNICOS
+const generateUniqueId = (): string => {
+  return `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+};
+
 const RECORD_DOCUMENTS = [
   "Caratula.pdf",
   "Alta del personal.pdf",
@@ -37,7 +42,7 @@ const INITIAL_FILES: FileWithPreview[] = [
   {
     id: '0',
     name: 'Documento importante',
-    url: `${url}qr.png`,
+    url: '/qr.png',
     type: 'pdf',
     size: '4.7 MB',
     icon: 'fa fa-file-pdf-o',
@@ -74,7 +79,7 @@ const FileGallery = ({employee}: {employee: Employee}) => {
     return fileExists ? `Actualizar ${optionSelected}` : `Crear ${optionSelected}`;
   }, [optionSelected, checkIfFileExists]);
 
-  // Cargar archivos desde el backend
+  // ✅ CARGAR ARCHIVOS CORREGIDO - crypto.randomUUID() reemplazado
   const loadFiles = useCallback(async () => {
     if (!name) {
       setFiles(INITIAL_FILES);
@@ -85,33 +90,26 @@ const FileGallery = ({employee}: {employee: Employee}) => {
   
     try {
       setIsLoading(true);
-      const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(name)}`);
+      const serverFiles = await apiService.getEmployeeFiles(name);
       
-      if (response.ok) {
-        const serverFiles = await response.json();
+      if (serverFiles.length > 0) {
+        const formattedFiles: FileWithPreview[] = serverFiles.map((file: any) => {
+          const ext = file.name.split('.').pop() || '';
+          const [icon, color] = getFileTypes(ext);
+          return {
+            id: generateUniqueId(), // ✅ CORREGIDO: Usar función helper
+            name: file.name,
+            url: `/orgchart/employees/${encodeURIComponent(name)}/${encodeURIComponent(file.name)}`,
+            type: ext,
+            size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+            icon,
+            color,
+            uploadDate: new Date(file.uploadDate).toISOString().split('T')[0]
+          };
+        });
         
-        if (serverFiles.length > 0) {
-          const formattedFiles: FileWithPreview[] = serverFiles.map((file: any) => {
-            const ext = file.name.split('.').pop() || '';
-            const [icon, color] = getFileTypes(ext);
-            return {
-              id: crypto.randomUUID,
-              name: file.name,
-              url: `${url}orgchart/employees/${encodeURIComponent(name)}/${encodeURIComponent(file.name)}`,
-              type: ext,
-              size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
-              icon,
-              color,
-              uploadDate: new Date(file.uploadDate).toISOString().split('T')[0]
-            };
-          });
-          
-          setFiles(formattedFiles);
-          setIsActive(true);
-        } else {
-          setFiles(INITIAL_FILES);
-          setIsActive(false);
-        }
+        setFiles(formattedFiles);
+        setIsActive(true);
       } else {
         setFiles(INITIAL_FILES);
         setIsActive(false);
@@ -134,6 +132,7 @@ const FileGallery = ({employee}: {employee: Employee}) => {
     return emailRegex.test(email);
   }, []);
 
+  // Enviar/descargar ZIP
   const handleSendDownload = useCallback(async () => {
     if (!send && !download) {
       toast.error("Selecciona enviar o descargar antes de aceptar");
@@ -152,22 +151,11 @@ const FileGallery = ({employee}: {employee: Employee}) => {
         ...(send && { email })
       };
 
-      const res = await fetch(`${url}orgchart/download-send-mail-zip/${encodeURIComponent(name)}`, {
-        method: "POST",
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
+      const response = await apiService.downloadSendMailZip(name, data);
 
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.message || `Error HTTP: ${res.status}`);
-      }
-
-      const contentType = res.headers.get("content-type");
-      
-      if (contentType?.includes("application/zip")) {
-        const zipBlob = await res.blob();
-        const urlZip = window.URL.createObjectURL(zipBlob);
+      // Manejar descarga si es necesario
+      if (download && response instanceof Blob) {
+        const urlZip = window.URL.createObjectURL(response);
         const a = document.createElement("a");
         a.href = urlZip;
         a.download = `Expediente de ${name}.zip`;
@@ -201,22 +189,16 @@ const FileGallery = ({employee}: {employee: Employee}) => {
     }
   }, [send, download, email, name, isValidEmail]);
 
+  // Eliminar archivo
   const handleDeleteFile = useCallback(async () => {
-    if (!fileToDelete) return;
+    if (!fileToDelete || !name) return;
 
     const loadingToast = toast.loading('Eliminando archivo...');
     
     try {
-      const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(name)}/${encodeURIComponent(fileToDelete)}`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        await loadFiles();
-        toast.success('Archivo eliminado correctamente');
-      } else {
-        throw new Error('Error al eliminar el archivo');
-      }
+      await apiService.deleteEmployeeFile(name, fileToDelete);
+      await loadFiles();
+      toast.success('Archivo eliminado correctamente');
     } catch (error) {
       toast.error('Error al eliminar el archivo');
     } finally {
@@ -233,23 +215,19 @@ const FileGallery = ({employee}: {employee: Employee}) => {
     if (!isChecked) setEmail('');
   }, []);
 
+  // Subir archivo
   const uploadSingleFile = useCallback(async (file: File): Promise<void> => {
     const formData = new FormData();
     formData.append('file', file);
 
     try {
-      const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(name)}`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        if (response.status === 400) throw new Error('Tipo de archivo no permitido');
-        if (response.status === 413) throw new Error('El archivo excede el límite de 10MB');
-        throw new Error('Error al subir el archivo');
-      }
+      await apiService.uploadEmployeeFile(name, formData);
     } catch (error) {
-      throw error;
+      if (error instanceof Error) {
+        if (error.message.includes('400')) throw new Error('Tipo de archivo no permitido');
+        if (error.message.includes('413')) throw new Error('El archivo excede el límite de 10MB');
+      }
+      throw new Error('Error al subir el archivo');
     }
   }, [name]);
 
@@ -323,7 +301,7 @@ const FileGallery = ({employee}: {employee: Employee}) => {
     else {
       setShowComponent(optionSelected);
     }
-  }, [optionSelected, files, employee, loadFiles]);
+  }, [optionSelected, files, employee, loadFiles, checkIfFileExists]);
 
   const handleCloseForm = useCallback(async () => {
     setShowComponent('');

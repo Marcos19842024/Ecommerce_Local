@@ -1,39 +1,52 @@
-import { useEffect, useState } from "react";
+// src/components/expensereport/FilePreviewModal.tsx
+import { useState, useEffect } from "react";
+import { apiService } from "../../services/api";
 
 interface FilePreviewModalProps {
-  url: string | null;
-  type: "pdf" | "xml" | null;
+  url: string;
+  type: "pdf" | "xml";
 }
 
-export default function FilePreviewModal({ url, type }: FilePreviewModalProps) {
-  const [xmlContent, setXmlContent] = useState<string>("");
+export const FilePreviewModal = ({ url, type }: FilePreviewModalProps) => {
+  const [fileContent, setFileContent] = useState<string>("");
 
   useEffect(() => {
-    if (type === "xml" && url) {
-      fetch(url)
-        .then((res) => res.text())
-        .then(setXmlContent)
-        .catch(() => setXmlContent("Error al cargar XML"));
-    }
+    const loadFile = async () => {
+      try {
+        const response = await apiService.fetchDirect(url);
+        
+        if (type === "pdf") {
+          const blob = await response.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          setFileContent(blobUrl);
+        } else if (type === "xml") {
+          const text = await response.text();
+          setFileContent(text);
+        }
+      } catch (error) {
+        console.error("Error loading file:", error);
+      }
+    };
+
+    loadFile();
   }, [url, type]);
 
-  if (!url || !type) return null;
+  if (type === "pdf") {
+    return (
+      <iframe
+        src={fileContent}
+        width="100%"
+        height="100%"
+        title="PDF Preview"
+      />
+    );
+  }
 
   return (
-    <div className="bg-white rounded-lg shadow-lg flex flex-col h-full">
-      <div className="flex justify-between items-center p-2 border-b">
-        <h2 className="font-bold text-lg">{type === "pdf" ? "Vista PDF" : "Vista XML"}</h2>
-      </div>
-
-      <div className="flex-1 overflow-auto">
-        {type === "pdf" ? (
-          <iframe src={url} className="w-full h-full" title="PDF Preview"></iframe>
-        ) : (
-          <pre className="whitespace-pre-wrap p-4 text-sm bg-gray-100 text-gray-800 w-full h-full overflow-auto">
-            {xmlContent}
-          </pre>
-        )}
-      </div>
-    </div>
+    <pre className="p-4 overflow-auto h-full bg-white">
+      {fileContent}
+    </pre>
   );
-}
+};
+
+export default FilePreviewModal;

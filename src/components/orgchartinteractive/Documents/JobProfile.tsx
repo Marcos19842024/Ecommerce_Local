@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { JobProfileData, StaffRecruitmentProps } from '../../../interfaces/orgchartinteractive.interface';
 import { PdfJobProfile } from '../PdfDocuments/PdfJobProfile';
-import { url } from '../../../server/url';
 import { pdf } from '@react-pdf/renderer';
 import toast from 'react-hot-toast';
+import { apiService } from '../../../services/api';
 
 export const initialJobProfileData: JobProfileData = {
     generalInfo: {
@@ -43,18 +43,18 @@ export const JobProfile = (data: StaffRecruitmentProps) => {
     useEffect(() => {
         const loadExistingData = async () => {
             try {
-                const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(data.employee.name)}`);
+                // ✅ Usar apiService en lugar de fetch directo
+                const serverFiles = await apiService.getEmployeeFiles(data.employee.name);
                 
-                if (response.ok) {
-                    const serverFiles = await response.json();
-                    const jobProfileJsonFile = serverFiles.find((file: any) => file.name === 'Perfil de puesto.json');
-                    
-                    if (jobProfileJsonFile) {
-                        const jsonResponse = await fetch(`${url}orgchart/employees/${encodeURIComponent(data.employee.name)}/${encodeURIComponent('Perfil de puesto.json')}`);
-                        if (jsonResponse.ok) {
-                            const existingData = await jsonResponse.json();
-                            setFormData(existingData);
-                        }
+                const jobProfileJsonFile = serverFiles.find((file: any) => file.name === 'Perfil de puesto.json');
+                
+                if (jobProfileJsonFile) {
+                    // ✅ Usar apiService para cargar el JSON existente
+                    try {
+                        const existingData = await apiService.getEmployeeFiles(`${data.employee.name}/Perfil de puesto.json`);
+                        setFormData(existingData);
+                    } catch (jsonError) {
+                        console.error('Error loading job profile JSON:', jsonError);
                     }
                 }
             } catch (error) {
@@ -226,20 +226,14 @@ export const JobProfile = (data: StaffRecruitmentProps) => {
             formDatasend.append('file', blob, "Perfil de puesto.pdf");
             formDatasend.append('jsonData', JSON.stringify(formData));
             
-            const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(data.employee.name)}`, {
-                method: 'POST',
-                body: formDatasend,
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Error al guardar en el servidor: ${response.status} - ${errorText}`);
-            }
+            // ✅ Usar apiService en lugar de fetch directo
+            await apiService.uploadEmployeeFile(data.employee.name, formDatasend);
 
             toast.success("Perfil de puesto.pdf creado correctamente");
             data.onClose();
 
         } catch (error) {
+            console.error('Error generating Job Profile:', error);
             toast.error(`No se pudo generar el documento: ${error instanceof Error ? error.message : 'Error desconocido'}`);
         }
     };

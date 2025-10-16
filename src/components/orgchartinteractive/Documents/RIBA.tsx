@@ -1,15 +1,14 @@
 import { useEffect, useState } from "react";
 import { StaffRecruitmentProps } from "../../../interfaces/orgchartinteractive.interface"
 import toast from "react-hot-toast";
-import { url } from "../../../server/url";
 import { pdf } from "@react-pdf/renderer";
 import PdfRIBA from "../PdfDocuments/PdfRIBA";
+import { apiService } from "../../../services/api";
 
 export const RIBA = (data: StaffRecruitmentProps) => {
     const [isGenerating, setIsGenerating] = useState(true);
     
     const handleGenerateDocument = async () => {
-
         try {
             // Validar que employee esté definido
             if (!data.employee) {
@@ -18,7 +17,7 @@ export const RIBA = (data: StaffRecruitmentProps) => {
             
             // Generar el PDF
             const blob = await pdf(<PdfRIBA name={data.employee.name} />).toBlob();
- 
+
             if (!blob) {
                 throw new Error("No se pudo generar el blob del documento");
             }
@@ -30,21 +29,14 @@ export const RIBA = (data: StaffRecruitmentProps) => {
             const formData = new FormData();
             formData.append('file', blob, "RIBA.pdf");
             
-            const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(data.employee.name)}`, {
-                method: 'POST',
-                body: formData,
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Error al guardar en el servidor: ${response.status} - ${errorText}`);
-            }
+            // ✅ Usar apiService para subir el archivo
+            await apiService.uploadEmployeeFile(data.employee.name, formData);
 
             toast.success("RIBA.pdf creado correctamente");
-            
             data.onClose();
 
         } catch (error) {
+            console.error('Error generating RIBA:', error);
             toast.error(`No se pudo generar el documento: ${error instanceof Error ? error.message : 'Error desconocido'}`);
         } finally {
             setIsGenerating(false);

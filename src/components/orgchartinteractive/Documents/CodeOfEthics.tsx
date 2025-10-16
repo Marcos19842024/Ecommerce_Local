@@ -1,15 +1,14 @@
 import { useEffect, useState } from "react";
 import { StaffRecruitmentProps } from "../../../interfaces/orgchartinteractive.interface"
 import toast from "react-hot-toast";
-import { url } from "../../../server/url";
 import { PdfCodeOfEthics } from "../PdfDocuments/PdfCodeOfEthics";
 import { pdf } from "@react-pdf/renderer";
+import { apiService } from "../../../services/api";
 
 export const CodeOfEthics = (data: StaffRecruitmentProps) => {
     const [isGenerating, setIsGenerating] = useState(true);
     
     const handleGenerateDocument = async () => {
-
         try {
             // Validar que employee esté definido
             if (!data.employee) {
@@ -30,21 +29,15 @@ export const CodeOfEthics = (data: StaffRecruitmentProps) => {
             const formData = new FormData();
             formData.append('file', blob, "Codigo de etica.pdf");
             
-            const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(data.employee.name)}`, {
-                method: 'POST',
-                body: formData,
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Error al guardar en el servidor: ${response.status} - ${errorText}`);
-            }
+            // ✅ Usar apiService en lugar de fetch directo
+            await apiService.uploadEmployeeFile(data.employee.name, formData);
 
             toast.success("Código de ética.pdf creado correctamente");
             
             data.onClose();
 
         } catch (error) {
+            console.error('Error generating Code of Ethics:', error);
             toast.error(`No se pudo generar el documento: ${error instanceof Error ? error.message : 'Error desconocido'}`);
         } finally {
             setIsGenerating(false);

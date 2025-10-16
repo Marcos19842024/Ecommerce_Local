@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { EvaluationData, StaffRecruitmentProps } from '../../../interfaces/orgchartinteractive.interface';
-import { url } from '../../../server/url';
 import { pdf } from '@react-pdf/renderer';
 import PdfPerformanceEvaluation from '../PdfDocuments/PdfPerformanceEvaluation';
+import { apiService } from '../../../services/api';
 
 type EvaluationSection = | 'actitudTrabajo' | 'cooperacion' | 'calidadTrabajo' | 'relaciones' | 'asistencia';
 interface RadioGroupProps {
@@ -15,6 +15,7 @@ interface RadioGroupProps {
 
 const PerformanceEvaluation: React.FC<StaffRecruitmentProps> = ({ employee, onClose }) => {
     const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
     const [evaluationData, setEvaluationData] = useState<EvaluationData>({
         ciudad: 'Campeche, Campeche.',
         fecha: {
@@ -59,26 +60,32 @@ const PerformanceEvaluation: React.FC<StaffRecruitmentProps> = ({ employee, onCl
         nombreEvaluador: ''
     });
 
-    // Cargar datos existentes
+    // Cargar datos existentes usando apiService
     useEffect(() => {
         const loadExistingData = async () => {
             try {
-                const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(employee.name)}`);
+                setIsLoading(true);
                 
-                if (response.ok) {
-                    const serverFiles = await response.json();
-                    const evaluationJsonFile = serverFiles.find((file: any) => file.name === 'Evaluacion de desempeno.json');
+                // ✅ Usar apiService para obtener archivos del empleado
+                const serverFiles = await apiService.getEmployeeFiles(employee.name);
+                
+                const evaluationJsonFile = serverFiles.find((file: any) => file.name === 'Evaluacion de desempeno.json');
+                
+                if (evaluationJsonFile) {
+                    // ✅ Usar fetchDirect para cargar el JSON específico
+                    const jsonResponse = await apiService.fetchDirect(
+                        `/orgchart/employees/${encodeURIComponent(employee.name)}/${encodeURIComponent('Evaluacion de desempeno.json')}`
+                    );
                     
-                    if (evaluationJsonFile) {
-                        const jsonResponse = await fetch(`${url}orgchart/employees/${encodeURIComponent(employee.name)}/${encodeURIComponent('Evaluacion de desempeno.json')}`);
-                        if (jsonResponse.ok) {
-                            const existingData = await jsonResponse.json();
-                            setEvaluationData(existingData);
-                        }
-                    }
+                    const existingData = await jsonResponse.json();
+                    setEvaluationData(existingData);
                 }
             } catch (error) {
-                toast.error('Error loading existing evaluation data:');
+                console.error('Error loading existing evaluation data:', error);
+                // No mostrar error si no existe el archivo (es normal en primer uso)
+                if (!(error instanceof Error && error.message.includes('404'))) {
+                    toast.error('Error al cargar los datos existentes de evaluación');
+                }
             } finally {
                 setIsLoading(false);
             }
@@ -118,13 +125,45 @@ const PerformanceEvaluation: React.FC<StaffRecruitmentProps> = ({ employee, onCl
         }));
     };
 
+    // Validar formulario antes de guardar
+    const validateForm = (): boolean => {
+        const { fecha, nombreEvaluador, decisionContrato } = evaluationData;
+        
+        if (!fecha.dia || !fecha.mes || !fecha.año) {
+            toast.error('Complete la fecha correctamente');
+            return false;
+        }
+        
+        if (!nombreEvaluador.trim()) {
+            toast.error('El nombre del evaluador es requerido');
+            return false;
+        }
+        
+        if (!decisionContrato) {
+            toast.error('Seleccione una decisión de contrato');
+            return false;
+        }
+        
+        // Validar que los campos de fecha sean numéricos
+        if (!/^\d+$/.test(fecha.dia) || !/^\d+$/.test(fecha.mes) || !/^\d+$/.test(fecha.año)) {
+            toast.error('Los campos de fecha deben ser numéricos');
+            return false;
+        }
+        
+        return true;
+    };
+
     const handleSave = async () => {
         try {
+            if (!validateForm()) return;
+            
+            setIsSaving(true);
+            
             if (!employee) {
                 throw new Error("Datos no proporcionados");
             }
             
-            // Generar el PDF y enviar con JSON en una sola operación
+            // Generar el PDF
             const blob = await pdf(<PdfPerformanceEvaluation data={evaluationData} />).toBlob();
             
             if (!blob) {
@@ -139,21 +178,36 @@ const PerformanceEvaluation: React.FC<StaffRecruitmentProps> = ({ employee, onCl
             formDatasend.append('file', blob, "Evaluacion de desempeno.pdf");
             formDatasend.append('jsonData', JSON.stringify(evaluationData));
             
-            const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(employee.name)}`, {
-                method: 'POST',
-                body: formDatasend,
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Error al guardar en el servidor: ${response.status} - ${errorText}`);
-            }
+            // ✅ Usar apiService para subir el archivo
+            await apiService.uploadEmployeeFile(employee.name, formDatasend);
 
             toast.success("Evaluacion de desempeño.pdf creado correctamente");
             onClose();
 
         } catch (error) {
+            console.error('Error saving evaluation:', error);
             toast.error(`No se pudo generar el documento: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    // Eliminar evaluación existente
+    const handleDelete = async () => {
+        if (!confirm('¿Estás seguro de que deseas eliminar esta evaluación de desempeño?')) {
+            return;
+        }
+
+        try {
+            // ✅ Usar apiService para eliminar archivos
+            await apiService.deleteEmployeeFile(employee.name, 'Evaluacion de desempeno.json');
+            await apiService.deleteEmployeeFile(employee.name, 'Evaluacion de desempeno.pdf');
+            
+            toast.success("Evaluación eliminada correctamente");
+            onClose();
+        } catch (error: any) {
+            console.error('Error deleting evaluation:', error);
+            toast.error(`Error al eliminar la evaluación: ${error.message}`);
         }
     };
 
@@ -203,77 +257,88 @@ const PerformanceEvaluation: React.FC<StaffRecruitmentProps> = ({ employee, onCl
     }
 
     return (
-        <div className="max-w-4xl mx-auto">
-            <h1 className="text-2xl font-bold text-center mb-6">Evaluación de Desempeño</h1>
+        <div className="max-w-4xl mx-auto p-6">
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-2xl font-bold text-gray-800">Evaluación de Desempeño</h1>
+                <button
+                    onClick={onClose}
+                    className="text-gray-500 hover:text-gray-700 text-2xl"
+                >
+                    ×
+                </button>
+            </div>
             
             {/* Información General */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 p-4 border rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700">Ciudad</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Ciudad</label>
                     <input
                         type="text"
                         value={evaluationData.ciudad}
                         onChange={(e) => handleGeneralChange('ciudad', e.target.value)}
-                        className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+                        className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Día</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Día</label>
                         <input
                             type="text"
                             value={evaluationData.fecha.dia}
                             onChange={(e) => handleFechaChange('dia', e.target.value)}
-                            className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+                            className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="DD"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Mes</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Mes</label>
                         <input
                             type="text"
                             value={evaluationData.fecha.mes}
                             onChange={(e) => handleFechaChange('mes', e.target.value)}
-                            className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+                            className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="MM"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Año</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Año</label>
                         <input
                             type="text"
                             value={evaluationData.fecha.año}
                             onChange={(e) => handleFechaChange('año', e.target.value)}
-                            className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+                            className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="AAAA"
                         />
                     </div>
                 </div>
             
                 <div>
-                    <label className="block text-sm font-medium text-gray-700">Nombre del Trabajador</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Nombre del Trabajador</label>
                     <input
                         type="text"
                         value={evaluationData.nombreTrabajador}
                         onChange={(e) => handleGeneralChange('nombreTrabajador', e.target.value)}
-                        className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+                        className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                 </div>
                 
                 <div>
-                    <label className="block text-sm font-medium text-gray-700">Área</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Área</label>
                     <input
                         type="text"
                         value={evaluationData.area}
                         onChange={(e) => handleGeneralChange('area', e.target.value)}
-                        className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+                        className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                 </div>
                 
                 <div>
-                    <label className="block text-sm font-medium text-gray-700">Puesto</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Puesto</label>
                     <input
                         type="text"
                         value={evaluationData.puesto}
                         onChange={(e) => handleGeneralChange('puesto', e.target.value)}
-                        className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+                        className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                 </div>
             </div>
@@ -281,8 +346,8 @@ const PerformanceEvaluation: React.FC<StaffRecruitmentProps> = ({ employee, onCl
             {/* Secciones de Evaluación */}
             <div className="space-y-6">
                 {/* Actitud hacia el trabajo */}
-                <div className="p-4 border rounded-lg">
-                    <h3 className="text-lg font-semibold mb-4">1. ACTITUD HACIA EL TRABAJO</h3>
+                <div className="p-4 border rounded-lg bg-white">
+                    <h3 className="text-lg font-semibold mb-4 text-gray-700">1. ACTITUD HACIA EL TRABAJO</h3>
                     <RadioGroup section="actitudTrabajo" field="interesErrores" value={evaluationData.actitudTrabajo.interesErrores} label="Interés por no cometer errores" />
                     <RadioGroup section="actitudTrabajo" field="aprendizaje" value={evaluationData.actitudTrabajo.aprendizaje} label="Aprendizaje eficiente de sus funciones" />
                     <RadioGroup section="actitudTrabajo" field="seguimientoReglas" value={evaluationData.actitudTrabajo.seguimientoReglas} label="Seguimiento de reglas y procedimientos" />
@@ -290,8 +355,8 @@ const PerformanceEvaluation: React.FC<StaffRecruitmentProps> = ({ employee, onCl
                 </div>
 
                 {/* Cooperación/Integración */}
-                <div className="p-4 border rounded-lg">
-                    <h3 className="text-lg font-semibold mb-4">2. COOPERACIÓN/INTEGRACIÓN</h3>
+                <div className="p-4 border rounded-lg bg-white">
+                    <h3 className="text-lg font-semibold mb-4 text-gray-700">2. COOPERACIÓN/INTEGRACIÓN</h3>
                     <RadioGroup section="cooperacion" field="cooperacionSolicitada" value={evaluationData.cooperacion.cooperacionSolicitada} label="Cooperación cuando se lo solicitan" />
                     <RadioGroup section="cooperacion" field="cooperacionNoSolicitada" value={evaluationData.cooperacion.cooperacionNoSolicitada} label="Cooperación cuando NO se lo solicitan" />
                     <RadioGroup section="cooperacion" field="sugerencias" value={evaluationData.cooperacion.sugerencias} label="Sugerencias para la mejora continua" />
@@ -299,8 +364,8 @@ const PerformanceEvaluation: React.FC<StaffRecruitmentProps> = ({ employee, onCl
                 </div>
 
                 {/* Calidad en el trabajo */}
-                <div className="p-4 border rounded-lg">
-                    <h3 className="text-lg font-semibold mb-4">3. CALIDAD EN EL TRABAJO</h3>
+                <div className="p-4 border rounded-lg bg-white">
+                    <h3 className="text-lg font-semibold mb-4 text-gray-700">3. CALIDAD EN EL TRABAJO</h3>
                     <RadioGroup section="calidadTrabajo" field="calidadForma" value={evaluationData.calidadTrabajo.calidadForma} label="Calidad de resultados (en forma)" />
                     <RadioGroup section="calidadTrabajo" field="calidadTiempo" value={evaluationData.calidadTrabajo.calidadTiempo} label="Calidad de resultados (en tiempo)" />
                     <RadioGroup section="calidadTrabajo" field="adaptacion" value={evaluationData.calidadTrabajo.adaptacion} label="Adaptación ante los cambios" />
@@ -308,8 +373,8 @@ const PerformanceEvaluation: React.FC<StaffRecruitmentProps> = ({ employee, onCl
                 </div>
 
                 {/* Relaciones */}
-                <div className="p-4 border rounded-lg">
-                    <h3 className="text-lg font-semibold mb-4">4. RELACIONES</h3>
+                <div className="p-4 border rounded-lg bg-white">
+                    <h3 className="text-lg font-semibold mb-4 text-gray-700">4. RELACIONES</h3>
                     <RadioGroup section="relaciones" field="conCompaneros" value={evaluationData.relaciones.conCompaneros} label="Relaciones con sus compañeros" />
                     <RadioGroup section="relaciones" field="conSuperiores" value={evaluationData.relaciones.conSuperiores} label="Relaciones con sus superiores" />
                     <RadioGroup section="relaciones" field="conSubordinados" value={evaluationData.relaciones.conSubordinados} label="Relaciones con sus subordinados" />
@@ -317,8 +382,8 @@ const PerformanceEvaluation: React.FC<StaffRecruitmentProps> = ({ employee, onCl
                 </div>
 
                 {/* Asistencia y puntualidad */}
-                <div className="p-4 border rounded-lg">
-                    <h3 className="text-lg font-semibold mb-4">5. ASISTENCIA Y PUNTUALIDAD</h3>
+                <div className="p-4 border rounded-lg bg-white">
+                    <h3 className="text-lg font-semibold mb-4 text-gray-700">5. ASISTENCIA Y PUNTUALIDAD</h3>
                     <RadioGroup section="asistencia" field="asistencia" value={evaluationData.asistencia.asistencia} label="Asistencia laboral" />
                     <RadioGroup section="asistencia" field="puntualidad" value={evaluationData.asistencia.puntualidad} label="Puntualidad de llegada" />
                     <RadioGroup section="asistencia" field="rotarTurno" value={evaluationData.asistencia.rotarTurno} label="Disponibilidad para rotar turno" />
@@ -327,8 +392,8 @@ const PerformanceEvaluation: React.FC<StaffRecruitmentProps> = ({ employee, onCl
             </div>
 
             {/* Decisión del contrato */}
-            <div className="mt-6 p-4 border rounded-lg">
-                <h3 className="text-lg font-semibold mb-4">DECISIÓN DEL CONTRATO</h3>
+            <div className="mt-6 p-4 border rounded-lg bg-white">
+                <h3 className="text-lg font-semibold mb-4 text-gray-700">DECISIÓN DEL CONTRATO</h3>
                 <div className="space-y-2">
                     <label className="flex items-center">
                         <input
@@ -366,22 +431,48 @@ const PerformanceEvaluation: React.FC<StaffRecruitmentProps> = ({ employee, onCl
                 </div>
                 
                 <div className="mt-4">
-                    <label className="block text-sm font-medium text-gray-700">Nombre y Firma del evaluador</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Nombre y Firma del evaluador *</label>
                     <input
                         type="text"
                         value={evaluationData.nombreEvaluador}
                         onChange={(e) => handleGeneralChange('nombreEvaluador', e.target.value)}
-                        className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+                        className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Nombre completo del evaluador"
+                        required
                     />
                 </div>
             </div>
             
-            <div className="mt-6 flex justify-end space-x-4">
+            <div className="mt-6 flex justify-end space-x-4 border-t pt-6">
+                <button
+                    onClick={onClose}
+                    className="bg-gray-300 text-gray-700 px-6 py-2 rounded-md hover:bg-gray-400 transition-colors"
+                    disabled={isSaving}
+                >
+                    Cancelar
+                </button>
+                
+                <button
+                    onClick={handleDelete}
+                    className="bg-red-600 text-white px-6 py-2 rounded-md hover:bg-red-700 transition-colors"
+                    disabled={isSaving}
+                >
+                    Eliminar
+                </button>
+                
                 <button
                     onClick={handleSave}
-                    className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700"
+                    disabled={isSaving}
+                    className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 disabled:bg-blue-300 transition-colors flex items-center"
                 >
-                    {evaluationData.nombreEvaluador ? 'Actualizar Evaluación' : 'Guardar Evaluación'}
+                    {isSaving ? (
+                        <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            Guardando...
+                        </>
+                    ) : (
+                        evaluationData.nombreEvaluador ? 'Actualizar Evaluación' : 'Guardar Evaluación'
+                    )}
                 </button>
             </div>
         </div>

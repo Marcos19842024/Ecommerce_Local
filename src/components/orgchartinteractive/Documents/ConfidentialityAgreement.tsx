@@ -1,15 +1,14 @@
 import toast from "react-hot-toast";
 import { StaffRecruitmentProps } from "../../../interfaces/orgchartinteractive.interface"
-import { url } from "../../../server/url";
 import { pdf } from "@react-pdf/renderer";
 import { useEffect, useState } from "react";
 import { PdfConfidentialityAgreement } from "../PdfDocuments/PdfConfidentialityAgreement";
+import { apiService } from "../../../services/api";
 
 export const ConfidentialityAgreement = (data: StaffRecruitmentProps) => {
     const [isGenerating, setIsGenerating] = useState(true);
     
     const handleGenerateDocument = async () => {
-
         try {
             // Validar que employee esté definido
             if (!data.employee) {
@@ -30,21 +29,15 @@ export const ConfidentialityAgreement = (data: StaffRecruitmentProps) => {
             const formData = new FormData();
             formData.append('file', blob, "Acuerdo de confidencialidad.pdf");
             
-            const response = await fetch(`${url}orgchart/employees/${encodeURIComponent(data.employee.name)}`, {
-                method: 'POST',
-                body: formData,
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Error al guardar en el servidor: ${response.status} - ${errorText}`);
-            }
+            // ✅ Usar apiService en lugar de fetch directo
+            await apiService.uploadEmployeeFile(data.employee.name, formData);
 
             toast.success("Acuerdo de confidencialidad.pdf creado correctamente");
             
             data.onClose();
 
         } catch (error) {
+            console.error('Error generating Confidentiality Agreement:', error);
             toast.error(`No se pudo generar el documento: ${error instanceof Error ? error.message : 'Error desconocido'}`);
         } finally {
             setIsGenerating(false);
