@@ -18,32 +18,34 @@ const APDN = ({employee, onClose }: StaffRecruitmentProps) => {
     });
     const [isLoading, setIsLoading] = useState(true);
 
-    // Cargar datos existentes al montar el componente
+    // ✅ Cargar datos existentes - CORREGIDO
     useEffect(() => {
         const loadExistingData = async () => {
             try {
-                // ✅ Usar apiService en lugar de fetch directo
-                const serverFiles = await apiService.getEmployeeFiles(employee.name);
+                setIsLoading(true);
                 
-                const apdnJsonFile = serverFiles.find((file: any) => file.name === 'APDN.json');
+                // ✅ Usar el nuevo método para cargar el JSON específico
+                const existingData = await apiService.getEmployeeFile(employee.name, 'APDN.json');
+                if (existingData) {
+                    setFormData(prev => ({
+                        ...prev,
+                        ...existingData,
+                        trabajador: employee.name // Mantener el nombre actualizado
+                    }));
+                }
                 
-                if (apdnJsonFile) {
-                    // ✅ Usar apiService para obtener el archivo JSON
-                    try {
-                        const jsonData = await apiService.getEmployeeFiles(`${employee.name}/APDN.json`);
-                        if (jsonData) {
-                            setFormData(prev => ({
-                                ...prev,
-                                ...jsonData,
-                                trabajador: employee.name
-                            }));
-                        }
-                    } catch (jsonError) {
-                        console.error('Error loading APDN.json:', jsonError);
+                console.log('Datos APDN cargados correctamente');
+            } catch (error) {
+                // Si el archivo no existe (404) o hay error (500), usar datos iniciales
+                if (error instanceof Error) {
+                    if (error.message.includes('404') || error.message.includes('500')) {
+                        console.log('No se encontró APDN existente, usando datos iniciales');
+                        // Ya tenemos los datos iniciales, no es necesario hacer nada
+                    } else {
+                        console.error('Error inesperado:', error);
+                        toast.error('Error al cargar los datos APDN existentes');
                     }
                 }
-            } catch (error) {
-                console.error('Error loading existing APDN data:', error);
             } finally {
                 setIsLoading(false);
             }
@@ -108,7 +110,7 @@ const APDN = ({employee, onClose }: StaffRecruitmentProps) => {
             const blob = await pdf(<PdfAPDN data={formData} />).toBlob();
             const formDataUpload = new FormData();
             formDataUpload.append('file', blob, "APDN.pdf");
-            formDataUpload.append('jsonData', JSON.stringify(formData));
+            formDataUpload.append('jsonData', JSON.stringify(formData, null, 2));
             
             // ✅ Usar apiService en lugar de fetch directo
             await apiService.uploadEmployeeFile(formData.trabajador, formDataUpload);
@@ -117,7 +119,7 @@ const APDN = ({employee, onClose }: StaffRecruitmentProps) => {
             onClose();
         } catch (error) {
             console.error('Error generating APDN:', error);
-            toast.error("Error al generar el APDN.pdf");
+            toast.error(`No se pudo generar el documento: ${error instanceof Error ? error.message : 'Error desconocido'}`);
         }
     };
 
@@ -126,6 +128,7 @@ const APDN = ({employee, onClose }: StaffRecruitmentProps) => {
             <div className="max-w-2xl mx-auto rounded-lg shadow-md bg-white p-6 w-[500px] space-y-3">
                 <div className="flex justify-center items-center h-32">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                    <p className="ml-2 text-gray-600">Cargando datos APDN...</p>
                 </div>
             </div>
         );
@@ -136,39 +139,41 @@ const APDN = ({employee, onClose }: StaffRecruitmentProps) => {
             <h2 className="text-2xl font-bold mb-6 text-gray-800">Autorización de Pago de Nómina</h2>
             
             {/* Fecha */}
-            <label className="block text-sm font-medium text-gray-700 mb-2">Fecha</label>
-            <div className="flex space-x-4">
-                <div className="flex-1">
-                    <input
-                        type="text"
-                        placeholder="Día"
-                        value={formData.fechaDia}
-                        onChange={(e) => handleChange('fechaDia', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        required
-                    />
-                </div>
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Fecha</label>
+                <div className="flex space-x-4">
+                    <div className="flex-1">
+                        <input
+                            type="text"
+                            placeholder="Día"
+                            value={formData.fechaDia}
+                            onChange={(e) => handleChange('fechaDia', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            required
+                        />
+                    </div>
 
-                <div className="flex-1">
-                    <input
-                        type="text"
-                        placeholder="Mes"
-                        value={formData.fechaMes}
-                        onChange={(e) => handleChange('fechaMes', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        required
-                    />
-                </div>
+                    <div className="flex-1">
+                        <input
+                            type="text"
+                            placeholder="Mes"
+                            value={formData.fechaMes}
+                            onChange={(e) => handleChange('fechaMes', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            required
+                        />
+                    </div>
 
-                <div className="flex-1">
-                    <input
-                        type="text"
-                        placeholder="Año"
-                        value={formData.fechaAnio}
-                        onChange={(e) => handleChange('fechaAnio', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        required
-                    />
+                    <div className="flex-1">
+                        <input
+                            type="text"
+                            placeholder="Año"
+                            value={formData.fechaAnio}
+                            onChange={(e) => handleChange('fechaAnio', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            required
+                        />
+                    </div>
                 </div>
             </div>
 
@@ -190,26 +195,28 @@ const APDN = ({employee, onClose }: StaffRecruitmentProps) => {
             {/* Datos Bancarios */}
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nombre del banco
+                    Nombre del banco <span className="text-red-500">*</span>
                 </label>
                 <input
                     type="text"
                     value={formData.banco}
                     onChange={(e) => handleChange('banco', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Ej: BBVA, Santander, etc."
                     required
                 />
             </div>
 
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Número de cuenta
+                    Número de cuenta <span className="text-red-500">*</span>
                 </label>
                 <input
                     type="text"
                     value={formData.numeroCuenta}
                     onChange={(e) => handleChange('numeroCuenta', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Número de cuenta bancaria"
                     required
                 />
             </div>
@@ -223,19 +230,20 @@ const APDN = ({employee, onClose }: StaffRecruitmentProps) => {
                     value={formData.numeroTarjeta}
                     onChange={(e) => handleChange('numeroTarjeta', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
+                    placeholder="Número de tarjeta débito (opcional)"
                 />
             </div>
 
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email
+                    Email <span className="text-red-500">*</span>
                 </label>
                 <input
                     type="email"
                     value={formData.email}
                     onChange={(e) => handleChange('email', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="ejemplo@correo.com"
                     required
                 />
             </div>
@@ -244,11 +252,18 @@ const APDN = ({employee, onClose }: StaffRecruitmentProps) => {
                 <button
                     type="button"
                     onClick={handleGeneratePdf}
-                    className="bg-cyan-600 hover:bg-yellow-500 text-white font-bold py-2 px-6 rounded-md"
+                    className="bg-cyan-600 hover:bg-yellow-500 text-white font-bold py-2 px-6 rounded-md transition-colors"
+                    disabled={!formData.banco || !formData.numeroCuenta || !formData.email || !formData.trabajador}
                 >
-                    {formData.fechaDia ? 'Actualizar PDF' : 'Generar PDF'}
+                    {formData.fechaDia ? 'Actualizar APDN' : 'Generar APDN'}
                 </button>
             </div>
+            
+            {(!formData.banco || !formData.numeroCuenta || !formData.email || !formData.trabajador) && (
+                <p className="text-red-500 text-sm text-center mt-2">
+                    Complete los campos obligatorios (*) para generar el PDF
+                </p>
+            )}
         </form>
     );
 };

@@ -192,25 +192,6 @@ const PerformanceEvaluation: React.FC<StaffRecruitmentProps> = ({ employee, onCl
         }
     };
 
-    // Eliminar evaluación existente
-    const handleDelete = async () => {
-        if (!confirm('¿Estás seguro de que deseas eliminar esta evaluación de desempeño?')) {
-            return;
-        }
-
-        try {
-            // ✅ Usar apiService para eliminar archivos
-            await apiService.deleteEmployeeFile(employee.name, 'Evaluacion de desempeno.json');
-            await apiService.deleteEmployeeFile(employee.name, 'Evaluacion de desempeno.pdf');
-            
-            toast.success("Evaluación eliminada correctamente");
-            onClose();
-        } catch (error: any) {
-            console.error('Error deleting evaluation:', error);
-            toast.error(`Error al eliminar la evaluación: ${error.message}`);
-        }
-    };
-
     const escala = [
         { value: 0, label: 'NA - No aplica' },
         { value: 1, label: 'S - Suficiente' },
@@ -258,15 +239,7 @@ const PerformanceEvaluation: React.FC<StaffRecruitmentProps> = ({ employee, onCl
 
     return (
         <div className="max-w-4xl mx-auto p-6">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-800">Evaluación de Desempeño</h1>
-                <button
-                    onClick={onClose}
-                    className="text-gray-500 hover:text-gray-700 text-2xl"
-                >
-                    ×
-                </button>
-            </div>
+            <h1 className="text-2xl font-bold text-gray-800">Evaluación de Desempeño</h1>
             
             {/* Información General */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
@@ -443,27 +416,11 @@ const PerformanceEvaluation: React.FC<StaffRecruitmentProps> = ({ employee, onCl
                 </div>
             </div>
             
-            <div className="mt-6 flex justify-end space-x-4 border-t pt-6">
-                <button
-                    onClick={onClose}
-                    className="bg-gray-300 text-gray-700 px-6 py-2 rounded-md hover:bg-gray-400 transition-colors"
-                    disabled={isSaving}
-                >
-                    Cancelar
-                </button>
-                
-                <button
-                    onClick={handleDelete}
-                    className="bg-red-600 text-white px-6 py-2 rounded-md hover:bg-red-700 transition-colors"
-                    disabled={isSaving}
-                >
-                    Eliminar
-                </button>
-                
+            <div className="flex justify-center mt-8 gap-4">
                 <button
                     onClick={handleSave}
                     disabled={isSaving}
-                    className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 disabled:bg-blue-300 transition-colors flex items-center"
+                    className="bg-cyan-600 hover:bg-yellow-500 text-white font-bold py-2 px-6 rounded-md transition-colors"
                 >
                     {isSaving ? (
                         <>

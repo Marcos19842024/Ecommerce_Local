@@ -159,6 +159,18 @@ class ApiService {
         
         return response;
     }
+
+    async getEmployeeFile(employeeName: string, fileName: string): Promise<any> {
+        try {
+            const response = await this.fetchWithConfig(
+                `/orgchart/employees/${encodeURIComponent(employeeName)}/${encodeURIComponent(fileName)}`
+            );
+            return response;
+        } catch (error) {
+            console.error(`Error loading file ${fileName} for employee ${employeeName}:`, error);
+            throw error;
+        }
+    }
 }
 
 export const apiService = new ApiService();

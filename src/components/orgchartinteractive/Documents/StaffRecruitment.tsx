@@ -219,25 +219,6 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
     }
   };
 
-  // Eliminar datos existentes
-  const handleDelete = async () => {
-    if (!confirm('¿Estás seguro de que deseas eliminar los datos de alta de personal?')) {
-      return;
-    }
-
-    try {
-      // ✅ Usar apiService para eliminar archivos
-      await apiService.deleteEmployeeFile(employee.name, 'Alta del personal.json');
-      await apiService.deleteEmployeeFile(employee.name, 'Alta del personal.pdf');
-      
-      toast.success("Datos de alta eliminados correctamente");
-      onClose();
-    } catch (error: any) {
-      console.error('Error deleting data:', error);
-      toast.error(`Error al eliminar los datos: ${error.message}`);
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="container mx-auto p-6 bg-gray-50 min-h-screen flex items-center justify-center">
@@ -251,16 +232,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
 
   return (
     <div className="container mx-auto p-6 bg-gray-50 min-h-screen">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Alta de Personal</h1>
-        <button
-          onClick={onClose}
-          className="text-gray-500 hover:text-gray-700 text-2xl"
-        >
-          ×
-        </button>
-      </div>
-      
+      <h1 className="text-2xl font-bold text-gray-800">Alta de Personal</h1>
       <form className="bg-white p-6 rounded-lg shadow-md">
         {/* Información básica */}
         <div className="mb-6">
@@ -711,28 +683,12 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
         </div>
       </form>
       
-      <div className="flex justify-end space-x-4 mt-8 border-t pt-6">
-        <button
-          onClick={onClose}
-          className="bg-gray-300 text-gray-700 px-6 py-2 rounded-md hover:bg-gray-400 transition-colors"
-          disabled={isSaving}
-        >
-          Cancelar
-        </button>
-        
-        <button
-          onClick={handleDelete}
-          className="bg-red-600 text-white px-6 py-2 rounded-md hover:bg-red-700 transition-colors"
-          disabled={isSaving}
-        >
-          Eliminar
-        </button>
-        
+      <div className="flex justify-center mt-8 gap-4">
         <button
           type="button"
           onClick={handleGeneratePdf}
           disabled={isSaving}
-          className="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-6 rounded-md disabled:bg-cyan-300 transition-colors flex items-center"
+          className="bg-cyan-600 hover:bg-yellow-500 text-white font-bold py-2 px-6 rounded-md transition-colors"
         >
           {isSaving ? (
             <>
@@ -740,7 +696,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
               Guardando...
             </>
           ) : (
-            formData.nombres ? 'Actualizar PDF' : 'Guardar y Generar PDF'
+            formData.nombres ? 'Actualizar Alta de Personal' : 'Generar Alta de Personal'
           )}
         </button>
       </div>

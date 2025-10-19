@@ -39,26 +39,28 @@ export const JobProfile = (data: StaffRecruitmentProps) => {
     const [formData, setFormData] = useState<JobProfileData>(initialJobProfileData);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Cargar datos existentes
+    // ✅ Cargar datos existentes - CORREGIDO
     useEffect(() => {
         const loadExistingData = async () => {
             try {
-                // ✅ Usar apiService en lugar de fetch directo
-                const serverFiles = await apiService.getEmployeeFiles(data.employee.name);
+                setIsLoading(true);
                 
-                const jobProfileJsonFile = serverFiles.find((file: any) => file.name === 'Perfil de puesto.json');
+                // ✅ Usar el nuevo método para cargar el JSON específico
+                const existingData = await apiService.getEmployeeFile(data.employee.name, 'Perfil de puesto.json');
+                setFormData(existingData);
                 
-                if (jobProfileJsonFile) {
-                    // ✅ Usar apiService para cargar el JSON existente
-                    try {
-                        const existingData = await apiService.getEmployeeFiles(`${data.employee.name}/Perfil de puesto.json`);
-                        setFormData(existingData);
-                    } catch (jsonError) {
-                        console.error('Error loading job profile JSON:', jsonError);
+                console.log('Perfil de puesto cargado correctamente');
+            } catch (error) {
+                // Si el archivo no existe (404) o hay error (500), usar datos iniciales
+                if (error instanceof Error) {
+                    if (error.message.includes('404') || error.message.includes('500')) {
+                        console.log('No se encontró perfil de puesto existente, usando datos iniciales');
+                        setFormData(initialJobProfileData);
+                    } else {
+                        console.error('Error inesperado:', error);
+                        toast.error('Error al cargar el perfil de puesto existente');
                     }
                 }
-            } catch (error) {
-                console.error('Error loading existing job profile data:', error);
             } finally {
                 setIsLoading(false);
             }
@@ -211,6 +213,12 @@ export const JobProfile = (data: StaffRecruitmentProps) => {
                 throw new Error("Perfil de puesto no proporcionados");
             }
             
+            // Validar datos requeridos
+            if (!formData.generalInfo.position || !formData.generalInfo.department) {
+                toast.error("Por favor complete los campos obligatorios: Puesto y Departamento");
+                return;
+            }
+
             // Generar el PDF y enviar con JSON en una sola operación
             const blob = await pdf(<PdfJobProfile data={formData} />).toBlob();
             
@@ -224,9 +232,9 @@ export const JobProfile = (data: StaffRecruitmentProps) => {
 
             const formDatasend = new FormData();
             formDatasend.append('file', blob, "Perfil de puesto.pdf");
-            formDatasend.append('jsonData', JSON.stringify(formData));
+            formDatasend.append('jsonData', JSON.stringify(formData, null, 2));
             
-            // ✅ Usar apiService en lugar de fetch directo
+            // ✅ Usar apiService para subir el archivo
             await apiService.uploadEmployeeFile(data.employee.name, formDatasend);
 
             toast.success("Perfil de puesto.pdf creado correctamente");
@@ -243,7 +251,7 @@ export const JobProfile = (data: StaffRecruitmentProps) => {
             <div className="max-w-6xl mx-auto p-6 font-sans flex items-center justify-center">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Cargando datos...</p>
+                    <p className="mt-4 text-gray-600">Cargando datos del perfil de puesto...</p>
                 </div>
             </div>
         );
@@ -258,13 +266,15 @@ export const JobProfile = (data: StaffRecruitmentProps) => {
                 <h2 className="text-xl font-semibold mb-4 text-gray-700 border-b border-gray-300 pb-2">1. Información General</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex flex-col">
-                        <label className="font-medium mb-2 text-gray-700">Puesto:</label>
+                        <label className="font-medium mb-2 text-gray-700">Puesto: <span className="text-red-500">*</span></label>
                         <input
                             type="text"
                             name="position"
                             value={formData.generalInfo.position}
                             onChange={(e) => handleNestedChange('generalInfo', 'position', e.target.value)}
                             className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Ingrese el puesto"
+                            required
                         />
                     </div>
                     <div className="flex flex-col">
@@ -275,6 +285,7 @@ export const JobProfile = (data: StaffRecruitmentProps) => {
                             value={formData.generalInfo.numberOfPositions}
                             onChange={(e) => handleNestedChange('generalInfo', 'numberOfPositions', e.target.value)}
                             className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Ej: 1"
                         />
                     </div>
                     <div className="flex flex-col">
@@ -285,16 +296,19 @@ export const JobProfile = (data: StaffRecruitmentProps) => {
                             value={formData.generalInfo.location}
                             onChange={(e) => handleNestedChange('generalInfo', 'location', e.target.value)}
                             className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Ej: Ciudad, Estado"
                         />
                     </div>
                     <div className="flex flex-col">
-                        <label className="font-medium mb-2 text-gray-700">Departamento:</label>
+                        <label className="font-medium mb-2 text-gray-700">Departamento: <span className="text-red-500">*</span></label>
                         <input
                             type="text"
                             name="department"
                             value={formData.generalInfo.department}
                             onChange={(e) => handleNestedChange('generalInfo', 'department', e.target.value)}
                             className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Ingrese el departamento"
+                            required
                         />
                     </div>
                     <div className="flex flex-col md:col-span-2">
@@ -305,6 +319,7 @@ export const JobProfile = (data: StaffRecruitmentProps) => {
                             value={formData.generalInfo.reportsTo}
                             onChange={(e) => handleNestedChange('generalInfo', 'reportsTo', e.target.value)}
                             className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Ej: Gerente de Departamento"
                         />
                     </div>
                     <div className="flex flex-col md:col-span-2">
@@ -315,6 +330,7 @@ export const JobProfile = (data: StaffRecruitmentProps) => {
                             onChange={(e) => handleNestedChange('generalInfo', 'objective', e.target.value)}
                             rows={3}
                             className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical"
+                            placeholder="Describa el objetivo principal del puesto"
                         />
                     </div>
                     <div className="flex flex-col md:col-span-2">
@@ -325,9 +341,10 @@ export const JobProfile = (data: StaffRecruitmentProps) => {
                             onChange={(e) => handleNestedChange('generalInfo', 'schedule', e.target.value)}
                             rows={3}
                             className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical"
+                            placeholder="Ej: Lunes a Viernes de 9:00 a 18:00"
                         />
                     </div>
-                    {/* Sección de Capacidad - AÑADIDA */}
+                    {/* Sección de Capacidad */}
                     <div className="flex flex-col md:col-span-2">
                         <label className="font-medium mb-2 text-gray-700">Capacidad:</label>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-white rounded border border-gray-300">
@@ -370,6 +387,7 @@ export const JobProfile = (data: StaffRecruitmentProps) => {
                             value={formData.requirements.education}
                             onChange={(e) => handleNestedChange('requirements', 'education', e.target.value)}
                             className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Ej: Licenciatura, Maestría"
                         />
                     </div>
                     <div className="flex flex-col">
@@ -380,6 +398,7 @@ export const JobProfile = (data: StaffRecruitmentProps) => {
                             value={formData.requirements.degree}
                             onChange={(e) => handleNestedChange('requirements', 'degree', e.target.value)}
                             className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Ej: Titulado, Pasante"
                         />
                     </div>
                     <div className="flex flex-col md:col-span-2">
@@ -390,6 +409,7 @@ export const JobProfile = (data: StaffRecruitmentProps) => {
                             onChange={(e) => handleNestedChange('requirements', 'experience', e.target.value)}
                             rows={2}
                             className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical"
+                            placeholder="Ej: 3 años en puesto similar"
                         />
                     </div>
                 </div>
@@ -407,6 +427,7 @@ export const JobProfile = (data: StaffRecruitmentProps) => {
                                 onChange={(e) => handleArrayChange('responsibilities', index, 'description', e.target.value)}
                                 rows={2}
                                 className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical"
+                                placeholder="Describa la responsabilidad"
                             />
                             {formData.responsibilities.length > 1 && (
                                 <button
@@ -441,6 +462,7 @@ export const JobProfile = (data: StaffRecruitmentProps) => {
                                 onChange={(e) => handleArrayChange('specificFunctions', index, 'description', e.target.value)}
                                 rows={2}
                                 className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical"
+                                placeholder="Describa la función específica"
                             />
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-white rounded border border-gray-300">
                                 <div className="flex flex-col">
@@ -590,14 +612,18 @@ export const JobProfile = (data: StaffRecruitmentProps) => {
                 </button>
             </section>
             
-            <div className="text-center mt-8">
+            <div className="flex justify-center mt-8 gap-4">
                 <button 
                     type="button" 
                     onClick={handleSave}
-                    className="px-6 py-3 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-lg font-medium"
+                    className="bg-cyan-600 hover:bg-yellow-500 text-white font-bold py-2 px-6 rounded-md transition-colors"
+                    disabled={!formData.generalInfo.position || !formData.generalInfo.department}
                 >
-                    {formData.generalInfo.position ? 'Actualizar PDF' : 'Guardar y Generar PDF'}
+                    {formData.generalInfo.position ? 'Actualizar Perfil de puesto' : 'Generar Perfil de puesto'}
                 </button>
+                {(!formData.generalInfo.position || !formData.generalInfo.department) && (
+                    <p className="text-red-500 text-sm mt-2">Complete los campos obligatorios (*)</p>
+                )}
             </div>
         </div>
     );
