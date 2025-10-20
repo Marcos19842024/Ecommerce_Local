@@ -116,24 +116,42 @@ const CHECKLIST_TEMPLATE: Omit<ChecklistItem, 'id' | 'cumplimiento' | 'observaci
     { area: 'BODEGA', aspecto: 'Medicamentos y material ordenados' },
 ];
 
-export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
-    const [formData, setFormData] = useState<ChecklistData>({
-        fecha: new Date().toISOString().split('T')[0],
-        hora: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
-        responsable: '',
-        items: CHECKLIST_TEMPLATE.map((item, index) => ({
-            id: `item-${index}`,
-            ...item,
-            cumplimiento: '',
-            observaciones: ''
-        })),
-        comentariosAdicionales: ''
-    });
+// Función para inicializar el formulario
+const initializeFormData = (): ChecklistData => ({
+    fecha: new Date().toISOString().split('T')[0],
+    hora: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
+    responsable: '',
+    items: CHECKLIST_TEMPLATE.map((item, index) => ({
+        id: `item-${index}`,
+        ...item,
+        cumplimiento: '',
+        observaciones: ''
+    })),
+    comentariosAdicionales: ''
+});
 
+export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
+    const [formData, setFormData] = useState<ChecklistData>(initializeFormData());
     const [isLoading, setIsLoading] = useState(false);
     const [currentArea, setCurrentArea] = useState<string>('RECEPCIÓN');
     const [availableChecklists, setAvailableChecklists] = useState<any[]>([]);
     const [selectedChecklist, setSelectedChecklist] = useState<string>('');
+
+    // Agrupar items por área con protección contra undefined
+    const itemsByArea = React.useMemo(() => {
+        if (!formData?.items) {
+            return {};
+        }
+        return formData.items.reduce((acc, item) => {
+            if (!acc[item.area]) {
+                acc[item.area] = [];
+            }
+            acc[item.area].push(item);
+            return acc;
+        }, {} as Record<string, ChecklistItem[]>);
+    }, [formData?.items]);
+
+    const areas = Object.keys(itemsByArea);
 
     // Cargar lista de checklists disponibles
     useEffect(() => {
@@ -141,7 +159,7 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
             try {
                 setIsLoading(true);
                 const files = await apiService.getChecklistFiles();
-                const jsonFiles = files.filter((file: any) => file.name.endsWith('.json'));
+                const jsonFiles = files?.filter((file: any) => file.name.endsWith('.json')) || [];
                 setAvailableChecklists(jsonFiles);
                 
                 // Si hay checklists, cargar el más reciente automáticamente
@@ -157,7 +175,7 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
                     // Cargar los datos del checklist más reciente
                     try {
                         const checklistData = await apiService.getChecklistFile(latestChecklist.name);
-                        if (checklistData) {
+                        if (checklistData && checklistData.items) {
                             setFormData(checklistData);
                             console.log('Último checklist cargado:', latestChecklist.name);
                         }
@@ -183,18 +201,7 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
         const loadSelectedChecklist = async () => {
             if (!selectedChecklist) {
                 // Si se selecciona "Seleccionar checklist..." (valor vacío), resetear al formulario vacío
-                setFormData({
-                    fecha: new Date().toISOString().split('T')[0],
-                    hora: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
-                    responsable: '',
-                    items: CHECKLIST_TEMPLATE.map((item, index) => ({
-                        id: `item-${index}`,
-                        ...item,
-                        cumplimiento: '',
-                        observaciones: ''
-                    })),
-                    comentariosAdicionales: ''
-                });
+                setFormData(initializeFormData());
                 return;
             }
 
@@ -202,9 +209,12 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
                 setIsLoading(true);
                 const checklistData = await apiService.getChecklistFile(selectedChecklist);
                 
-                if (checklistData) {
+                if (checklistData && checklistData.items) {
                     setFormData(checklistData);
                     toast.success('Checklist cargado correctamente');
+                } else {
+                    toast.error('El checklist no tiene datos válidos');
+                    setSelectedChecklist('');
                 }
             } catch (error) {
                 console.error('Error loading checklist:', error);
@@ -221,17 +231,6 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
         }
     }, [selectedChecklist]);
 
-    // Agrupar items por área
-    const itemsByArea = formData.items.reduce((acc, item) => {
-        if (!acc[item.area]) {
-            acc[item.area] = [];
-        }
-        acc[item.area].push(item);
-        return acc;
-    }, {} as Record<string, ChecklistItem[]>);
-
-    const areas = Object.keys(itemsByArea);
-
     const handleInputChange = (field: keyof ChecklistData, value: string) => {
         setFormData(prev => ({
             ...prev,
@@ -242,23 +241,23 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
     const handleItemChange = (itemId: string, field: 'cumplimiento' | 'observaciones', value: string) => {
         setFormData(prev => ({
             ...prev,
-            items: prev.items.map(item =>
+            items: prev.items?.map(item =>
                 item.id === itemId ? { ...item, [field]: value } : item
-            )
+            ) || []
         }));
     };
 
     const calculateProgress = (area?: string) => {
         const itemsToCheck = area 
-        ? formData.items.filter(item => item.area === area)
-        : formData.items;
+            ? formData.items?.filter(item => item.area === area) || []
+            : formData.items || [];
         
         const completed = itemsToCheck.filter(item => item.cumplimiento !== '').length;
         return itemsToCheck.length > 0 ? (completed / itemsToCheck.length) * 100 : 0;
     };
 
     const getAreaStats = (area: string) => {
-        const areaItems = itemsByArea[area];
+        const areaItems = itemsByArea[area] || [];
         const total = areaItems.length;
         const bueno = areaItems.filter(item => item.cumplimiento === 'bueno').length;
         const regular = areaItems.filter(item => item.cumplimiento === 'regular').length;
@@ -273,7 +272,13 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
 
             // Validar que todos los campos requeridos estén completos
             if (!formData.responsable) {
-                toast.error('Complete el campo "responsable" antes de guardar');
+                toast.error('Complete el campo responsable');
+                return;
+            }
+
+            // Validar que hay items
+            if (!formData.items || formData.items.length === 0) {
+                toast.error('No hay items en el checklist');
                 return;
             }
 
@@ -313,18 +318,7 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
 
     const handleNewChecklist = () => {
         setSelectedChecklist('');
-        setFormData({
-            fecha: new Date().toISOString().split('T')[0],
-            hora: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
-            responsable: '',
-            items: CHECKLIST_TEMPLATE.map((item, index) => ({
-                id: `item-${index}`,
-                ...item,
-                cumplimiento: '',
-                observaciones: ''
-            })),
-            comentariosAdicionales: ''
-        });
+        setFormData(initializeFormData());
         toast.success('Nuevo checklist creado');
     };
 
@@ -383,7 +377,7 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
                         <label className="block text-sm font-medium text-gray-700 mb-1">FECHA:</label>
                         <input
                             type="date"
-                            value={formData.fecha}
+                            value={formData.fecha || ''}
                             onChange={(e) => handleInputChange('fecha', e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
@@ -392,7 +386,7 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
                         <label className="block text-sm font-medium text-gray-700 mb-1">HORA:</label>
                         <input
                             type="time"
-                            value={formData.hora}
+                            value={formData.hora || ''}
                             onChange={(e) => handleInputChange('hora', e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
@@ -401,7 +395,7 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
                         <label className="block text-sm font-medium text-gray-700 mb-1">RESPONSABLE:</label>
                         <input
                             type="text"
-                            value={formData.responsable}
+                            value={formData.responsable || ''}
                             onChange={(e) => handleInputChange('responsable', e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             placeholder="Nombre del responsable"
@@ -428,7 +422,7 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Área a evaluar:</label>
                     <div className="flex flex-wrap gap-2">
                         {areas.map(area => {
-                            const areaItems = itemsByArea[area];
+                            const areaItems = itemsByArea[area] || [];
                             const completed = areaItems.filter(item => item.cumplimiento !== '').length;
                             const total = areaItems.length;
                             
@@ -472,7 +466,7 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
                             </tr>
                         </thead>
                         <tbody>
-                            {itemsByArea[currentArea]?.map((item) => (
+                            {(itemsByArea[currentArea] || []).map((item) => (
                                 <tr key={item.id} className="border-b hover:bg-gray-50">
                                     <td className="py-3 px-4">
                                         {item.aspecto}
@@ -503,7 +497,7 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
                                     <td className="py-3 px-4">
                                         <input
                                             type="text"
-                                            value={item.observaciones}
+                                            value={item.observaciones || ''}
                                             onChange={(e) => handleItemChange(item.id, 'observaciones', e.target.value)}
                                             placeholder="Observaciones..."
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
@@ -522,7 +516,7 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
                     Comentarios Adicionales:
                 </label>
                 <textarea
-                    value={formData.comentariosAdicionales}
+                    value={formData.comentariosAdicionales || ''}
                     onChange={(e) => handleInputChange('comentariosAdicionales', e.target.value)}
                     rows={4}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical"
