@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiService } from '../../services/api';
 import { pdf } from '@react-pdf/renderer';
-import { ChecklistData, ChecklistItem, ChecklistSupervisionProps } from '../../interfaces/readbill.interface';
+import { ChecklistData, ChecklistItem, ChecklistSupervisionProps } from '../../interfaces/checklist.interface';
 import { PdfChecklist } from './PdfCheckList';
 import toast from 'react-hot-toast';
 
@@ -116,12 +116,11 @@ const CHECKLIST_TEMPLATE: Omit<ChecklistItem, 'id' | 'cumplimiento' | 'observaci
     { area: 'BODEGA', aspecto: 'Medicamentos y material ordenados' },
 ];
 
-export const CheckList: React.FC<ChecklistSupervisionProps> = ({ employee, onClose }) => {
+export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
     const [formData, setFormData] = useState<ChecklistData>({
         fecha: new Date().toISOString().split('T')[0],
         hora: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
-        responsable: employee?.name || '',
-        supervisor: '',
+        responsable: '',
         items: CHECKLIST_TEMPLATE.map((item, index) => ({
             id: `item-${index}`,
             ...item,
@@ -133,6 +132,94 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ employee, onClo
 
     const [isLoading, setIsLoading] = useState(false);
     const [currentArea, setCurrentArea] = useState<string>('RECEPCIÓN');
+    const [availableChecklists, setAvailableChecklists] = useState<any[]>([]);
+    const [selectedChecklist, setSelectedChecklist] = useState<string>('');
+
+    // Cargar lista de checklists disponibles
+    useEffect(() => {
+        const loadChecklists = async () => {
+            try {
+                setIsLoading(true);
+                const files = await apiService.getChecklistFiles();
+                const jsonFiles = files.filter((file: any) => file.name.endsWith('.json'));
+                setAvailableChecklists(jsonFiles);
+                
+                // Si hay checklists, cargar el más reciente automáticamente
+                if (jsonFiles.length > 0) {
+                    // Ordenar por fecha de modificación (más reciente primero)
+                    jsonFiles.sort((a: any, b: any) => 
+                        new Date(b.modified).getTime() - new Date(a.modified).getTime()
+                    );
+                    
+                    const latestChecklist = jsonFiles[0];
+                    setSelectedChecklist(latestChecklist.name);
+                    
+                    // Cargar los datos del checklist más reciente
+                    try {
+                        const checklistData = await apiService.getChecklistFile(latestChecklist.name);
+                        if (checklistData) {
+                            setFormData(checklistData);
+                            console.log('Último checklist cargado:', latestChecklist.name);
+                        }
+                    } catch (loadError) {
+                        console.log('Error cargando el checklist, usando formulario vacío');
+                        // Si hay error al cargar, mantener el formulario vacío
+                    }
+                }
+                // Si no hay checklists, el formulario se mantiene vacío (estado inicial)
+            } catch (error) {
+                console.log('No se encontraron checklists existentes, usando formulario vacío');
+                // En caso de error, simplemente no hacemos nada y el formulario queda vacío
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        loadChecklists();
+    }, []);
+
+    // Cargar checklist cuando se selecciona uno del dropdown
+    useEffect(() => {
+        const loadSelectedChecklist = async () => {
+            if (!selectedChecklist) {
+                // Si se selecciona "Seleccionar checklist..." (valor vacío), resetear al formulario vacío
+                setFormData({
+                    fecha: new Date().toISOString().split('T')[0],
+                    hora: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
+                    responsable: '',
+                    items: CHECKLIST_TEMPLATE.map((item, index) => ({
+                        id: `item-${index}`,
+                        ...item,
+                        cumplimiento: '',
+                        observaciones: ''
+                    })),
+                    comentariosAdicionales: ''
+                });
+                return;
+            }
+
+            try {
+                setIsLoading(true);
+                const checklistData = await apiService.getChecklistFile(selectedChecklist);
+                
+                if (checklistData) {
+                    setFormData(checklistData);
+                    toast.success('Checklist cargado correctamente');
+                }
+            } catch (error) {
+                console.error('Error loading checklist:', error);
+                toast.error('Error al cargar el checklist');
+                // En caso de error, mantener el formulario actual o resetear a vacío
+                setSelectedChecklist(''); // Volver a selección vacía
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        if (selectedChecklist) {
+            loadSelectedChecklist();
+        }
+    }, [selectedChecklist]);
 
     // Agrupar items por área
     const itemsByArea = formData.items.reduce((acc, item) => {
@@ -144,28 +231,6 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ employee, onClo
     }, {} as Record<string, ChecklistItem[]>);
 
     const areas = Object.keys(itemsByArea);
-
-    // Cargar datos existentes
-    useEffect(() => {
-        const loadExistingData = async () => {
-            if (!employee?.name) return;
-
-            try {
-                setIsLoading(true);
-                const existingData = await apiService.getEmployeeFile(employee.name, 'Checklist Supervision.json');
-                if (existingData) {
-                    setFormData(existingData);
-                }
-            } catch (error) {
-                // Si no existe el archivo, se mantienen los datos iniciales
-                console.log('No se encontró checklist existente, usando plantilla');
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        loadExistingData();
-    }, [employee?.name]);
 
     const handleInputChange = (field: keyof ChecklistData, value: string) => {
         setFormData(prev => ({
@@ -204,29 +269,37 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ employee, onClo
 
     const handleSave = async () => {
         try {
-            if (!employee?.name) {
-                toast.error('No se ha especificado un empleado');
-                return;
-            }
-
             setIsLoading(true);
 
             // Validar que todos los campos requeridos estén completos
-            if (!formData.responsable || !formData.supervisor) {
-                toast.error('Complete los campos de responsable y supervisor');
+            if (!formData.responsable) {
+                toast.error('Complete el campo "responsable" antes de guardar');
                 return;
             }
 
+            // Generar nombre único basado en fecha y responsable
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const baseFilename = `Checklist_${formData.fecha}_${formData.responsable.replace(/\s+/g, '_')}_${timestamp}`;
+
             // Generar PDF
             const blob = await pdf(<PdfChecklist data={formData} />).toBlob();
-            
+        
             // Crear FormData para enviar ambos archivos
             const formDataUpload = new FormData();
-            formDataUpload.append('file', blob, "Checklist Supervision.pdf");
-            formDataUpload.append('jsonData', JSON.stringify(formData, null, 2));
             
-            // Subir archivos
-            await apiService.uploadEmployeeFile(employee.name, formDataUpload);
+            // Agregar el PDF
+            const pdfFilename = `${baseFilename}.pdf`;
+            formDataUpload.append('files', blob, pdfFilename);
+            
+            // Agregar el JSON como Blob
+            const jsonBlob = new Blob([JSON.stringify(formData, null, 2)], { 
+                type: 'application/json' 
+            });
+            const jsonFilename = `${baseFilename}.json`;
+            formDataUpload.append('files', jsonBlob, jsonFilename);
+            
+            // Subir archivos usando el nuevo endpoint
+            await apiService.saveChecklist(formDataUpload);
 
             toast.success('Checklist de supervisión guardado correctamente');
             onClose?.();
@@ -238,12 +311,31 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ employee, onClo
         }
     };
 
+    const handleNewChecklist = () => {
+        setSelectedChecklist('');
+        setFormData({
+            fecha: new Date().toISOString().split('T')[0],
+            hora: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
+            responsable: '',
+            items: CHECKLIST_TEMPLATE.map((item, index) => ({
+                id: `item-${index}`,
+                ...item,
+                cumplimiento: '',
+                observaciones: ''
+            })),
+            comentariosAdicionales: ''
+        });
+        toast.success('Nuevo checklist creado');
+    };
+
     if (isLoading) {
         return (
             <div className="max-w-6xl mx-auto p-6">
                 <div className="flex justify-center items-center h-64">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-                    <p className="ml-4 text-gray-600">Cargando checklist...</p>
+                    <p className="ml-4 text-gray-600">
+                        {selectedChecklist ? 'Cargando checklist...' : 'Cargando...'}
+                    </p>
                 </div>
             </div>
         );
@@ -254,7 +346,37 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ employee, onClo
             {/* Header */}
             <div className="mb-8">
                 <h1 className="text-3xl font-bold text-gray-800 mb-2">CHECK LIST GENERAL DE SUPERVISIÓN</h1>
-                
+            
+                {/* Selector de Checklist Existente - Solo mostrar si hay checklists disponibles */}
+                {availableChecklists.length > 0 && (
+                    <div className="mb-4 p-4 bg-blue-50 rounded-lg">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Cargar Checklist Existente:
+                        </label>
+                        <div className="flex gap-2">
+                            <select
+                                value={selectedChecklist}
+                                onChange={(e) => setSelectedChecklist(e.target.value)}
+                                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="">Seleccionar checklist...</option>
+                                {availableChecklists.map((file) => (
+                                    <option key={file.name} value={file.name}>
+                                        {file.name} ({new Date(file.modified).toLocaleDateString()})
+                                    </option>
+                                ))}
+                            </select>
+                        
+                            <button
+                                onClick={handleNewChecklist}
+                                className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors"
+                            >
+                                Nuevo Checklist
+                            </button>
+                        </div>
+                    </div>
+                )}
+
                 {/* Información general */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
                     <div>
@@ -283,16 +405,6 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ employee, onClo
                             onChange={(e) => handleInputChange('responsable', e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             placeholder="Nombre del responsable"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">SUPERVISOR:</label>
-                        <input
-                            type="text"
-                            value={formData.supervisor}
-                            onChange={(e) => handleInputChange('supervisor', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="Nombre del supervisor"
                         />
                     </div>
                 </div>
@@ -456,8 +568,8 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ employee, onClo
                 <button
                     type="button"
                     onClick={handleSave}
-                    disabled={isLoading || !formData.responsable || !formData.supervisor}
-                    className="bg-cyan-600 hover:bg-yellow-500 text-white font-bold py-2 px-6 rounded-md transition-colors"
+                    disabled={isLoading || !formData.responsable}
+                    className="bg-cyan-600 hover:bg-yellow-500 text-white font-bold py-2 px-6 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {isLoading ? 'Guardando...' : 'Guardar Checklist'}
                 </button>

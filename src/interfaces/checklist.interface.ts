@@ -10,15 +10,10 @@ export interface ChecklistData {
     fecha: string;
     hora: string;
     responsable: string;
-    supervisor: string;
     items: ChecklistItem[];
     comentariosAdicionales: string;
 }
 
 export interface ChecklistSupervisionProps {
-    employee?: {
-        name: string;
-        puesto: string;
-    };
     onClose?: () => void;
 }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
-import { ChecklistData } from '../../interfaces/readbill.interface';
+import { ChecklistData } from '../../interfaces/checklist.interface';
 
 // Registrar fuentes (opcional, pero mejora la apariencia)
 Font.register({
@@ -277,7 +277,6 @@ export const PdfChecklist: React.FC<PdfChecklistProps> = ({ data }) => {
                             </View>
                             <View style={styles.infoRow}>
                                 <Text style={styles.infoLabel}>SUPERVISOR:</Text>
-                                <Text style={styles.infoValue}>{data.supervisor}</Text>
                             </View>
                         </View>
                     </View>
@@ -396,7 +395,6 @@ export const PdfChecklist: React.FC<PdfChecklistProps> = ({ data }) => {
                     <View style={styles.signature}>
                         <Text style={styles.signatureText}>SUPERVISOR</Text>
                         <View style={styles.signatureLine} />
-                        <Text style={styles.signatureText}>{data.supervisor}</Text>
                     </View>
                 </View>
 

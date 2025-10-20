@@ -54,6 +54,39 @@ class ApiService {
         });
     }
 
+    // Métodos específicos para checklist
+    async saveChecklist(formData: FormData): Promise<any> {
+        await this.ensureConfigLoaded();
+        const url = `${runtimeConfig.getApiUrl()}/checklist/save`;
+        
+        const response = await fetch(url, {
+            method: 'POST',
+            body: formData,
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        return response.json();
+    }
+
+    async getChecklistFiles(): Promise<any> {
+        return this.get('/checklist/files');
+    }
+
+    async getChecklistFile(filename: string): Promise<any> {
+        return this.get(`/checklist/file/${encodeURIComponent(filename)}`);
+    }
+
+    async deleteChecklistFile(filename: string): Promise<any> {
+        return this.delete(`/checklist/file/${encodeURIComponent(filename)}`);
+    }
+
+    async downloadChecklistFile(filename: string): Promise<Response> {
+        return this.fetchDirect(`/checklist/file/${encodeURIComponent(filename)}`);
+    }
+
     // Métodos para upload de archivos (FormData)
     async uploadFile(endpoint: string, formData: FormData): Promise<any> {
         await this.ensureConfigLoaded();
@@ -94,6 +127,18 @@ class ApiService {
 
     async downloadSendMailZip(employeeName: string, options: { send: boolean; download: boolean; email?: string }): Promise<any> {
         return this.post(`/orgchart/download-send-mail-zip/${encodeURIComponent(employeeName)}`, options);
+    }
+
+    async getEmployeeFile(employeeName: string, fileName: string): Promise<any> {
+        try {
+            const response = await this.fetchWithConfig(
+                `/orgchart/employees/${encodeURIComponent(employeeName)}/${encodeURIComponent(fileName)}`
+            );
+            return response;
+        } catch (error) {
+            console.error(`Error loading file ${fileName} for employee ${employeeName}:`, error);
+            throw error;
+        }
     }
 
     // Métodos para invoices
@@ -158,18 +203,6 @@ class ApiService {
         }
         
         return response;
-    }
-
-    async getEmployeeFile(employeeName: string, fileName: string): Promise<any> {
-        try {
-            const response = await this.fetchWithConfig(
-                `/orgchart/employees/${encodeURIComponent(employeeName)}/${encodeURIComponent(fileName)}`
-            );
-            return response;
-        } catch (error) {
-            console.error(`Error loading file ${fileName} for employee ${employeeName}:`, error);
-            throw error;
-        }
     }
 }
 
