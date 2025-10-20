@@ -1,7 +1,7 @@
 import { FaTruckPickup } from 'react-icons/fa6';
 import { TbMessageCircleShare, TbReportMoney } from 'react-icons/tb';
-import { RiBillLine } from 'react-icons/ri';
 import { GiOrganigram } from "react-icons/gi";
+import { VscChecklist } from 'react-icons/vsc';
 
 export const dashboardLinks = [
 	{
@@ -24,9 +24,9 @@ export const dashboardLinks = [
 	},
 	{
 		id: 4,
-		title: 'Facturas',
-		href: '/facturas',
-		icon: <RiBillLine size={25} />,
+		title: 'CheckList',
+		href: '/checklist',
+		icon: <VscChecklist size={25} />,
 	},
 	{
 		id: 5,

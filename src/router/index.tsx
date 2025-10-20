@@ -1,10 +1,10 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { DashboardLayout } from '../Pages/DashboardLayout';
 import { RemindersPage } from '../Pages/RemindersPage';
 import { TransportPage } from '../Pages/TransportPage';
 import { ExpenseReportPage } from '../Pages/ExpenseReportPage';
-import { ReadBillPage } from '../Pages/ReadBillPage';
-import { DashboardLayout } from '../Pages/DashboardLayout';
-import OrgChartInteractive from '../components/orgchartinteractive/OrgChartInteractive';
+import { CheckListPage } from '../Pages/CheckListPage';
+import { OrgChartInteractivePage } from '../Pages/OrgChartInteractivePage';
 
 export const router = createBrowserRouter([
 	{
@@ -28,12 +28,12 @@ export const router = createBrowserRouter([
 				element: <ExpenseReportPage />,
 			},
 			{
-				path: 'facturas',
-				element: <ReadBillPage />,
+				path: 'checklist',
+				element: <CheckListPage />,
 			},
 			{
-				path: 'Expedientes',
-				element: <OrgChartInteractive />,
+				path: 'expedientes',
+				element: <OrgChartInteractivePage />,
 			},
 		],
 	}

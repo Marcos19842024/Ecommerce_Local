@@ -1,14 +1,24 @@
-export interface PdfReaderFacturaProps {
-    file: File;
-    info: string;
+export interface ChecklistItem {
+    id: string;
+    area: string;
+    aspecto: string;
+    cumplimiento: 'malo' | 'regular' | 'bueno' | '';
+    observaciones: string;
 }
 
-export interface DatosFactura {
-    empresa?: string;
-    folio?: string;
-    fecha?: string;
-    concepto?: string;
-    subtotal?: string;
-    iva?: string;
-    total?: string;
+export interface ChecklistData {
+    fecha: string;
+    hora: string;
+    responsable: string;
+    supervisor: string;
+    items: ChecklistItem[];
+    comentariosAdicionales: string;
+}
+
+export interface ChecklistSupervisionProps {
+    employee?: {
+        name: string;
+        puesto: string;
+    };
+    onClose?: () => void;
 }
