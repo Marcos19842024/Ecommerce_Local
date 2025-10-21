@@ -20,15 +20,14 @@ const styles = StyleSheet.create({
         fontFamily: 'Helvetica',
     },
     header: {
-        marginBottom: 20,
-        borderBottom: '2pt solid #1e40af',
-        paddingBottom: 10,
+        marginBottom: 5,
+        paddingBottom: 5,
     },
     title: {
-        fontSize: 24,
+        fontSize: 20,
         fontWeight: 'bold',
         textAlign: 'center',
-        color: '#1e3a8a',
+        color: '#0195a8ff',
         marginBottom: 10,
     },
     subtitle: {
@@ -40,9 +39,9 @@ const styles = StyleSheet.create({
     infoContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: 15,
+        marginBottom: 10,
         backgroundColor: '#f3f4f6',
-        padding: 10,
+        padding: 5,
         borderRadius: 5,
     },
     infoColumn: {
@@ -65,12 +64,12 @@ const styles = StyleSheet.create({
         width: '60%',
     },
     section: {
-        marginBottom: 15,
+        marginBottom: 10,
     },
     sectionTitle: {
         fontSize: 14,
         fontWeight: 'bold',
-        backgroundColor: '#1e40af',
+        backgroundColor: '#0195a8ff',
         color: '#FFFFFF',
         padding: 8,
         marginBottom: 8,
@@ -90,21 +89,38 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
     },
     tableColHeader: {
-        width: '50%',
+        width: '37%',
         borderStyle: 'solid',
         borderWidth: 1,
         borderLeftWidth: 0,
         borderTopWidth: 0,
         backgroundColor: '#e5e7eb',
-        padding: 5,
+        padding: 3,
     },
-    tableCol: {
-        width: '50%',
+    tableColHeaderMiddle: {
+        width: '26%',
         borderStyle: 'solid',
         borderWidth: 1,
         borderLeftWidth: 0,
         borderTopWidth: 0,
-        padding: 5,
+        backgroundColor: '#e5e7eb',
+        padding: 3,
+    },
+    tableCol: {
+        width: '37%',
+        borderStyle: 'solid',
+        borderWidth: 1,
+        borderLeftWidth: 0,
+        borderTopWidth: 0,
+        padding: 3,
+    },
+    tableColMiddle: {
+        width: '26%',
+        borderStyle: 'solid',
+        borderWidth: 1,
+        borderLeftWidth: 0,
+        borderTopWidth: 0,
+        padding: 3,
     },
     tableCellHeader: {
         fontSize: 10,
@@ -133,21 +149,21 @@ const styles = StyleSheet.create({
         backgroundColor: '#f8fafc',
         border: '1pt solid #e2e8f0',
         borderRadius: 5,
-        padding: 8,
-        marginBottom: 8,
+        padding: 5,
+        marginBottom: 5,
     },
     statTitle: {
-        fontSize: 9,
+        fontSize: 8,
         fontWeight: 'bold',
         color: '#374151',
         textAlign: 'center',
         marginBottom: 4,
     },
     statValue: {
-        fontSize: 10,
+        fontSize: 9,
         fontWeight: 'bold',
         textAlign: 'center',
-        color: '#1e40af',
+        color: '#0195a8ff',
     },
     commentsSection: {
         marginTop: 15,
@@ -163,19 +179,9 @@ const styles = StyleSheet.create({
         marginBottom: 5,
     },
     commentsText: {
-        fontSize: 9,
+        fontSize: 8,
         color: '#78350f',
         lineHeight: 1.3,
-    },
-    footer: {
-        position: 'absolute',
-        bottom: 30,
-        left: 30,
-        right: 30,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        borderTop: '1pt solid #d1d5db',
-        paddingTop: 10,
     },
     signature: {
         width: '45%',
@@ -256,27 +262,28 @@ export const PdfChecklist: React.FC<PdfChecklistProps> = ({ data }) => {
             <Page size="LETTER" style={styles.page}>
                 {/* Header */}
                 <View style={styles.header}>
-                    <Text style={styles.title}>CHECK LIST GENERAL DE SUPERVISIÓN</Text>
+                    <Text style={styles.title}>Checklist General de Supervisión</Text>
                 
                     {/* Información general */}
                     <View style={styles.infoContainer}>
                         <View style={styles.infoColumn}>
                             <View style={styles.infoRow}>
-                                <Text style={styles.infoLabel}>FECHA:</Text>
+                                <Text style={styles.infoLabel}>Fecha:</Text>
                                 <Text style={styles.infoValue}>{formatDate(data.fecha)}</Text>
                             </View>
                             <View style={styles.infoRow}>
-                                <Text style={styles.infoLabel}>HORA:</Text>
-                                <Text style={styles.infoValue}>{data.hora}</Text>
+                                <Text style={styles.infoLabel}>Hora de Inicio:</Text>
+                                <Text style={styles.infoValue}>{data.horaInicio} hrs.</Text>
                             </View>
                         </View>
                         <View style={styles.infoColumn}>
                             <View style={styles.infoRow}>
-                                <Text style={styles.infoLabel}>RESPONSABLE:</Text>
+                                <Text style={styles.infoLabel}>Responsable:</Text>
                                 <Text style={styles.infoValue}>{data.responsable}</Text>
                             </View>
                             <View style={styles.infoRow}>
-                                <Text style={styles.infoLabel}>SUPERVISOR:</Text>
+                                <Text style={styles.infoLabel}>Hora de Fin:</Text>
+                                <Text style={styles.infoValue}>{data.horaFin} hrs.</Text>
                             </View>
                         </View>
                     </View>
@@ -284,19 +291,19 @@ export const PdfChecklist: React.FC<PdfChecklistProps> = ({ data }) => {
                     {/* Estadísticas generales - CORREGIDO */}
                     <View style={styles.statsContainer}>
                         <View style={styles.statCard}>
-                            <Text style={styles.statTitle}>TOTAL EVALUADO</Text>
+                            <Text style={styles.statTitle}>Total Evaluado</Text>
                             <Text style={styles.statValue}>
                                 {totalEvaluado} / {data.items.length}
                             </Text>
                         </View>
                         <View style={styles.statCard}>
-                            <Text style={styles.statTitle}>PORCENTAJE</Text>
+                            <Text style={styles.statTitle}>Porcentaje</Text>
                             <Text style={styles.statValue}>
                                 {porcentajeCompletado.toFixed(1)}%
                             </Text>
                         </View>
                         <View style={styles.statCard}>
-                            <Text style={styles.statTitle}>CALIFICACIÓN</Text>
+                            <Text style={styles.statTitle}>Calificación</Text>
                             <Text style={[styles.statValue, { color: 
                                 porcentajeCompletado >= 80 ? '#10b981' :
                                 porcentajeCompletado >= 60 ? '#f59e0b' : '#ef4444'
@@ -323,10 +330,13 @@ export const PdfChecklist: React.FC<PdfChecklistProps> = ({ data }) => {
                                 {/* Header de la tabla */}
                                 <View style={styles.tableRow}>
                                     <View style={styles.tableColHeader}>
-                                        <Text style={styles.tableCellHeader}>ASPECTO A EVALUAR</Text>
+                                        <Text style={styles.tableCellHeader}>Aspecto a Evaluar</Text>
+                                    </View>
+                                    <View style={styles.tableColHeaderMiddle}>
+                                        <Text style={styles.tableCellHeader}>Cumplimiento</Text>
                                     </View>
                                     <View style={styles.tableColHeader}>
-                                        <Text style={styles.tableCellHeader}>CUMPLIMIENTO</Text>
+                                        <Text style={styles.tableCellHeader}>Observaciones</Text>
                                     </View>
                                 </View>
 
@@ -336,14 +346,9 @@ export const PdfChecklist: React.FC<PdfChecklistProps> = ({ data }) => {
                                         <View style={styles.tableCol}>
                                             <Text style={styles.tableCell}>
                                                 {item.aspecto}
-                                                {item.observaciones && (
-                                                    <Text style={{ color: '#6b7280', fontSize: 6 }}>
-                                                        {'\n'}Obs: {item.observaciones}
-                                                    </Text>
-                                                )}
                                             </Text>
                                         </View>
-                                        <View style={styles.tableCol}>
+                                        <View style={styles.tableColMiddle}>
                                             <Text style={[
                                                 styles.cumplimientoBadge,
                                                 { 
@@ -354,6 +359,13 @@ export const PdfChecklist: React.FC<PdfChecklistProps> = ({ data }) => {
                                                 {item.cumplimiento ? item.cumplimiento.toUpperCase() : 'PENDIENTE'}
                                             </Text>
                                         </View>
+                                        <View style={styles.tableCol}>
+                                            {item.observaciones && (
+                                                <Text style={{ color: '#6b7280', fontSize: 6 }}>
+                                                    {item.observaciones ? item.observaciones.toUpperCase() : 'N/A'}
+                                                </Text>
+                                            )}
+                                        </View>
                                     </View>
                                 ))}
                             </View>
@@ -361,15 +373,15 @@ export const PdfChecklist: React.FC<PdfChecklistProps> = ({ data }) => {
                             {/* Estadísticas del área */}
                             <View style={styles.statsContainer}>
                                 <View style={styles.statCard}>
-                                    <Text style={[styles.statTitle, { color: '#10b981' }]}>BUENO</Text>
+                                    <Text style={[styles.statTitle, { color: '#10b981' }]}>Bueno</Text>
                                     <Text style={[styles.statValue, { color: '#10b981' }]}>{stats.bueno}</Text>
                                 </View>
                                 <View style={styles.statCard}>
-                                    <Text style={[styles.statTitle, { color: '#f59e0b' }]}>REGULAR</Text>
+                                    <Text style={[styles.statTitle, { color: '#f59e0b' }]}>Regular</Text>
                                     <Text style={[styles.statValue, { color: '#f59e0b' }]}>{stats.regular}</Text>
                                 </View>
                                 <View style={styles.statCard}>
-                                    <Text style={[styles.statTitle, { color: '#ef4444' }]}>MALO</Text>
+                                    <Text style={[styles.statTitle, { color: '#ef4444' }]}>Malo</Text>
                                     <Text style={[styles.statValue, { color: '#ef4444' }]}>{stats.malo}</Text>
                                 </View>
                             </View>
@@ -380,23 +392,10 @@ export const PdfChecklist: React.FC<PdfChecklistProps> = ({ data }) => {
                 {/* Comentarios Adicionales */}
                 {data.comentariosAdicionales && (
                     <View style={styles.commentsSection}>
-                        <Text style={styles.commentsTitle}>COMENTARIOS ADICIONALES:</Text>
+                        <Text style={styles.commentsTitle}>Comentarios Adicionales:</Text>
                         <Text style={styles.commentsText}>{data.comentariosAdicionales}</Text>
                     </View>
                 )}
-
-                {/* Firmas */}
-                <View style={styles.footer}>
-                    <View style={styles.signature}>
-                        <Text style={styles.signatureText}>RESPONSABLE</Text>
-                        <View style={styles.signatureLine} />
-                        <Text style={styles.signatureText}>{data.responsable}</Text>
-                    </View>
-                    <View style={styles.signature}>
-                        <Text style={styles.signatureText}>SUPERVISOR</Text>
-                        <View style={styles.signatureLine} />
-                    </View>
-                </View>
 
                 {/* Número de página */}
                 <Text style={styles.pageNumber} render={({ pageNumber, totalPages }) => 

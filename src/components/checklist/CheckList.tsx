@@ -116,10 +116,20 @@ const CHECKLIST_TEMPLATE: Omit<ChecklistItem, 'id' | 'cumplimiento' | 'observaci
     { area: 'BODEGA', aspecto: 'Medicamentos y material ordenados' },
 ];
 
+// Función para obtener la hora actual en formato HH:MM
+const getCurrentTime = (): string => {
+    return new Date().toLocaleTimeString('es-MX', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false 
+    });
+};
+
 // Función para inicializar el formulario
 const initializeFormData = (): ChecklistData => ({
     fecha: new Date().toISOString().split('T')[0],
-    hora: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
+    horaInicio: getCurrentTime(),
+    horaFin: getCurrentTime(),
     responsable: '',
     items: CHECKLIST_TEMPLATE.map((item, index) => ({
         id: `item-${index}`,
@@ -129,6 +139,18 @@ const initializeFormData = (): ChecklistData => ({
     })),
     comentariosAdicionales: ''
 });
+
+// Función para descargar archivo
+const downloadFile = (blob: Blob, filename: string) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+};
 
 export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
     const [formData, setFormData] = useState<ChecklistData>(initializeFormData());
@@ -284,16 +306,20 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
 
             // Generar nombre único basado en fecha y responsable
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-            const baseFilename = `Checklist_${formData.fecha}_${formData.responsable.replace(/\s+/g, '_')}_${timestamp}`;
+            const baseFilename = `Checklist_${formData.responsable.replace(/\s+/g, '_')}_${timestamp}`;
 
             // Generar PDF
             const blob = await pdf(<PdfChecklist data={formData} />).toBlob();
         
+            // Descargar PDF inmediatamente
+            const pdfFilename = `${baseFilename}.pdf`;
+            downloadFile(blob, pdfFilename);
+            toast.success('PDF descargado correctamente');
+
             // Crear FormData para enviar ambos archivos
             const formDataUpload = new FormData();
             
             // Agregar el PDF
-            const pdfFilename = `${baseFilename}.pdf`;
             formDataUpload.append('files', blob, pdfFilename);
             
             // Agregar el JSON como Blob
@@ -339,7 +365,7 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
         <div className="max-w-6xl mx-auto p-6 bg-white rounded-lg shadow-lg">
             {/* Header */}
             <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-800 mb-2">CHECK LIST GENERAL DE SUPERVISIÓN</h1>
+                <h1 className="text-3xl font-bold text-gray-800 mb-2">Checklist General de Supervisión</h1>
             
                 {/* Selector de Checklist Existente - Solo mostrar si hay checklists disponibles */}
                 {availableChecklists.length > 0 && (
@@ -356,7 +382,8 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
                                 <option value="">Seleccionar checklist...</option>
                                 {availableChecklists.map((file) => (
                                     <option key={file.name} value={file.name}>
-                                        {file.name} ({new Date(file.modified).toLocaleDateString()})
+                                        {/* MOSTRAR NOMBRE SIN EXTENSIÓN .json */}
+                                        {file.name.replace(/\.json$/, '')} ({new Date(file.modified).toLocaleDateString()})
                                     </option>
                                 ))}
                             </select>
@@ -383,11 +410,11 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">HORA:</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">HORA DE INICIO:</label>
                         <input
                             type="time"
-                            value={formData.hora || ''}
-                            onChange={(e) => handleInputChange('hora', e.target.value)}
+                            value={formData.horaInicio || ''}
+                            onChange={(e) => handleInputChange('horaInicio', e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
@@ -561,7 +588,10 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
             <div className="flex justify-center mt-8 gap-4">
                 <button
                     type="button"
-                    onClick={handleSave}
+                    onClick={() => {
+                        handleInputChange('horaFin', getCurrentTime());
+                        handleSave();
+                    }}
                     disabled={isLoading || !formData.responsable}
                     className="bg-cyan-600 hover:bg-yellow-500 text-white font-bold py-2 px-6 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >

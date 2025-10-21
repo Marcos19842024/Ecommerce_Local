@@ -8,7 +8,8 @@ export interface ChecklistItem {
 
 export interface ChecklistData {
     fecha: string;
-    hora: string;
+    horaInicio: string;
+    horaFin: string;
     responsable: string;
     items: ChecklistItem[];
     comentariosAdicionales: string;

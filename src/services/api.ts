@@ -79,14 +79,6 @@ class ApiService {
         return this.get(`/checklist/file/${encodeURIComponent(filename)}`);
     }
 
-    async deleteChecklistFile(filename: string): Promise<any> {
-        return this.delete(`/checklist/file/${encodeURIComponent(filename)}`);
-    }
-
-    async downloadChecklistFile(filename: string): Promise<Response> {
-        return this.fetchDirect(`/checklist/file/${encodeURIComponent(filename)}`);
-    }
-
     // Métodos para upload de archivos (FormData)
     async uploadFile(endpoint: string, formData: FormData): Promise<any> {
         await this.ensureConfigLoaded();
