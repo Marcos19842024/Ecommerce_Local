@@ -201,33 +201,40 @@ const CHECKLIST_TEMPLATE: Omit<ChecklistItem, 'id' | 'cumplimiento' | 'observaci
 ];
 
 const getCurrentTime = (): string => {
-    return new Date().toLocaleTimeString('es-MX', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        hour12: false 
-    });
+    const now = new Date();
+    const hours = now.getHours().toString().padStart(2, '0');
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
 };
 
-const initializeFormData = (): ChecklistData => ({
-    fecha: new Date().toISOString().split('T')[0],
-    horaInicio: getCurrentTime(),
-    horaFin: getCurrentTime(),
-    responsable: '',
-    items: CHECKLIST_TEMPLATE.map((item, index) => ({
-        id: `item-${index}`,
-        ...item,
-        cumplimiento: '',
-        observaciones: ''
-    })),
-    comentariosAdicionales: ''
-});
+const getCurrentDate = (): string => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    const day = now.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
 
 const formatDateShort = (dateString: string): string => {
-    const date = new Date(dateString);
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const year = date.getFullYear();
+    // Extraer directamente los componentes de la cadena YYYY-MM-DD
+    const [year, month, day] = dateString.split('-');
     return `${day}-${month}-${year}`;
+};
+
+const initializeFormData = (): ChecklistData => {
+    return {
+        fecha: getCurrentDate(),
+        horaInicio: getCurrentTime(),
+        horaFin: getCurrentTime(),
+        responsable: '',
+        items: CHECKLIST_TEMPLATE.map((item, index) => ({
+            id: `item-${index}`,
+            ...item,
+            cumplimiento: '',
+            observaciones: ''
+        })),
+        comentariosAdicionales: ''
+    };
 };
 
 const downloadFile = (blob: Blob, filename: string) => {
@@ -392,10 +399,16 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
                 return;
             }
 
-            const formattedDate = formatDateShort(formData.fecha);
-            const baseFilename = `Checklist_${formData.responsable.replace(/\s+/g, '_')}_${formattedDate}`;
+            const horaFinActual = getCurrentTime();
+            const formDataConHoraActualizada = {
+                ...formData,
+                horaFin: horaFinActual
+            };
 
-            const blob = await pdf(<PdfChecklist data={formData} />).toBlob();
+            const formattedDate = formatDateShort(formDataConHoraActualizada.fecha);
+            const baseFilename = `Checklist_${formDataConHoraActualizada.responsable.replace(/\s+/g, '_')}_${formattedDate}`;
+
+            const blob = await pdf(<PdfChecklist data={formDataConHoraActualizada} />).toBlob();
         
             const pdfFilename = `${baseFilename}.pdf`;
             downloadFile(blob, pdfFilename);
@@ -404,7 +417,7 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
             const formDataUpload = new FormData();
             formDataUpload.append('files', blob, pdfFilename);
             
-            const jsonBlob = new Blob([JSON.stringify(formData, null, 2)], { 
+            const jsonBlob = new Blob([JSON.stringify(formDataConHoraActualizada, null, 2)], { 
                 type: 'application/json' 
             });
             const jsonFilename = `${baseFilename}.json`;
@@ -412,9 +425,12 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
             
             await apiService.saveChecklist(formDataUpload);
 
+            setFormData(formDataConHoraActualizada);
+
             toast.success('Checklist guardado correctamente');
             onClose?.();
         } catch (error) {
+            console.error('Error saving checklist:', error);
             toast.error('Error al guardar el checklist');
         } finally {
             setIsLoading(false);
@@ -664,10 +680,7 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
             <div className="flex justify-center mt-8 gap-4">
                 <button
                     type="button"
-                    onClick={() => {
-                        handleInputChange('horaFin', getCurrentTime());
-                        handleSave();
-                    }}
+                    onClick={handleSave}
                     disabled={isLoading || !formData.responsable}
                     className="bg-cyan-600 hover:bg-yellow-500 text-white font-bold py-2 px-6 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >

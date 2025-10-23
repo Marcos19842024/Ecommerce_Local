@@ -117,8 +117,32 @@ class ApiService {
         return this.delete(`/orgchart/employees/${encodeURIComponent(employeeName)}/${encodeURIComponent(fileName)}`);
     }
 
-    async downloadSendMailZip(employeeName: string, options: { send: boolean; download: boolean; email?: string }): Promise<any> {
-        return this.post(`/orgchart/download-send-mail-zip/${encodeURIComponent(employeeName)}`, options);
+    async sendMailZip(employeeName: string, data: { email: string }): Promise<any> {
+        const response = await fetch(`/orgchart/send-mail-zip/${encodeURIComponent(employeeName)}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Error al enviar el correo');
+        }
+
+        return await response.json();
+    }
+
+    async downloadZip(employeeName: string): Promise<Blob> {
+        const response = await fetch(`/orgchart/download-zip/${encodeURIComponent(employeeName)}`);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || 'Error en la descarga');
+        }
+
+        return await response.blob();
     }
 
     async getEmployeeFile(employeeName: string, fileName: string): Promise<any> {

@@ -405,3 +405,4 @@ export const PdfChecklist: React.FC<PdfChecklistProps> = ({ data }) => {
         </Document>
     );
 };
+////ajustar para reducir el numero de paginas///////////////

@@ -145,35 +145,27 @@ const FileGallery = ({employee}: {employee: Employee}) => {
     }
 
     try {
-      const data = {
-        send,
-        download,
-        ...(send && { email })
-      };
-
-      const response = await apiService.downloadSendMailZip(name, data);
-
-      // Manejar descarga si es necesario
-      if (download && response instanceof Blob) {
-        const urlZip = window.URL.createObjectURL(response);
-        const a = document.createElement("a");
-        a.href = urlZip;
-        a.download = `Expediente de ${name}.zip`;
-        document.body.appendChild(a);
-        a.click();
+      if (send && download) {
+        // Si ambos, primero enviar por correo y luego descargar
+        await apiService.sendMailZip(name, { email });
         
-        setTimeout(() => {
-          window.URL.revokeObjectURL(urlZip);
-          document.body.removeChild(a);
-        }, 100);
+        // Luego descargar
+        const blob = await apiService.downloadZip(name);
+        handleDownloadBlob(blob, name);
+        
+        toast.success(`Expediente enviado a ${email} y descargado correctamente`);
+        
+      } else if (send) {
+        // Solo enviar por correo
+        await apiService.sendMailZip(name, { email });
+        toast.success(`Expediente enviado a ${email} correctamente`);
+        
+      } else if (download) {
+        // Solo descargar
+        const blob = await apiService.downloadZip(name);
+        handleDownloadBlob(blob, name);
+        toast.success("Expediente descargado correctamente");
       }
-
-      const successMessage = send && download 
-        ? `Expediente enviado a ${email} y descargado correctamente`
-        : send ? `Expediente enviado a ${email} correctamente`
-        : "Expediente descargado correctamente";
-      
-      toast.success(successMessage);
 
       // Limpiar formulario
       if (send) {
@@ -188,6 +180,21 @@ const FileGallery = ({employee}: {employee: Employee}) => {
       toast.error(errorMessage);
     }
   }, [send, download, email, name, isValidEmail]);
+
+  // Función auxiliar para manejar la descarga del blob
+  const handleDownloadBlob = useCallback((blob: Blob, employeeName: string) => {
+    const urlZip = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = urlZip;
+    a.download = `Expediente de ${employeeName}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    
+    setTimeout(() => {
+      window.URL.revokeObjectURL(urlZip);
+      document.body.removeChild(a);
+    }, 100);
+  }, []);
 
   // Eliminar archivo
   const handleDeleteFile = useCallback(async () => {
