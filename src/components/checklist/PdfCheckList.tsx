@@ -321,7 +321,7 @@ export const PdfChecklist: React.FC<PdfChecklistProps> = ({ data }) => {
                     const areaProgress = ((stats.bueno + stats.regular + stats.malo) / stats.total) * 100;
 
                     return (
-                        <View key={area} style={styles.section} break={area !== 'RECEPCIÓN'}>
+                        <View key={area} style={styles.section} break={area !== 'ESTACIONAMIENTO'}>
                             <Text style={styles.sectionTitle}>
                                 {area} - {stats.bueno + stats.regular + stats.malo}/{stats.total} ({areaProgress.toFixed(0)}%)
                             </Text>
