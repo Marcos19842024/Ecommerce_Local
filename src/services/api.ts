@@ -12,7 +12,6 @@ class ApiService {
         await this.ensureConfigLoaded();
         
         const fullUrl = `${runtimeConfig.getApiUrl()}${url}`;
-        console.log('🌐 API Call:', fullUrl);
         
         const response = await fetch(fullUrl, {
             headers: {

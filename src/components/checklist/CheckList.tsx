@@ -208,17 +208,11 @@ const getCurrentTime = (): string => {
 };
 
 const getCurrentDate = (): string => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = (now.getMonth() + 1).toString().padStart(2, '0');
-    const day = now.getDate().toString().padStart(2, '0');
-    return `${year}-${month}-${day}`;
-};
-
-const formatDateShort = (dateString: string): string => {
-    // Extraer directamente los componentes de la cadena YYYY-MM-DD
-    const [year, month, day] = dateString.split('-');
-    return `${day}-${month}-${year}`;
+    const today = new Date();
+    const day = String(today.getDate()).padStart(2, '0');
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const year = today.getFullYear();
+    return `${day}/${month}/${year}`;
 };
 
 const initializeFormData = (): ChecklistData => {
@@ -255,6 +249,67 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
     const [availableChecklists, setAvailableChecklists] = useState<any[]>([]);
     const [selectedChecklist, setSelectedChecklist] = useState<string>('');
     const [forceUpdate, setForceUpdate] = useState(0);
+
+    // Efecto para cargar la lista de checklists disponibles
+    useEffect(() => {
+        const loadChecklists = async () => {
+            try {
+                setIsLoading(true);
+                const files = await apiService.getChecklistFiles();
+                const jsonFiles = files?.filter((file: any) => file.name.endsWith('.json')) || [];
+                
+                setAvailableChecklists(jsonFiles);
+                
+                if (jsonFiles.length > 0) {
+                    jsonFiles.sort((a: any, b: any) => 
+                        new Date(b.modified).getTime() - new Date(a.modified).getTime()
+                    );
+                    
+                    const latestChecklist = jsonFiles[0];
+                    setSelectedChecklist(latestChecklist.name);
+                }
+            } catch (error) {
+                console.log('No se encontraron checklists');
+                setAvailableChecklists([]);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        loadChecklists();
+    }, []);
+
+    // Efecto para cargar el checklist seleccionado
+    useEffect(() => {
+        const loadSelectedChecklist = async () => {
+            if (!selectedChecklist) {
+                setFormData(initializeFormData());
+                return;
+            }
+
+            try {
+                setIsLoading(true);
+                const checklistData = await apiService.getChecklistFile(selectedChecklist);
+                
+                if (checklistData && checklistData.items) {
+                    setFormData(checklistData);
+                    toast.success('Checklist cargado correctamente');
+                } else {
+                    toast.error('Checklist no válido');
+                    setSelectedChecklist('');
+                }
+            } catch (error) {
+                toast.error('Error al cargar el checklist');
+                setSelectedChecklist('');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        if (selectedChecklist) {
+            loadSelectedChecklist();
+        }
+    }, [selectedChecklist]);
 
     const itemsByArea = React.useMemo(() => {
         const grouped: Record<string, ChecklistItem[]> = {};
@@ -305,72 +360,6 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
         return { completed, total };
     };
 
-    useEffect(() => {
-        const loadChecklists = async () => {
-            try {
-                setIsLoading(true);
-                const files = await apiService.getChecklistFiles();
-                const jsonFiles = files?.filter((file: any) => file.name.endsWith('.json')) || [];
-                setAvailableChecklists(jsonFiles);
-                
-                if (jsonFiles.length > 0) {
-                    jsonFiles.sort((a: any, b: any) => 
-                        new Date(b.modified).getTime() - new Date(a.modified).getTime()
-                    );
-                    
-                    const latestChecklist = jsonFiles[0];
-                    setSelectedChecklist(latestChecklist.name);
-                    
-                    try {
-                        const checklistData = await apiService.getChecklistFile(latestChecklist.name);
-                        if (checklistData && checklistData.items) {
-                            setFormData(checklistData);
-                        }
-                    } catch (error) {
-                        console.log('Error cargando checklist');
-                    }
-                }
-            } catch (error) {
-                console.log('No se encontraron checklists');
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        loadChecklists();
-    }, []);
-
-    useEffect(() => {
-        const loadSelectedChecklist = async () => {
-            if (!selectedChecklist) {
-                setFormData(initializeFormData());
-                return;
-            }
-
-            try {
-                setIsLoading(true);
-                const checklistData = await apiService.getChecklistFile(selectedChecklist);
-                
-                if (checklistData && checklistData.items) {
-                    setFormData(checklistData);
-                    toast.success('Checklist cargado correctamente');
-                } else {
-                    toast.error('Checklist no válido');
-                    setSelectedChecklist('');
-                }
-            } catch (error) {
-                toast.error('Error al cargar el checklist');
-                setSelectedChecklist('');
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        if (selectedChecklist) {
-            loadSelectedChecklist();
-        }
-    }, [selectedChecklist]);
-
     const handleInputChange = (field: keyof ChecklistData, value: string) => {
         setFormData(prev => ({
             ...prev,
@@ -405,8 +394,8 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
                 horaFin: horaFinActual
             };
 
-            const formattedDate = formatDateShort(formDataConHoraActualizada.fecha);
-            const baseFilename = `Checklist_${formDataConHoraActualizada.responsable.replace(/\s+/g, '_')}_${formattedDate}`;
+            const timestamp = new Date().getTime();
+            const baseFilename = `Checklist_${formDataConHoraActualizada.responsable.replace(/\s+/g, '_')}_${timestamp}`;
 
             const blob = await pdf(<PdfChecklist data={formDataConHoraActualizada} />).toBlob();
         
@@ -467,6 +456,21 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
             <div className="mb-8">
                 <h1 className="text-3xl font-bold text-gray-800 mb-2">Checklist General de Supervisión</h1>
             
+                {/* Información del checklist actual */}
+                <div className="mb-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                        <div>
+                            <strong>Checklist:</strong> {selectedChecklist ? selectedChecklist.replace(/\.json$/, '') : 'Nuevo checklist'}
+                        </div>
+                        <div>
+                            <strong>Fecha:</strong> {formData.fecha}
+                        </div>
+                        <div>
+                            <strong>Estado:</strong> {selectedChecklist ? 'Cargado' : 'Nuevo'}
+                        </div>
+                    </div>
+                </div>
+
                 {availableChecklists.length > 0 && (
                     <div className="mb-4 p-4 bg-blue-50 rounded-lg">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -481,7 +485,7 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
                                 <option value="">Seleccionar checklist...</option>
                                 {availableChecklists.map((file) => (
                                     <option key={file.name} value={file.name}>
-                                        {file.name.replace(/\.json$/, '')} ({formatDateShort(new Date(file.modified).toISOString().split('T')[0])})
+                                        {file.name.replace(/\.json$/, '')} - {file.modified ? new Date(file.modified).toLocaleDateString('es-ES') : ''}
                                     </option>
                                 ))}
                             </select>
@@ -499,12 +503,9 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">FECHA:</label>
-                        <input
-                            type="date"
-                            value={formData.fecha}
-                            onChange={(e) => handleInputChange('fecha', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
+                        <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-700">
+                            {formData.fecha}
+                        </div>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">HORA DE INICIO:</label>
