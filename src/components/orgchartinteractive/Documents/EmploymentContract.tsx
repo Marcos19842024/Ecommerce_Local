@@ -31,44 +31,63 @@ const EmployeementContract = ({ file, onClose, employee }: EmploymentContractPro
 
     // Cargar datos existentes del JSON
     useEffect(() => {
+        // En tu frontend (EmploymentContract.tsx), modifica esta parte:
         const loadExistingData = async () => {
             try {
-                // ✅ Primero intentar cargar datos del JSON específico del contrato usando apiService
+                // ✅ Primero intentar cargar datos del JSON específico del contrato
                 const serverFiles = await apiService.getEmployeeFiles(employee.name);
                 
                 const contractJsonFile = serverFiles.find((file: any) => file.name === 'Contrato laboral.json');
                 
                 if (contractJsonFile) {
-                    // ✅ Cargar datos existentes del contrato usando apiService
+                    // ✅ Usar apiService.fetchDirect para obtener el JSON
                     try {
-                        const existingData = await apiService.getEmployeeFiles(`${employee.name}/Contrato laboral.json`);
+                        const response = await apiService.fetchDirect(`/orgchart/employees/${employee.name}/Contrato laboral.json`);
                         
-                        setContractData(prev => ({
-                            ...prev,
-                            ...existingData
-                        }));
-                        
-                        // Configurar checkboxes según el tipo de contrato
-                        if (existingData.type === 'INDETERMINADO') {
-                            setIsIndefinido(true);
-                            setIsDefinido(false);
-                        } else {
-                            setIsIndefinido(false);
-                            setIsDefinido(true);
-                        }
-                        
-                        if (existingData.fechaContrato) {
-                            // Convertir fecha formateada a formato input (asumiendo formato DD/MM/YYYY)
-                            const [dia, mes, anio] = existingData.fechaContrato.split('/');
-                            if (dia && mes && anio) {
-                                setFechaInput(`${anio}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`);
+                        if (response.ok) {
+                            const existingData = await response.json();
+                            
+                            // ✅ Actualización EXPLÍCITA de todas las propiedades
+                            setContractData({
+                                trabajador: existingData.trabajador || '',
+                                estadoOrigen: existingData.estadoOrigen || '',
+                                curp: existingData.curp || '',
+                                rfc: existingData.rfc || '',
+                                type: existingData.type || 'DETERMINADO',
+                                duracionContrato: existingData.duracionContrato || '',
+                                puesto: existingData.puesto || '',
+                                salarioDiario: existingData.salarioDiario || '',
+                                salarioSemanal: existingData.salarioSemanal || '',
+                                fechaContrato: existingData.fechaContrato || '',
+                                actividades: existingData.actividades || [] // ✅ Esto es lo crucial
+                            });
+                            
+                            // Configurar checkboxes según el tipo de contrato
+                            if (existingData.type === 'INDETERMINADO') {
+                                setIsIndefinido(true);
+                                setIsDefinido(false);
+                            } else {
+                                setIsIndefinido(false);
+                                setIsDefinido(true);
                             }
+                            
+                            if (existingData.fechaContrato) {
+                                // Convertir fecha formateada a formato input
+                                const [dia, mes, anio] = existingData.fechaContrato.split('/');
+                                if (dia && mes && anio) {
+                                    setFechaInput(`${anio}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`);
+                                }
+                            }
+                            
+                            setIsLoading(false);
+                            return;
+                            
+                        } else {
+                            toast.error('Contract JSON not found, using empty state');
                         }
                         
-                        setIsLoading(false);
-                        return;
                     } catch (jsonError) {
-                        console.error('Error loading contract JSON:', jsonError);
+                        toast.error('Error loading contract JSON:' + jsonError);
                     }
                 }
 
@@ -78,7 +97,7 @@ const EmployeementContract = ({ file, onClose, employee }: EmploymentContractPro
                     return;
                 }
                 
-                // ✅ Descargar el JSON usando apiService.fetchDirect
+                // ✅ Descargar el JSON de alta usando apiService.fetchDirect
                 const response = await apiService.fetchDirect(file.url);
                 const jsonData: PersonalFormData = await response.json();
                 const extractedData = parseJsonData(jsonData);
@@ -89,7 +108,7 @@ const EmployeementContract = ({ file, onClose, employee }: EmploymentContractPro
                 }));
                 
             } catch (error) {
-                console.error('Error loading contract data:', error);
+                toast.error('Error loading contract data:' + error);
             } finally {
                 setIsLoading(false);
             }
@@ -117,7 +136,7 @@ const EmployeementContract = ({ file, onClose, employee }: EmploymentContractPro
             fechaContrato: jsonData.datosPersonales?.fechaIngreso ? 
                 formatDateLong(jsonData.datosPersonales.fechaIngreso) : 
                 formatDateLong(new Date().toISOString().split('T')[0]),
-            actividades: []
+            actividades: [] // ✅ Siempre array vacío para nuevo contrato
         };
         
         return extractedData;
@@ -246,7 +265,6 @@ const EmployeementContract = ({ file, onClose, employee }: EmploymentContractPro
             toast.success("Contrato laboral.pdf creado correctamente");
             onClose();
         } catch (error) {
-            console.error('Error generating Employment Contract:', error);
             toast.error("Error al generar el Contrato laboral.pdf");
         }
     };
@@ -393,69 +411,69 @@ const EmployeementContract = ({ file, onClose, employee }: EmploymentContractPro
                             <strong>Fecha formateada:</strong> {contractData.fechaContrato}
                         </p>
                     </div>
+                </div>
 
-                    {/* Sección de Actividades Dinámicas */}
-                    <h2 className="text-xl font-bold m-4">Actividades del Trabajador</h2>
-                    <div className="bg-gray-100 p-4 rounded-md">
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium font-semibold mb-2">
-                                Agregar Nueva Actividad:
-                            </label>
-                            <div className="flex gap-2">
-                                <input
-                                    type="text"
-                                    value={nuevaActividad}
-                                    onChange={(e) => setNuevaActividad(e.target.value)}
-                                    className="flex-1 p-2 border border-gray-300 rounded-md text-sm"
-                                    placeholder="Escriba una nueva actividad..."
-                                    onKeyPress={(e) => {
-                                        if (e.key === 'Enter') {
-                                            e.preventDefault();
-                                            handleAgregarActividad();
-                                        }
-                                    }}
-                                />
+                {/* SECCIÓN DE ACTIVIDADES - FUERA DEL GRID ANTERIOR */}
+                <h2 className="text-xl font-bold m-4">Actividades del Trabajador</h2>
+                <div className="bg-gray-100 p-4 rounded-md">
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium font-semibold mb-2">
+                            Agregar Nueva Actividad:
+                        </label>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={nuevaActividad}
+                                onChange={(e) => setNuevaActividad(e.target.value)}
+                                className="flex-1 p-2 border border-gray-300 rounded-md text-sm"
+                                placeholder="Escriba una nueva actividad..."
+                                onKeyPress={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        handleAgregarActividad();
+                                    }
+                                }}
+                            />
+                            <button
+                                type="button"
+                                onClick={handleAgregarActividad}
+                                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm"
+                            >
+                                Agregar
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="space-y-3">
+                        <label className="block text-sm font-medium font-semibold mb-2">
+                            Lista de Actividades ({contractData.actividades.length}):
+                        </label>
+                        {contractData.actividades.map((actividad, index) => (
+                            <div key={index} className="flex items-start gap-2 bg-white p-3 rounded border">
+                                <div className="flex-1">
+                                    <input
+                                        type="text"
+                                        value={actividad}
+                                        onChange={(e) => handleEditarActividad(index, e.target.value)}
+                                        className="w-full p-2 border border-gray-300 rounded-md text-sm"
+                                        placeholder="Descripción de la actividad..."
+                                    />
+                                </div>
                                 <button
                                     type="button"
-                                    onClick={handleAgregarActividad}
-                                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm"
+                                    onClick={() => handleEliminarActividad(index)}
+                                    className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm"
                                 >
-                                    Agregar
+                                    Eliminar
                                 </button>
                             </div>
-                        </div>
-
-                        <div className="space-y-3">
-                            <label className="block text-sm font-medium font-semibold mb-2">
-                                Lista de Actividades ({contractData.actividades.length}):
-                            </label>
-                            {contractData.actividades.map((actividad, index) => (
-                                <div key={index} className="flex items-start gap-2 bg-white p-3 rounded border">
-                                    <div className="flex-1">
-                                        <input
-                                            type="text"
-                                            value={actividad}
-                                            onChange={(e) => handleEditarActividad(index, e.target.value)}
-                                            className="w-full p-2 border border-gray-300 rounded-md text-sm"
-                                            placeholder="Descripción de la actividad..."
-                                        />
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleEliminarActividad(index)}
-                                        className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm"
-                                    >
-                                        Eliminar
-                                    </button>
-                                </div>
-                            ))}
-                            
-                            {contractData.actividades.length === 0 && (
-                                <p className="text-center text-gray-500 py-4">
-                                    No hay actividades agregadas. Agregue al menos una actividad.
-                                </p>
-                            )}
-                        </div>
+                        ))}
+                        
+                        {contractData.actividades.length === 0 && (
+                            <p className="text-center text-gray-500 py-4">
+                                No hay actividades agregadas. Agregue al menos una actividad.
+                            </p>
+                        )}
                     </div>
                 </div>
             </form>
@@ -473,5 +491,4 @@ const EmployeementContract = ({ file, onClose, employee }: EmploymentContractPro
         </div>
     );
 };
-
 export default EmployeementContract;

@@ -1,8 +1,8 @@
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Font, Image } from '@react-pdf/renderer';
 import { ChecklistData } from '../../interfaces/checklist.interface';
 
-// Registrar fuentes (opcional, pero mejora la apariencia)
+// Registrar fuentes
 Font.register({
     family: 'Helvetica',
     fonts: [
@@ -206,10 +206,71 @@ const styles = StyleSheet.create({
         fontSize: 8,
         color: '#6b7280',
     },
+    // NUEVOS ESTILOS PARA FOTOS
+    photosSection: {
+        marginTop: 10,
+        marginBottom: 15,
+    },
+    photosTitle: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: '#374151',
+        marginBottom: 8,
+        backgroundColor: '#f3f4f6',
+        padding: 5,
+        borderRadius: 3,
+    },
+    photosContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+        marginBottom: 10,
+    },
+    photoItem: {
+        width: '48%',
+        marginBottom: 10,
+        border: '1pt solid #e5e7eb',
+        borderRadius: 5,
+        padding: 5,
+        backgroundColor: '#fafafa',
+    },
+    photoImage: {
+        width: '100%',
+        height: 120,
+        marginBottom: 4,
+        objectFit: 'cover',
+        borderRadius: 3,
+    },
+    photoDescription: {
+        fontSize: 7,
+        color: '#6b7280',
+        textAlign: 'center',
+        marginBottom: 2,
+        fontStyle: 'italic',
+    },
+    photoTimestamp: {
+        fontSize: 6,
+        color: '#9ca3af',
+        textAlign: 'center',
+        fontStyle: 'italic',
+    },
+    noPhotosText: {
+        fontSize: 8,
+        color: '#9ca3af',
+        textAlign: 'center',
+        fontStyle: 'italic',
+        padding: 10,
+    },
 });
 
 interface PdfChecklistProps {
-    data: ChecklistData;
+    data: ChecklistData & { photos?: Array<{
+        id: string;
+        area: string;
+        photoUrl: string;
+        timestamp: string;
+        description?: string;
+    }> };
 }
 
 // Función para obtener el color según el cumplimiento
@@ -224,12 +285,28 @@ const getCumplimientoColor = (cumplimiento: string) => {
 
 // Función para formatear la fecha
 const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-MX', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    });
+    if (!dateString) return 'Fecha no disponible';
+    
+    if (dateString.includes('/')) {
+        const parts = dateString.split('/');
+        if (parts.length === 3) {
+            const day = parts[0];
+            const month = parts[1];
+            const year = parts[2];
+            
+            const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+            
+            if (!isNaN(date.getTime())) {
+                return date.toLocaleDateString('es-MX', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+            }
+        }
+    }
+    
+    return dateString;
 };
 
 export const PdfChecklist: React.FC<PdfChecklistProps> = ({ data }) => {
@@ -242,20 +319,49 @@ export const PdfChecklist: React.FC<PdfChecklistProps> = ({ data }) => {
         return acc;
     }, {} as Record<string, typeof data.items>);
 
-    // Calcular estadísticas
+    // Agrupar fotos por área - VERSIÓN CORREGIDA Y SEGURA
+    const photosByArea: Record<string, Array<{
+        id: string;
+        area: string;
+        photoUrl: string;
+        timestamp: string;
+        description?: string;
+    }>> = {};
+
+    (data.photos || []).forEach(photo => {
+        if (!photosByArea[photo.area]) {
+            photosByArea[photo.area] = [];
+        }
+        photosByArea[photo.area].push(photo);
+    });
+
+    // Calcular estadísticas por área
     const getAreaStats = (area: string) => {
         const areaItems = itemsByArea[area];
         const total = areaItems.length;
         const bueno = areaItems.filter(item => item.cumplimiento === 'bueno').length;
         const regular = areaItems.filter(item => item.cumplimiento === 'regular').length;
         const malo = areaItems.filter(item => item.cumplimiento === 'malo').length;
+        const totalEvaluado = bueno + regular + malo;
         
-        return { total, bueno, regular, malo };
+        // Calcular porcentaje de "Bueno" (solo de los items evaluados)
+        const porcentajeBueno = totalEvaluado > 0 ? (bueno / totalEvaluado) * 100 : 0;
+        
+        return { total, bueno, regular, malo, totalEvaluado, porcentajeBueno };
     };
 
-    // Estadísticas generales - CORREGIDO: solo las necesarias
-    const totalEvaluado = data.items.filter(item => item.cumplimiento !== '').length;
-    const porcentajeCompletado = (totalEvaluado / data.items.length) * 100;
+    // Estadísticas generales
+    const totalItems = data.items.length;
+    const totalBueno = data.items.filter(item => item.cumplimiento === 'bueno').length;
+    const totalRegular = data.items.filter(item => item.cumplimiento === 'regular').length;
+    const totalMalo = data.items.filter(item => item.cumplimiento === 'malo').length;
+    const totalEvaluado = totalBueno + totalRegular + totalMalo;
+    
+    // Calcular porcentaje general de "Bueno" (solo de los items evaluados)
+    const porcentajeGeneralBueno = totalEvaluado > 0 ? (totalBueno / totalEvaluado) * 100 : 0;
+
+    // Estadísticas de fotos
+    const totalFotos = data.photos?.length || 0;
 
     return (
         <Document>
@@ -288,29 +394,44 @@ export const PdfChecklist: React.FC<PdfChecklistProps> = ({ data }) => {
                         </View>
                     </View>
 
-                    {/* Estadísticas generales - CORREGIDO */}
+                    {/* Estadísticas generales */}
                     <View style={styles.statsContainer}>
                         <View style={styles.statCard}>
                             <Text style={styles.statTitle}>Total Evaluado</Text>
                             <Text style={styles.statValue}>
-                                {totalEvaluado} / {data.items.length}
+                                {totalEvaluado} / {totalItems}
                             </Text>
                         </View>
                         <View style={styles.statCard}>
-                            <Text style={styles.statTitle}>Porcentaje</Text>
-                            <Text style={styles.statValue}>
-                                {porcentajeCompletado.toFixed(1)}%
-                            </Text>
-                        </View>
-                        <View style={styles.statCard}>
-                            <Text style={styles.statTitle}>Calificación</Text>
-                            <Text style={[styles.statValue, { color: 
-                                porcentajeCompletado >= 80 ? '#10b981' :
-                                porcentajeCompletado >= 60 ? '#f59e0b' : '#ef4444'
+                            <Text style={styles.statTitle}>Calificación General</Text>
+                            <Text style={[styles.statValue, { 
+                                color: porcentajeGeneralBueno >= 80 ? '#10b981' :
+                                porcentajeGeneralBueno >= 60 ? '#f59e0b' : '#ef4444'
                             }]}>
-                                {porcentajeCompletado >= 80 ? 'EXCELENTE' :
-                                porcentajeCompletado >= 60 ? 'ACEPTABLE' : 'REQUIERE MEJORA'}
+                                {porcentajeGeneralBueno.toFixed(1)}% Bueno
                             </Text>
+                        </View>
+                        <View style={styles.statCard}>
+                            <Text style={styles.statTitle}>Fotos Tomadas</Text>
+                            <Text style={styles.statValue}>
+                                {totalFotos}
+                            </Text>
+                        </View>
+                    </View>
+
+                    {/* Desglose general de calificaciones */}
+                    <View style={[styles.statsContainer, { marginTop: 5 }]}>
+                        <View style={styles.statCard}>
+                            <Text style={[styles.statTitle, { color: '#10b981' }]}>Aspectos Buenos</Text>
+                            <Text style={[styles.statValue, { color: '#10b981' }]}>{totalBueno}</Text>
+                        </View>
+                        <View style={styles.statCard}>
+                            <Text style={[styles.statTitle, { color: '#f59e0b' }]}>Aspectos Regulares</Text>
+                            <Text style={[styles.statValue, { color: '#f59e0b' }]}>{totalRegular}</Text>
+                        </View>
+                        <View style={styles.statCard}>
+                            <Text style={[styles.statTitle, { color: '#ef4444' }]}>Aspectos Malos</Text>
+                            <Text style={[styles.statValue, { color: '#ef4444' }]}>{totalMalo}</Text>
                         </View>
                     </View>
                 </View>
@@ -318,12 +439,14 @@ export const PdfChecklist: React.FC<PdfChecklistProps> = ({ data }) => {
                 {/* Detalle por áreas */}
                 {Object.entries(itemsByArea).map(([area, items]) => {
                     const stats = getAreaStats(area);
-                    const areaProgress = ((stats.bueno + stats.regular + stats.malo) / stats.total) * 100;
+                    const areaPhotos = photosByArea[area] || [];
 
                     return (
                         <View key={area} style={styles.section} break={area !== 'ESTACIONAMIENTO'}>
+                            {/* Título del área con calificación */}
                             <Text style={styles.sectionTitle}>
-                                {area} - {stats.bueno + stats.regular + stats.malo}/{stats.total} ({areaProgress.toFixed(0)}%)
+                                {area} - Calificación: {stats.porcentajeBueno.toFixed(1)}% Bueno 
+                                ({stats.totalEvaluado}/{stats.total} evaluados)
                             </Text>
                         
                             <View style={styles.table}>
@@ -361,13 +484,44 @@ export const PdfChecklist: React.FC<PdfChecklistProps> = ({ data }) => {
                                         </View>
                                         <View style={styles.tableCol}>
                                             {item.observaciones && (
-                                                <Text style={{ color: '#6b7280', fontSize: 6 }}>
-                                                    {item.observaciones ? item.observaciones.toUpperCase() : 'N/A'}
+                                                <Text style={[styles.tableCell, { color: '#6b7280', fontSize: 7 }]}>
+                                                    {item.observaciones}
                                                 </Text>
                                             )}
                                         </View>
                                     </View>
                                 ))}
+                            </View>
+
+                            {/* Sección de fotos del área */}
+                            <View style={styles.photosSection}>
+                                <Text style={styles.photosTitle}>
+                                    Fotos de {area} ({areaPhotos.length})
+                                </Text>
+                                {areaPhotos.length > 0 ? (
+                                    <View style={styles.photosContainer}>
+                                        {areaPhotos.map((photo, index) => (
+                                            <View key={index} style={styles.photoItem}>
+                                                <Image 
+                                                    src={photo.photoUrl}
+                                                    style={styles.photoImage}
+                                                />
+                                                {photo.description && (
+                                                    <Text style={styles.photoDescription}>
+                                                        {photo.description}
+                                                    </Text>
+                                                )}
+                                                <Text style={styles.photoTimestamp}>
+                                                    Tomada: {photo.timestamp}
+                                                </Text>
+                                            </View>
+                                        ))}
+                                    </View>
+                                ) : (
+                                    <Text style={styles.noPhotosText}>
+                                        No hay fotos para esta área
+                                    </Text>
+                                )}
                             </View>
 
                             {/* Estadísticas del área */}
@@ -384,6 +538,29 @@ export const PdfChecklist: React.FC<PdfChecklistProps> = ({ data }) => {
                                     <Text style={[styles.statTitle, { color: '#ef4444' }]}>Malo</Text>
                                     <Text style={[styles.statValue, { color: '#ef4444' }]}>{stats.malo}</Text>
                                 </View>
+                                <View style={styles.statCard}>
+                                    <Text style={[styles.statTitle, { 
+                                        color: stats.porcentajeBueno >= 80 ? '#10b981' :
+                                        stats.porcentajeBueno >= 60 ? '#f59e0b' : '#ef4444'
+                                    }]}>Calificación</Text>
+                                    <Text style={[styles.statValue, { 
+                                        color: stats.porcentajeBueno >= 80 ? '#10b981' :
+                                        stats.porcentajeBueno >= 60 ? '#f59e0b' : '#ef4444'
+                                    }]}>{stats.porcentajeBueno.toFixed(1)}%</Text>
+                                </View>
+                                <View style={styles.statCard}>
+                                    <Text style={[styles.statTitle, { 
+                                        color: stats.porcentajeBueno >= 80 ? '#10b981' :
+                                        stats.porcentajeBueno >= 60 ? '#f59e0b' : '#ef4444'
+                                    }]}>Nivel</Text>
+                                    <Text style={[styles.statValue, { 
+                                        color: stats.porcentajeBueno >= 80 ? '#10b981' :
+                                        stats.porcentajeBueno >= 60 ? '#f59e0b' : '#ef4444'
+                                    }]}>
+                                        {stats.porcentajeBueno >= 80 ? 'EXCELENTE' :
+                                         stats.porcentajeBueno >= 60 ? 'ACEPTABLE' : 'REQUIERE MEJORA'}
+                                    </Text>
+                                </View>
                             </View>
                         </View>
                     );
@@ -397,6 +574,18 @@ export const PdfChecklist: React.FC<PdfChecklistProps> = ({ data }) => {
                     </View>
                 )}
 
+                {/* Resumen de fotos general */}
+                {totalFotos > 0 && (
+                    <View style={[styles.commentsSection, { backgroundColor: '#f0f9ff', border: '1pt solid #0ea5e9' }]}>
+                        <Text style={[styles.commentsTitle, { color: '#0369a1' }]}>
+                            Resumen de Evidencia Fotográfica: {totalFotos} foto(s) en total
+                        </Text>
+                        <Text style={[styles.commentsText, { color: '#0c4a6e' }]}>
+                            Las fotos han sido organizadas por área y se muestran junto a cada sección correspondiente.
+                        </Text>
+                    </View>
+                )}
+
                 {/* Número de página */}
                 <Text style={styles.pageNumber} render={({ pageNumber, totalPages }) => 
                     `Página ${pageNumber} de ${totalPages}`
@@ -405,4 +594,3 @@ export const PdfChecklist: React.FC<PdfChecklistProps> = ({ data }) => {
         </Document>
     );
 };
-////ajustar para reducir el numero de paginas///////////////

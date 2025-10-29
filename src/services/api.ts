@@ -1,4 +1,3 @@
-// src/services/api.ts
 import { runtimeConfig } from './config';
 
 class ApiService {
@@ -26,6 +25,26 @@ class ApiService {
         }
         
         return response.json();
+    }
+
+    // Método para verificar conectividad
+    async checkConnectivity(): Promise<boolean> {
+        try {
+            await this.ensureConfigLoaded();
+            const apiUrl = runtimeConfig.getApiUrl();
+            
+            const response = await fetch(`${apiUrl}/api/config`, {
+                method: 'HEAD',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            
+            return response.ok;
+        } catch (error) {
+            console.error('❌ Error de conectividad:', error);
+            return false;
+        }
     }
 
     // Métodos genéricos

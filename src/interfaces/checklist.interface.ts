@@ -6,6 +6,14 @@ export interface ChecklistItem {
     observaciones: string;
 }
 
+export interface ChecklistPhoto {
+  id: string;
+  area: string;
+  photoUrl: string;
+  timestamp: string;
+  description?: string;
+}
+
 export interface ChecklistData {
     fecha: string;
     horaInicio: string;
@@ -13,8 +21,17 @@ export interface ChecklistData {
     responsable: string;
     items: ChecklistItem[];
     comentariosAdicionales: string;
+    photos?: ChecklistPhoto[];
 }
 
 export interface ChecklistSupervisionProps {
     onClose?: () => void;
+}
+
+export interface ChecklistPhoto {
+    id: string;
+    area: string;
+    photoUrl: string;
+    timestamp: string;
+    description?: string;
 }

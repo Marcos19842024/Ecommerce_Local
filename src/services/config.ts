@@ -4,6 +4,11 @@ export interface AppConfig {
     backendPort: number;
     environment: string;
     timestamp: string;
+    clientInfo?: {
+        origin?: string;
+        host?: string;
+        ip?: string;
+    };
 }
 
 class RuntimeConfig {
@@ -18,47 +23,101 @@ class RuntimeConfig {
         try {
             console.log('🔄 Cargando configuración del backend...');
             
-            const response = await fetch('/api/config', {
+            // Intentar cargar desde el backend primero
+            const backendUrl = this.getBackendBaseUrl();
+            console.log('🔗 Intentando conectar a:', backendUrl);
+            
+            const response = await fetch(`${backendUrl}/api/config`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
-                },
-                signal: AbortSignal.timeout(3000)
+                }
             });
 
             if (!response.ok) {
                 throw new Error(`Error HTTP: ${response.status}`);
             }
 
-            this.config = await response.json();
+            const configData: AppConfig = await response.json();
+            this.config = configData;
             this.isLoaded = true;
-            console.log('✅ Configuración cargada:', this.config);
-            return this.config !;
+            console.log('✅ Configuración cargada desde backend:', this.config);
+            return configData;
 
         } catch (error) {
-            console.warn('⚠️ No se pudo cargar configuración del backend, usando variable de entorno');
-        
-            this.config = {
-                apiUrl: import.meta.env.VITE_URL_SERVER || 'http://localhost:3001/',
+            console.warn('⚠️ No se pudo cargar configuración del backend, usando configuración local');
+            console.error('Error details:', error);
+            
+            // Usar variable de entorno con fallback inteligente
+            const envUrl = import.meta.env.VITE_URL_SERVER;
+            let apiUrl = 'http://localhost:3001';
+            
+            if (envUrl) {
+                apiUrl = envUrl.endsWith('/') ? envUrl.slice(0, -1) : envUrl;
+                console.log('🔗 Usando VITE_URL_SERVER:', apiUrl);
+            } else if (window.location.hostname !== 'localhost' && !window.location.hostname.includes('127.0.0.1')) {
+                // Si estamos en ngrok, usar la misma URL del frontend para el backend
+                apiUrl = window.location.origin;
+                console.log('🔗 Usando window.origin (ngrok):', apiUrl);
+            } else {
+                console.log('🔗 Usando localhost por defecto');
+            }
+            
+            const fallbackConfig: AppConfig = {
+                apiUrl: apiUrl,
                 backendIp: 'localhost',
                 backendPort: 3001,
                 environment: 'development',
                 timestamp: new Date().toISOString()
             };
             
+            this.config = fallbackConfig;
             this.isLoaded = true;
-            return this.config;
+            return fallbackConfig;
         }
     }
 
+    private getBackendBaseUrl(): string {
+        // Si estamos en desarrollo local, usar localhost:3001
+        if (window.location.hostname === 'localhost' || window.location.hostname.includes('127.0.0.1')) {
+            if (window.location.port !== '3001') {
+                return 'http://localhost:3001';
+            }
+        }
+        
+        // Si estamos en ngrok, usar la misma origen
+        // Si el origin es undefined (puede pasar con ngrok), usar location.origin
+        return window.location.origin || 'http://localhost:3001';
+    }
+
     getApiUrl(): string {
-        // Remover la barra final si existe para consistencia
-        const url = this.config?.apiUrl || import.meta.env.VITE_URL_SERVER || 'http://localhost:3001/';
+        if (!this.isLoaded && !this.config) {
+            // Si no está cargada, devolver URL por defecto
+            const envUrl = import.meta.env.VITE_URL_SERVER;
+            if (envUrl) {
+                return envUrl.endsWith('/') ? envUrl.slice(0, -1) : envUrl;
+            }
+            return window.location.origin || 'http://localhost:3001';
+        }
+        
+        const url = this.config?.apiUrl || import.meta.env.VITE_URL_SERVER || (window.location.origin || 'http://localhost:3001');
         return url.endsWith('/') ? url.slice(0, -1) : url;
     }
 
     isConfigLoaded(): boolean {
         return this.isLoaded;
+    }
+
+    // Método para forzar recarga de configuración
+    async reloadConfig(): Promise<AppConfig> {
+        this.isLoaded = false;
+        this.config = null;
+        return this.loadConfig();
+    }
+
+    // Método para obtener la configuración actual (puede ser null si no se ha cargado)
+    getCurrentConfig(): AppConfig | null {
+        return this.config;
     }
 }
 

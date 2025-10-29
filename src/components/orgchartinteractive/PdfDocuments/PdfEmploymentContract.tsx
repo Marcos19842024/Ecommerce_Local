@@ -200,7 +200,7 @@ export const PdfEmploymentContract = ({ data }: { data: ContractData }) => {
         </Text>
         
         <Text style={styles.section}>
-          CELEBRAN EL PRESENTE CONTRATO, POR UNA PARTE, EL PATRON "FRANCISCO JULIAN GOMEZ CANCINO" 
+          CELEBRAN EL PRESENTE CONTRATO, POR UNA PARTE, EL PATRON "FRANCISCO JULIAN GÓMEZ CANCINO" 
           Y POR LA OTRA EL TRABAJADOR "<Text style={styles.bold}>{data.trabajador}</Text>", 
           PERSONAS ANTES CITADAS, QUE EN FORMA CONJUNTA SE LE REFERIRÁ EN LO SUCESIVO EN ESTE 
           CONTRATO COMO "LAS PARTES", POR LO ANTES MANIFESTADO "LAS PARTES", SE OBLIGAN A LO 
@@ -210,7 +210,7 @@ export const PdfEmploymentContract = ({ data }: { data: ContractData }) => {
         <Text style={styles.clauseTitle}>A N T E C E D E N T E S</Text>
 
         <Text style={styles.clauseContent}>
-          1.- EL PATRON declara, ser mexicano, mayor de edad y el legítimo propietario de LA FUENTE 
+          1.- EL PATRÓN declara, ser mexicano, mayor de edad y el legítimo propietario de LA FUENTE 
           DE TRABAJO referida en este instrumento jurídico. Así como ser su deseo de celebrar este 
           contrato, por requerir los servicios de personal apto para el desarrollo de sus actividades, 
           y de modo especial para el puesto o funciones descrito en este contrato.
@@ -625,7 +625,7 @@ export const PdfEmploymentContract = ({ data }: { data: ContractData }) => {
         <Text style={styles.clauseContent}>
           <Text style={styles.bold}>DÉCIMA QUINTA.</Text> - "EL TRABAJADOR" deberá observar y cumplir todo lo contenido en el Reglamento
           Interior de Trabajo y demás reglamentos, manuales y demás disposiciones establecidas por el
-          "EL PATRÓN" los cuales han sido enterado previamente al TRABAJADORR a la firma d este contrato. 
+          "EL PATRÓN" los cuales han sido enterado previamente al TRABAJADOR a la firma de este contrato.
         </Text>
       </Page>
       
@@ -651,7 +651,7 @@ export const PdfEmploymentContract = ({ data }: { data: ContractData }) => {
 
         <Text style={styles.clauseContent}>
           <Text style={styles.bold}>DÉCIMA OCTAVA.</Text> - "EL TRABAJADOR" deberá presentarse puntualmente a sus labores en el horario de
-          trabajo establecido, con su uniforme completo y demás requerimientos que le haga el PATRON y los
+          trabajo establecido, con su uniforme completo y demás requerimientos que le haga el PATRÓN y los
           requeridos en todas las disposiciones contenidas en las condiciones generales de trabajo, el reglamento
           interior, circulares, el presente instrumento jurídico, manuales de operaciones, reglamentos de la fuente
           de trabajo y demás documentos que contengan las obligaciones sobre las cuales prestará sus servicios
@@ -667,7 +667,7 @@ export const PdfEmploymentContract = ({ data }: { data: ContractData }) => {
           <Text style={styles.bold}>DÉCIMA NOVENA.</Text> - Para todo lo no previsto en el presente CONTRATO se estará a lo contenido en el
           Contrato Colectivo de Trabajo con que cuente "EL PATRÓN" o bien lo prescrito por "LA LEY" o el Contrato
           Ley respectivo en su caso, así como el Reglamento Interior de Trabajo y demás reglamentos que el
-          PATRON establezca.
+          PATRÓN establezca.
         </Text>
 
         {/* Salario */}
@@ -756,7 +756,7 @@ export const PdfEmploymentContract = ({ data }: { data: ContractData }) => {
         <View style={styles.signatureSection}>
           {/* Patrón */}
           <View style={styles.signatureBox}>
-            <Text style={styles.signatureText}>FRANCISCO JULIAN GOMEZ CANCINO</Text>
+            <Text style={styles.signatureText}>FRANCISCO JULIAN GÓMEZ CANCINO</Text>
             <View style={styles.signatureLine} />
             <Text style={styles.signatureText}>PATRÓN Y PROPIETARIO DE LA FUENTE</Text>
             <Text style={styles.signatureText}>DE TRABAJO.</Text>

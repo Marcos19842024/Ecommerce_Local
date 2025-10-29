@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { apiService } from '../../services/api';
 import { pdf } from '@react-pdf/renderer';
-import { ChecklistData, ChecklistItem, ChecklistSupervisionProps } from '../../interfaces/checklist.interface';
+import { ChecklistData, ChecklistItem, ChecklistPhoto, ChecklistSupervisionProps } from '../../interfaces/checklist.interface';
 import { PdfChecklist } from './PdfCheckList';
 import toast from 'react-hot-toast';
+import Modal from '../shared/Modal';
+import { runtimeConfig } from '../../services/config';
 
 const AREA_ORDER: Record<string, number> = {
     'ESTACIONAMIENTO': 1, 'TIENDA': 2, 'RECEPCIÓN': 3, 'CONSULTORIO 1': 4, 'CONSULTORIO 2': 5,
@@ -215,7 +217,7 @@ const getCurrentDate = (): string => {
     return `${day}/${month}/${year}`;
 };
 
-const initializeFormData = (): ChecklistData => {
+const initializeFormData = (): ChecklistData & { photos?: ChecklistPhoto[] } => {
     return {
         fecha: getCurrentDate(),
         horaInicio: getCurrentTime(),
@@ -227,7 +229,8 @@ const initializeFormData = (): ChecklistData => {
             cumplimiento: '',
             observaciones: ''
         })),
-        comentariosAdicionales: ''
+        comentariosAdicionales: '',
+        photos: []
     };
 };
 
@@ -243,40 +246,94 @@ const downloadFile = (blob: Blob, filename: string) => {
 };
 
 export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
-    const [formData, setFormData] = useState<ChecklistData>(initializeFormData());
+    const [formData, setFormData] = useState<ChecklistData & { photos?: ChecklistPhoto[] }>(initializeFormData());
     const [isLoading, setIsLoading] = useState(false);
     const [currentArea, setCurrentArea] = useState<string>('ESTACIONAMIENTO');
     const [availableChecklists, setAvailableChecklists] = useState<any[]>([]);
     const [selectedChecklist, setSelectedChecklist] = useState<string>('');
     const [forceUpdate, setForceUpdate] = useState(0);
+    
+    // Estados para el manejo de fotos
+    const [isCameraOpen, setIsCameraOpen] = useState(false);
+    const [currentPhoto, setCurrentPhoto] = useState<string>('');
+    const [photoDescription, setPhotoDescription] = useState('');
+    const [cameraError, setCameraError] = useState<string>('');
+    const [isCameraLoading, setIsCameraLoading] = useState(false);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const streamRef = useRef<MediaStream | null>(null);
+
+    // Función para verificar conectividad
+    const checkConnectivity = async (): Promise<boolean> => {
+        try {
+            const isConnected = await apiService.checkConnectivity();
+            console.log('🔗 Conectividad:', isConnected ? '✅ CONECTADO' : '❌ DESCONECTADO');
+            return isConnected;
+        } catch (error) {
+            console.error('❌ Error verificando conectividad:', error);
+            return false;
+        }
+    };
+
+    // Función para cargar checklists
+    const loadChecklists = async () => {
+        try {
+            setIsLoading(true);
+            const files = await apiService.getChecklistFiles();
+            const jsonFiles = files?.filter((file: any) => file.name.endsWith('.json')) || [];
+            
+            setAvailableChecklists(jsonFiles);
+            
+            if (jsonFiles.length > 0) {
+                jsonFiles.sort((a: any, b: any) => 
+                    new Date(b.modified).getTime() - new Date(a.modified).getTime()
+                );
+                
+                const latestChecklist = jsonFiles[0];
+                setSelectedChecklist(latestChecklist.name);
+            }
+        } catch (error) {
+            console.log('No se encontraron checklists');
+            setAvailableChecklists([]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Verificar compatibilidad con cámara al cargar el componente
+    useEffect(() => {
+        const checkCameraSupport = () => {
+            const hasGetUserMedia = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+            console.log('Soporte de cámara disponible:', hasGetUserMedia);
+            
+            if (!hasGetUserMedia) {
+                console.warn('getUserMedia no es compatible con este navegador');
+            }
+        };
+        
+        checkCameraSupport();
+    }, []);
 
     // Efecto para cargar la lista de checklists disponibles
     useEffect(() => {
-        const loadChecklists = async () => {
+        const initializeApp = async () => {
             try {
-                setIsLoading(true);
-                const files = await apiService.getChecklistFiles();
-                const jsonFiles = files?.filter((file: any) => file.name.endsWith('.json')) || [];
+                // Verificar conectividad primero
+                const isConnected = await checkConnectivity();
                 
-                setAvailableChecklists(jsonFiles);
-                
-                if (jsonFiles.length > 0) {
-                    jsonFiles.sort((a: any, b: any) => 
-                        new Date(b.modified).getTime() - new Date(a.modified).getTime()
-                    );
-                    
-                    const latestChecklist = jsonFiles[0];
-                    setSelectedChecklist(latestChecklist.name);
+                if (!isConnected) {
+                    console.warn('⚠️ Sin conectividad al backend, recargando configuración...');
+                    await runtimeConfig.reloadConfig();
                 }
+                
+                // Cargar checklists
+                await loadChecklists();
             } catch (error) {
-                console.log('No se encontraron checklists');
-                setAvailableChecklists([]);
-            } finally {
-                setIsLoading(false);
+                console.error('Error inicializando app:', error);
+                toast.error('Error de conexión con el servidor');
             }
         };
 
-        loadChecklists();
+        initializeApp();
     }, []);
 
     // Efecto para cargar el checklist seleccionado
@@ -311,6 +368,184 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
         }
     }, [selectedChecklist]);
 
+    // Función simplificada para acceder a la cámara
+    const openCamera = async () => {
+        try {
+            setIsCameraLoading(true);
+            setCameraError('');
+            
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                const errorMsg = 'Tu navegador no soporta el acceso a la cámara. Usa Chrome, Firefox, Edge o Safari.';
+                setCameraError(errorMsg);
+                toast.error(errorMsg);
+                setIsCameraLoading(false);
+                return;
+            }
+
+            const constraints = {
+                video: {
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                },
+                audio: false
+            };
+
+            console.log('Solicitando acceso a la cámara...');
+            
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
+            console.log('Cámara accedida correctamente');
+            
+            streamRef.current = stream;
+            
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+                
+                await new Promise((resolve, reject) => {
+                    if (!videoRef.current) {
+                        reject(new Error('Elemento video no encontrado'));
+                        return;
+                    }
+
+                    const onLoadedMetadata = () => {
+                        videoRef.current?.removeEventListener('loadedmetadata', onLoadedMetadata);
+                        resolve(true);
+                    };
+
+                    const onError = (error: any) => {
+                        console.error('Error cargando video:', error);
+                        videoRef.current?.removeEventListener('error', onError);
+                        reject(error);
+                    };
+
+                    videoRef.current.addEventListener('loadedmetadata', onLoadedMetadata);
+                    videoRef.current.addEventListener('error', onError);
+
+                    setTimeout(() => {
+                        videoRef.current?.removeEventListener('loadedmetadata', onLoadedMetadata);
+                        videoRef.current?.removeEventListener('error', onError);
+                        resolve(true);
+                    }, 3000);
+                });
+
+                try {
+                    await videoRef.current.play();
+                    console.log('Video reproduciéndose');
+                } catch (playError) {
+                    console.warn('Error al reproducir video automáticamente:', playError);
+                }
+            }
+            
+            setIsCameraOpen(true);
+            setIsCameraLoading(false);
+            toast.success('Cámara activada');
+            
+        } catch (error: any) {
+            console.error('Error al acceder a la cámara:', error);
+            setIsCameraLoading(false);
+            
+            let errorMessage = 'No se pudo acceder a la cámara. ';
+            
+            if (error.name === 'NotAllowedError') {
+                errorMessage += 'Permiso denegado. Por favor, permite el acceso a la cámara en la configuración de tu navegador.';
+            } else if (error.name === 'NotFoundError') {
+                errorMessage += 'No se encontró ninguna cámara disponible.';
+            } else if (error.name === 'NotReadableError') {
+                errorMessage += 'La cámara está siendo usada por otra aplicación.';
+            } else {
+                errorMessage += error.message || 'Error desconocido.';
+            }
+            
+            setCameraError(errorMessage);
+            toast.error('Error al acceder a la cámara');
+        }
+    };
+
+    const closeCamera = () => {
+        console.log('Cerrando cámara...');
+        
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach(track => {
+                console.log('Deteniendo track:', track.kind);
+                track.stop();
+            });
+            streamRef.current = null;
+        }
+        
+        if (videoRef.current) {
+            videoRef.current.srcObject = null;
+        }
+        
+        setIsCameraOpen(false);
+        setCurrentPhoto('');
+        setPhotoDescription('');
+        setCameraError('');
+        setIsCameraLoading(false);
+    };
+
+    const takePhoto = () => {
+        if (!videoRef.current) {
+            toast.error('Video no disponible');
+            return;
+        }
+
+        if (videoRef.current.readyState !== videoRef.current.HAVE_ENOUGH_DATA) {
+            toast.error('La cámara no está lista. Espera un momento.');
+            return;
+        }
+
+        try {
+            const canvas = document.createElement('canvas');
+            const video = videoRef.current;
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            const context = canvas.getContext('2d');
+            if (!context) {
+                toast.error('Error al crear contexto de canvas');
+                return;
+            }
+
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            const photoDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            setCurrentPhoto(photoDataUrl);
+            toast.success('Foto capturada correctamente');
+            
+        } catch (error) {
+            console.error('Error tomando foto:', error);
+            toast.error('Error al capturar la foto');
+        }
+    };
+
+    const savePhoto = () => {
+        if (currentPhoto) {
+            const newPhoto: ChecklistPhoto = {
+                id: `photo-${Date.now()}`,
+                area: currentArea,
+                photoUrl: currentPhoto,
+                timestamp: getCurrentTime(),
+                description: photoDescription
+            };
+
+            setFormData(prev => ({
+                ...prev,
+                photos: [...(prev.photos || []), newPhoto]
+            }));
+
+            toast.success('Foto guardada correctamente');
+            closeCamera();
+        }
+    };
+
+    const removePhoto = (photoId: string) => {
+        setFormData(prev => ({
+            ...prev,
+            photos: prev.photos?.filter(photo => photo.id !== photoId) || []
+        }));
+        toast.success('Foto eliminada');
+    };
+
     const itemsByArea = React.useMemo(() => {
         const grouped: Record<string, ChecklistItem[]> = {};
         formData.items?.forEach(item => {
@@ -326,18 +561,20 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
         return orderA - orderB;
     });
 
-    const calculateProgress = (area?: string): number => {
+    // Función para calcular porcentaje de "Bueno"
+    const calculateBuenoPercentage = (area?: string): number => {
         const itemsToCheck = area 
             ? formData.items?.filter(item => item.area === area) || []
             : formData.items || [];
         
         if (itemsToCheck.length === 0) return 0;
         
-        const completed = itemsToCheck.filter(item => 
-            item.cumplimiento !== ''
-        ).length;
+        const buenoItems = itemsToCheck.filter(item => item.cumplimiento === 'bueno').length;
+        const totalEvaluated = itemsToCheck.filter(item => item.cumplimiento !== '').length;
         
-        return (completed / itemsToCheck.length) * 100;
+        if (totalEvaluated === 0) return 0;
+        
+        return (buenoItems / totalEvaluated) * 100;
     };
 
     const getAreaStats = (area: string) => {
@@ -347,17 +584,10 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
         const regular = areaItems.filter(item => item.cumplimiento === 'regular').length;
         const malo = areaItems.filter(item => item.cumplimiento === 'malo').length;
         const sinEvaluar = total - (bueno + regular + malo);
+        const totalEvaluado = bueno + regular + malo;
+        const porcentajeBueno = calculateBuenoPercentage(area);
         
-        return { total, bueno, regular, malo, sinEvaluar };
-    };
-
-    const getAreaCounters = (area: string) => {
-        const areaItems = itemsByArea[area] || [];
-        const completed = areaItems.filter(item => 
-            item.cumplimiento !== ''
-        ).length;
-        const total = areaItems.length;
-        return { completed, total };
+        return { total, bueno, regular, malo, sinEvaluar, totalEvaluado, porcentajeBueno };
     };
 
     const handleInputChange = (field: keyof ChecklistData, value: string) => {
@@ -379,6 +609,7 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
         setForceUpdate(prev => prev + 1);
     };
 
+    // FUNCIÓN CORREGIDA PARA GUARDAR CHECKLIST
     const handleSave = async () => {
         try {
             setIsLoading(true);
@@ -388,39 +619,62 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
                 return;
             }
 
+            // Validar que al menos algunos items estén evaluados
+            const itemsEvaluados = formData.items?.filter(item => item.cumplimiento !== '').length || 0;
+            if (itemsEvaluados === 0) {
+                toast.error('Debe evaluar al menos algunos items antes de guardar');
+                return;
+            }
+
+            const timestamp = new Date().getTime();
             const horaFinActual = getCurrentTime();
             const formDataConHoraActualizada = {
                 ...formData,
-                horaFin: horaFinActual
+                horaFin: horaFinActual,
+                fecha: formData.fecha || getCurrentDate(),
             };
 
-            const timestamp = new Date().getTime();
             const baseFilename = `Checklist_${formDataConHoraActualizada.responsable.replace(/\s+/g, '_')}_${timestamp}`;
 
-            const blob = await pdf(<PdfChecklist data={formDataConHoraActualizada} />).toBlob();
-        
+            console.log('Generando PDF...');
+            // Generar PDF
+            const pdfBlob = await pdf(<PdfChecklist data={formDataConHoraActualizada} />).toBlob();
             const pdfFilename = `${baseFilename}.pdf`;
-            downloadFile(blob, pdfFilename);
+            
+            console.log('Descargando PDF...');
+            // Descargar PDF localmente
+            downloadFile(pdfBlob, pdfFilename);
             toast.success('PDF descargado correctamente');
 
+            console.log('Preparando datos para enviar al servidor...');
+            // Preparar FormData para enviar al servidor
             const formDataUpload = new FormData();
-            formDataUpload.append('files', blob, pdfFilename);
             
+            // Agregar archivo PDF
+            formDataUpload.append('files', pdfBlob, pdfFilename);
+            
+            // Agregar archivo JSON
             const jsonBlob = new Blob([JSON.stringify(formDataConHoraActualizada, null, 2)], { 
                 type: 'application/json' 
             });
             const jsonFilename = `${baseFilename}.json`;
             formDataUpload.append('files', jsonBlob, jsonFilename);
-            
+
+            console.log('Enviando datos al servidor...');
+            // Enviar al servidor
             await apiService.saveChecklist(formDataUpload);
 
-            setFormData(formDataConHoraActualizada);
-
-            toast.success('Checklist guardado correctamente');
-            onClose?.();
+            console.log('Checklist guardado exitosamente');
+            toast.success('Checklist guardado correctamente en el servidor');
+            
+            // Cerrar modal si existe
+            if (onClose) {
+                onClose();
+            }
+            
         } catch (error) {
-            console.error('Error saving checklist:', error);
-            toast.error('Error al guardar el checklist');
+            console.error('Error guardando checklist:', error);
+            toast.error(`Error al guardar el checklist: ${error instanceof Error ? error.message : 'Error desconocido'}`);
         } finally {
             setIsLoading(false);
         }
@@ -434,7 +688,7 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
         toast.success('Nuevo checklist creado');
     };
 
-    if (isLoading) {
+    if (isLoading && !isCameraLoading) {
         return (
             <div className="max-w-6xl mx-auto p-6">
                 <div className="flex justify-center items-center h-64">
@@ -447,28 +701,116 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
         );
     }
 
-    const generalProgress = calculateProgress();
-    const currentAreaProgress = calculateProgress(currentArea);
-    const currentAreaCounter = getAreaCounters(currentArea);
+    const generalBuenoPercentage = calculateBuenoPercentage();
+    const currentAreaStats = getAreaStats(currentArea);
+    const areaPhotos = formData.photos?.filter(photo => photo.area === currentArea) || [];
 
     return (
         <div className="max-w-6xl mx-auto p-6 bg-white rounded-lg shadow-lg">
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-800 mb-2">Checklist General de Supervisión</h1>
-            
-                {/* Información del checklist actual */}
-                <div className="mb-4 p-4 bg-green-50 rounded-lg border border-green-200">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                        <div>
-                            <strong>Checklist:</strong> {selectedChecklist ? selectedChecklist.replace(/\.json$/, '') : 'Nuevo checklist'}
-                        </div>
-                        <div>
-                            <strong>Fecha:</strong> {formData.fecha}
-                        </div>
-                        <div>
-                            <strong>Estado:</strong> {selectedChecklist ? 'Cargado' : 'Nuevo'}
-                        </div>
+            {/* Modal de cámara */}
+            {isCameraOpen && (
+                <Modal
+                    className1="fixed inset-0 flex items-center justify-center bg-black/70 z-50"
+                    className2="relative bg-white rounded-lg shadow-lg max-w-md w-full p-2"
+                    closeModal={() => {
+                        setIsCameraOpen(false);
+                        closeCamera();
+                    }}
+                    >
+                    <div className="bg-white p-2 rounded-lg max-w-md w-full mx-auto">
+                        <h3 className="text-lg font-bold mb-4 text-gray-800">Tomar Foto - {currentArea}</h3>
+                        
+                        {cameraError ? (
+                            <div className="text-center p-2">
+                                <div className="text-red-500 text-4xl mb-4">📷❌</div>
+                                <p className="text-red-600 mb-4">{cameraError}</p>
+                                <div className="space-y-2">
+                                    <button
+                                        onClick={openCamera}
+                                        className="w-full bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 transition-colors font-medium"
+                                    >
+                                        Reintentar
+                                    </button>
+                                </div>
+                            </div>
+                        ) : isCameraLoading ? (
+                            <div className="text-center p-8">
+                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                                <p className="text-gray-600">Iniciando cámara...</p>
+                            </div>
+                        ) : !currentPhoto ? (
+                            <>
+                                <div className="relative bg-gray-200 rounded-lg mb-4 overflow-hidden">
+                                    <video 
+                                        ref={videoRef} 
+                                        autoPlay 
+                                        playsInline
+                                        muted
+                                        className="w-full h-64 object-cover bg-black"
+                                    />
+                                    <div className="absolute bottom-2 left-0 right-0 flex justify-center">
+                                        <div className="bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm">
+                                            Cámara activa - {currentArea}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex gap-2 justify-center">
+                                    <button
+                                        onClick={takePhoto}
+                                        className="bg-cyan-600 hover:bg-yellow-500 text-white font-bold py-2 px-6 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                                        disabled={isCameraLoading}
+                                    >
+                                        📸 Tomar Foto
+                                    </button>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="relative bg-gray-100 rounded-lg mb-4 overflow-hidden">
+                                    <img 
+                                        src={currentPhoto} 
+                                        alt="Vista previa de la foto" 
+                                        className="w-full h-64 object-cover"
+                                    />
+                                    <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded-full text-xs">
+                                        Vista previa
+                                    </div>
+                                </div>
+                                <div className="mb-4">
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Descripción (opcional):
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={photoDescription}
+                                        onChange={(e) => setPhotoDescription(e.target.value)}
+                                        placeholder="Ej: Estado de limpieza, problema encontrado..."
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={savePhoto}
+                                        className="flex-1 bg-green-500 text-white py-3 rounded-lg hover:bg-green-600 transition-colors font-medium flex items-center justify-center gap-2"
+                                    >
+                                        💾 Guardar
+                                    </button>
+                                    <button
+                                        onClick={() => setCurrentPhoto('')}
+                                        className="bg-cyan-600 hover:bg-yellow-500 text-white font-bold py-2 px-6 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                                    >
+                                        🔄 Retomar
+                                    </button>
+                                </div>
+                            </>
+                        )}
                     </div>
+                </Modal>
+            )}
+
+            <div className="mb-8">
+                <div className="flex justify-between items-center mb-4">
+                    <h1 className="text-3xl font-bold text-gray-800">Checklist General de Supervisión</h1>
                 </div>
 
                 {availableChecklists.length > 0 && (
@@ -509,12 +851,9 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">HORA DE INICIO:</label>
-                        <input
-                            type="time"
-                            value={formData.horaInicio}
-                            onChange={(e) => handleInputChange('horaInicio', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
+                        <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-700">
+                            {formData.horaInicio} hrs.
+                        </div>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">RESPONSABLE:</label>
@@ -528,45 +867,139 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
                     </div>
                 </div>
 
+                {/* Barra de progreso general */}
                 <div className="mb-6">
                     <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm font-medium text-gray-700">Progreso General</span>
-                        <span className="text-sm text-gray-600">{Math.round(generalProgress)}%</span>
+                        <span className="text-sm font-medium text-gray-700">Calificación General</span>
+                        <span className="text-sm text-gray-600">{Math.round(generalBuenoPercentage)}% Bueno</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                         <div 
-                            className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${generalProgress}%` }}
+                            className={`h-2 rounded-full transition-all duration-300 ${
+                                generalBuenoPercentage >= 80 ? 'bg-green-500' :
+                                generalBuenoPercentage >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                            }`}
+                            style={{ width: `${generalBuenoPercentage}%` }}
                         ></div>
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>0%</span>
+                        <span className={`font-medium ${
+                            generalBuenoPercentage >= 80 ? 'text-green-600' :
+                            generalBuenoPercentage >= 60 ? 'text-yellow-600' : 'text-red-600'
+                        }`}>
+                            {Math.round(generalBuenoPercentage)}% Bueno
+                        </span>
+                        <span>100%</span>
+                    </div>
+                    <div className={`text-center text-sm font-medium mt-1 ${
+                        generalBuenoPercentage >= 80 ? 'text-green-600' :
+                        generalBuenoPercentage >= 60 ? 'text-yellow-600' : 'text-red-600'
+                    }`}>
+                        {generalBuenoPercentage >= 80 ? 'EXCELENTE' :
+                         generalBuenoPercentage >= 60 ? 'ACEPTABLE' : 'REQUIERE MEJORA'}
                     </div>
                 </div>
 
+                {/* Áreas a evaluar con botón de cámara */}
                 <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Área a evaluar:</label>
+                    <div className="flex justify-between items-center mb-2">
+                        <label className="block text-sm font-medium text-gray-700">Área a evaluar:</label>
+                        <button
+                            onClick={openCamera}
+                            disabled={isCameraLoading}
+                            className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-600 transition-colors flex items-center gap-2 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {isCameraLoading ? (
+                                <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                    Cargando...
+                                </>
+                            ) : (
+                                <>
+                                    📸 Tomar Foto
+                                </>
+                            )}
+                        </button>
+                    </div>
                     <div className="flex flex-wrap gap-2">
                         {areas.map(area => {
-                            const counter = getAreaCounters(area);
+                            const areaPercentage = calculateBuenoPercentage(area);
                             return (
                                 <button
                                     key={area}
                                     onClick={() => setCurrentArea(area)}
-                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors relative ${
                                         currentArea === area 
-                                            ? 'bg-blue-500 text-white' 
+                                            ? 'bg-blue-500 text-white shadow-md' 
                                             : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                                     }`}
                                 >
-                                    {area} ({counter.completed}/{counter.total})
+                                    {area} 
+                                    <span className={`ml-2 text-xs px-1 rounded ${
+                                        areaPercentage >= 80 ? 'bg-green-100 text-green-800' :
+                                        areaPercentage >= 60 ? 'bg-yellow-100 text-yellow-800' :
+                                        'bg-red-100 text-red-800'
+                                    }`}>
+                                        {Math.round(areaPercentage)}%
+                                    </span>
                                 </button>
                             );
                         })}
                     </div>
                 </div>
+
+                {/* Galería de fotos del área actual */}
+                {areaPhotos.length > 0 && (
+                    <div className="mb-6 p-4 bg-gray-50 rounded-lg border">
+                        <div className="flex justify-between items-center mb-3">
+                            <h3 className="text-lg font-semibold text-gray-800">Fotos de {currentArea}</h3>
+                            <span className="text-sm text-gray-600">{areaPhotos.length} foto(s)</span>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            {areaPhotos.map(photo => (
+                                <div key={photo.id} className="relative group bg-white rounded-lg border shadow-sm overflow-hidden">
+                                    <img 
+                                        src={photo.photoUrl} 
+                                        alt={`Foto de ${currentArea}`}
+                                        className="w-full h-32 object-cover"
+                                    />
+                                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-70 transition-opacity flex items-center justify-center">
+                                        <button
+                                            onClick={() => removePhoto(photo.id)}
+                                            className="opacity-0 group-hover:opacity-100 bg-red-500 text-white p-2 rounded-full transition-opacity transform scale-0 group-hover:scale-100 duration-200"
+                                            title="Eliminar foto"
+                                        >
+                                            🗑️
+                                        </button>
+                                    </div>
+                                    <div className="p-2">
+                                        {photo.description && (
+                                            <div className="text-xs text-gray-600 mb-1 line-clamp-2">
+                                                {photo.description}
+                                            </div>
+                                        )}
+                                        <div className="text-xs text-gray-500">
+                                            {photo.timestamp}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
 
+            {/* Título del área actual */}
             <div className="mb-8">
                 <h2 className="text-xl font-bold mb-4 text-gray-800 border-b pb-2">
-                    {currentArea} - Progreso: {Math.round(currentAreaProgress)}% ({currentAreaCounter.completed}/{currentAreaCounter.total})
+                    {currentArea} - Calificación: {Math.round(currentAreaStats.porcentajeBueno)}% Bueno 
+                    <span className={`ml-2 text-sm font-normal ${
+                        currentAreaStats.porcentajeBueno >= 80 ? 'text-green-600' :
+                        currentAreaStats.porcentajeBueno >= 60 ? 'text-yellow-600' : 'text-red-600'
+                    }`}>
+                        ({currentAreaStats.totalEvaluado}/{currentAreaStats.total} evaluados)
+                    </span>
                 </h2>
                 
                 <div className="overflow-x-auto">
@@ -642,14 +1075,34 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
                 />
             </div>
 
+            {/* Resumen por áreas */}
             <div className="mb-8">
                 <h3 className="text-lg font-semibold mb-4 text-gray-800">Resumen por Áreas</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {areas.map(area => {
                         const stats = getAreaStats(area);
+                        const areaPercentage = calculateBuenoPercentage(area);
                         return (
                             <div key={area} className="bg-gray-50 p-4 rounded-lg border">
-                                <h4 className="font-medium text-gray-800 mb-2">{area}</h4>
+                                <div className="flex justify-between items-start mb-2">
+                                    <h4 className="font-medium text-gray-800">{area}</h4>
+                                    <div className="text-right">
+                                        <span className={`text-xs font-bold px-2 py-1 rounded ${
+                                            areaPercentage >= 80 ? 'bg-green-100 text-green-800' :
+                                            areaPercentage >= 60 ? 'bg-yellow-100 text-yellow-800' :
+                                            'bg-red-100 text-red-800'
+                                        }`}>
+                                            {Math.round(areaPercentage)}% Bueno
+                                        </span>
+                                        <div className={`text-xs mt-1 ${
+                                            areaPercentage >= 80 ? 'text-green-600' :
+                                            areaPercentage >= 60 ? 'text-yellow-600' : 'text-red-600'
+                                        }`}>
+                                            {areaPercentage >= 80 ? 'EXCELENTE' :
+                                             areaPercentage >= 60 ? 'ACEPTABLE' : 'REQUIERE MEJORA'}
+                                        </div>
+                                    </div>
+                                </div>
                                 <div className="space-y-1 text-sm">
                                     <div className="flex justify-between">
                                         <span className="text-green-600">Bueno:</span>
@@ -668,8 +1121,8 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
                                         <span>{stats.sinEvaluar}</span>
                                     </div>
                                     <div className="flex justify-between border-t pt-1 mt-1">
-                                        <span className="font-medium">Total:</span>
-                                        <span className="font-medium">{stats.bueno + stats.regular + stats.malo}/{stats.total}</span>
+                                        <span className="font-medium">Total evaluado:</span>
+                                        <span className="font-medium">{stats.totalEvaluado}/{stats.total}</span>
                                     </div>
                                 </div>
                             </div>
@@ -683,7 +1136,7 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
                     type="button"
                     onClick={handleSave}
                     disabled={isLoading || !formData.responsable}
-                    className="bg-cyan-600 hover:bg-yellow-500 text-white font-bold py-2 px-6 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="bg-cyan-600 hover:bg-yellow-500 text-white font-bold py-2 px-6 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
                 >
                     {isLoading ? 'Guardando...' : 'Guardar Checklist'}
                 </button>
