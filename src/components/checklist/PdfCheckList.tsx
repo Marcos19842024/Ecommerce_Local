@@ -496,7 +496,7 @@ export const PdfChecklist: React.FC<PdfChecklistProps> = ({ data }) => {
                             {/* Sección de fotos del área */}
                             <View style={styles.photosSection}>
                                 <Text style={styles.photosTitle}>
-                                    Fotos de {area} ({areaPhotos.length})
+                                    Evidencias ({areaPhotos.length})
                                 </Text>
                                 {areaPhotos.length > 0 ? (
                                     <View style={styles.photosContainer}>
@@ -512,7 +512,7 @@ export const PdfChecklist: React.FC<PdfChecklistProps> = ({ data }) => {
                                                     </Text>
                                                 )}
                                                 <Text style={styles.photoTimestamp}>
-                                                    Tomada: {photo.timestamp}
+                                                    Tomada a las {photo.timestamp} hrs.
                                                 </Text>
                                             </View>
                                         ))}
