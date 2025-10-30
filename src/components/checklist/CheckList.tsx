@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import Webcam from 'react-webcam'; // Importa react-webcam
+import Webcam from 'react-webcam';
 import { apiService } from '../../services/api';
 import { pdf } from '@react-pdf/renderer';
 import { ChecklistData, ChecklistItem, ChecklistPhoto, ChecklistSupervisionProps } from '../../interfaces/checklist.interface';
@@ -7,10 +7,11 @@ import { PdfChecklist } from './PdfCheckList';
 import toast from 'react-hot-toast';
 import Modal from '../shared/Modal';
 import { runtimeConfig } from '../../services/config';
+import { IoCameraReverseOutline } from 'react-icons/io5';
 
 const AREA_ORDER: Record<string, number> = {
     'ESTACIONAMIENTO': 1, 'TIENDA': 2, 'RECEPCIÓN': 3, 'CONSULTORIO 1': 4, 'CONSULTORIO 2': 5,
-    'QUIRÓFANO': 6, 'LABORATORIO': 7, 'RAYOS X': 8, 'HOSPITAL': 9, 'PENSIÓN': 10,
+    'LABORATORIO': 6, 'RAYOS X': 7, 'QUIRÓFANO': 8, 'HOSPITAL': 9, 'PENSIÓN': 10,
     'ALMACÉN ALIMENTOS': 11, 'ALMACÉN GENERAL': 12, 'ÁREAS COMUNES': 13, 'ESTÉTICA': 14, 'TRANSPORTE': 15
 };
 
@@ -80,21 +81,6 @@ const CHECKLIST_TEMPLATE: Omit<ChecklistItem, 'id' | 'cumplimiento' | 'observaci
     { area: 'CONSULTORIO 2', aspecto: 'Luces funcionales' },
     { area: 'CONSULTORIO 2', aspecto: 'Clima limpio y funcional' },
     { area: 'CONSULTORIO 2', aspecto: 'Cámaras funcionales' },
-    { area: 'QUIRÓFANO', aspecto: 'Quirófano limpio y oloroso' },
-    { area: 'QUIRÓFANO', aspecto: 'Mesa de cirugía limpia y desinfectada' },
-    { area: 'QUIRÓFANO', aspecto: 'Bote de basura con bolsa y limpio' },
-    { area: 'QUIRÓFANO', aspecto: 'Carrito de anestesia limpio y ordenado' },
-    { area: 'QUIRÓFANO', aspecto: 'Abastecido de material (jeringas, alcohol, torundas)' },
-    { area: 'QUIRÓFANO', aspecto: 'Cajonera ordenada' },
-    { area: 'QUIRÓFANO', aspecto: 'Puertas limpias' },
-    { area: 'QUIRÓFANO', aspecto: 'Libre de portaobjetos sucios' },
-    { area: 'QUIRÓFANO', aspecto: 'Luces funcionales' },
-    { area: 'QUIRÓFANO', aspecto: 'Clima limpio y funcional' },
-    { area: 'QUIRÓFANO', aspecto: 'Equipo de anestesia limpio y funcional' },
-    { area: 'QUIRÓFANO', aspecto: 'Monitor de signos vitales limpio y funcional' },
-    { area: 'QUIRÓFANO', aspecto: 'Mesa de instrumental limpia y ordenada' },
-    { area: 'QUIRÓFANO', aspecto: 'Material de uso con stock' },
-    { area: 'QUIRÓFANO', aspecto: 'Tanques de oxigeno llenos' },
     { area: 'LABORATORIO', aspecto: 'Mesa de trabajo limpia y desinfectada' },
     { area: 'LABORATORIO', aspecto: 'Bote de basura con bolsa y limpio' },
     { area: 'LABORATORIO', aspecto: 'Estanterias ordenadas' },
@@ -116,6 +102,21 @@ const CHECKLIST_TEMPLATE: Omit<ChecklistItem, 'id' | 'cumplimiento' | 'observaci
     { area: 'RAYOS X', aspecto: 'Clima limpio y funcional' },
     { area: 'RAYOS X', aspecto: 'Equipo de seguridad disponible' },
     { area: 'RAYOS X', aspecto: 'Cámaras funcionales' },
+    { area: 'QUIRÓFANO', aspecto: 'Quirófano limpio y oloroso' },
+    { area: 'QUIRÓFANO', aspecto: 'Mesa de cirugía limpia y desinfectada' },
+    { area: 'QUIRÓFANO', aspecto: 'Bote de basura con bolsa y limpio' },
+    { area: 'QUIRÓFANO', aspecto: 'Carrito de anestesia limpio y ordenado' },
+    { area: 'QUIRÓFANO', aspecto: 'Abastecido de material (jeringas, alcohol, torundas)' },
+    { area: 'QUIRÓFANO', aspecto: 'Cajonera ordenada' },
+    { area: 'QUIRÓFANO', aspecto: 'Puertas limpias' },
+    { area: 'QUIRÓFANO', aspecto: 'Libre de portaobjetos sucios' },
+    { area: 'QUIRÓFANO', aspecto: 'Luces funcionales' },
+    { area: 'QUIRÓFANO', aspecto: 'Clima limpio y funcional' },
+    { area: 'QUIRÓFANO', aspecto: 'Equipo de anestesia limpio y funcional' },
+    { area: 'QUIRÓFANO', aspecto: 'Monitor de signos vitales limpio y funcional' },
+    { area: 'QUIRÓFANO', aspecto: 'Mesa de instrumental limpia y ordenada' },
+    { area: 'QUIRÓFANO', aspecto: 'Material de uso con stock' },
+    { area: 'QUIRÓFANO', aspecto: 'Tanques de oxigeno llenos' },
     { area: 'HOSPITAL', aspecto: 'Bote de basura con bolsa y limpio' },
     { area: 'HOSPITAL', aspecto: 'Área de exploración ordenada y limpia' },
     { area: 'HOSPITAL', aspecto: 'Mesa y estanterias ordenadas' },
@@ -246,6 +247,11 @@ const downloadFile = (blob: Blob, filename: string) => {
     URL.revokeObjectURL(url);
 };
 
+// Función para detectar si es móvil
+const isMobileDevice = (): boolean => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+};
+
 export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
     const [formData, setFormData] = useState<ChecklistData & { photos?: ChecklistPhoto[] }>(initializeFormData());
     const [isLoading, setIsLoading] = useState(false);
@@ -261,53 +267,78 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
     const [cameraError, setCameraError] = useState<string>('');
     const [isCameraLoading, setIsCameraLoading] = useState(false);
     const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
-    
+    const [hasCameraSupport, setHasCameraSupport] = useState(true);
+
     // Usa useRef para la webcam
     const webcamRef = useRef<Webcam>(null);
 
     // Configuración de video constraints
     const videoConstraints = {
-        width: 1280,
-        height: 720,
-        facingMode: facingMode
+        width: { min: 640, ideal: 1280, max: 1920 },
+        height: { min: 480, ideal: 720, max: 1080 },
+        facingMode: facingMode,
+        aspectRatio: { ideal: 16/9, min: 4/3, max: 16/9 },
+        // Deshabilitar features que causan zoom
+        zoom: false,
+        // Priorizar campo de vista amplio
+        advanced: [
+            { width: 1920, height: 1080 }, // Full HD
+            { width: 1280, height: 720 },  // HD
+            { width: 640, height: 480 },   // VGA
+        ].map(config => ({
+            ...config,
+            aspectRatio: 16/9,
+            frameRate: { min: 20, ideal: 30, max: 60 }
+        }))
     };
+
+    // Verificar soporte de cámara al montar
+    useEffect(() => {
+        const checkCameraSupport = async () => {
+            try {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    setHasCameraSupport(false);
+                    return;
+                }
+
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                setHasCameraSupport(videoDevices.length > 0);
+            } catch (error) {
+                console.error('Error verificando cámaras:', error);
+                setHasCameraSupport(false);
+            }
+        };
+
+        checkCameraSupport();
+    }, []);
 
     // Función para abrir cámara CON REACT-WEBCAM
     const openCamera = useCallback(async () => {
+        if (!hasCameraSupport) {
+            toast.error('No hay cámara disponible en este dispositivo');
+            return;
+        }
+
         try {
             setIsCameraLoading(true);
             setCameraError('');
+            setCurrentPhoto('');
+            setPhotoDescription('');
+
+            // Pequeño delay para mejor UX
+            await new Promise(resolve => setTimeout(resolve, 100));
             
-            // Verificar soporte básico
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                const errorMsg = 'Tu navegador no soporta el acceso a la cámara. Usa Chrome, Firefox, Edge o Safari.';
-                setCameraError(errorMsg);
-                toast.error(errorMsg);
-                setIsCameraLoading(false);
-                return;
-            }
-
-            // Verificar permisos
-            try {
-                const permissions = await navigator.permissions?.query({ name: 'camera' as PermissionName });
-                if (permissions?.state === 'denied') {
-                    setCameraError('Permisos de cámara denegados. Por favor, habilítalos en la configuración del navegador.');
-                    setIsCameraLoading(false);
-                    return;
-                }
-            } catch (error) {
-                console.log('No se pudo verificar permisos, continuando...');
-            }
-
             setIsCameraOpen(true);
             setIsCameraLoading(false);
             
         } catch (error: any) {
-            console.error('Error al verificar cámara:', error);
+            console.error('Error abriendo cámara:', error);
             setIsCameraLoading(false);
-            setCameraError('Error al verificar disponibilidad de cámara');
+            setCameraError('Error al iniciar la cámara');
+            toast.error('No se pudo abrir la cámara');
         }
-    }, []);
+    }, [hasCameraSupport]);
 
     // Función para cerrar cámara
     const closeCamera = useCallback(() => {
@@ -326,22 +357,30 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
         }
 
         try {
-            const photoSrc = webcamRef.current.getScreenshot();
-            if (photoSrc) {
-                setCurrentPhoto(photoSrc);
-                toast.success('Foto capturada correctamente');
+            const imageSrc = webcamRef.current.getScreenshot({
+                width: 1920,
+                height: 1080,
+            });
+            
+            if (imageSrc) {
+                setCurrentPhoto(imageSrc);
+                toast.success('✅ Foto capturada');
             } else {
                 toast.error('No se pudo capturar la foto');
             }
         } catch (error) {
             console.error('Error tomando foto:', error);
-            toast.error('Error al capturar la foto');
+            toast.error('Error al capturar foto');
         }
     }, []);
 
     // Función para cambiar entre cámaras
     const switchCamera = useCallback(() => {
-        setFacingMode(prev => prev === 'user' ? 'environment' : 'user');
+        setFacingMode(prev => {
+            const newMode = prev === 'user' ? 'environment' : 'user';
+            console.log('Cambiando a cámara:', newMode);
+            return newMode;
+        });
         setCurrentPhoto('');
     }, []);
 
@@ -630,6 +669,168 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
         toast.success('Nuevo checklist creado');
     };
 
+    // Render del modal de cámara MEJORADO
+    const renderCameraModal = () => (
+        <Modal
+            className1="fixed inset-0 flex items-center justify-center bg-black/80 z-50 p-2"
+            className2="relative bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-auto"
+            closeModal={closeCamera}
+        >
+            <div className="p-2">
+                {/* Header */}
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-bold text-gray-800">
+                        {currentArea}
+                    </h3>
+                    <div className="flex gap-2">
+                        <IoCameraReverseOutline onClick={switchCamera} size={24}/>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">
+                        {facingMode === 'user' ? 'Cámara frontal' : 'Cámara trasera'}
+                    </p>
+                </div>
+
+                {cameraError ? (
+                    <div className="text-center py-12">
+                        <div className="text-red-500 text-6xl mb-2">📷❌</div>
+                        <p className="text-red-600 mb-6 text-lg">{cameraError}</p>
+                        <div className="flex gap-3 justify-center">
+                            <button
+                                onClick={openCamera}
+                                className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors font-medium"
+                            >
+                                Reintentar
+                            </button>
+                        </div>
+                    </div>
+                ) : !currentPhoto ? (
+                    <>
+                        {/* Vista de cámara ACTIVA - CONTENEDOR CON RELACIÓN DE ASPECTO FIJA */}
+                        <div className="relative bg-black rounded-xl overflow-hidden mb-6 border-4 border-gray-800">
+                            <div 
+                                className="relative w-full"
+                                style={{ paddingBottom: '56.25%' }}
+                            >
+                                <Webcam
+                                    audio={false}
+                                    ref={webcamRef}
+                                    screenshotFormat="image/jpeg"
+                                    screenshotQuality={isMobileDevice() ? 0.8 : 0.85}
+                                    videoConstraints={videoConstraints}
+                                    onUserMedia={() => {
+                                        console.log('✅ Cámara lista');
+                                        setIsCameraLoading(false);
+                                    }}
+                                    onUserMediaError={(error) => {
+                                        console.error('❌ Error cámara:', error);
+                                        let errorMsg = 'Error al acceder a la cámara. ';
+                                        
+                                        if (error === 'NotAllowedError') {
+                                            errorMsg += 'Permiso denegado.';
+                                        } else if (error === 'NotFoundError') {
+                                            errorMsg += 'Cámara no encontrada.';
+                                        } else {
+                                            errorMsg += 'Intenta con otra cámara.';
+                                        }
+                                        
+                                        setCameraError(errorMsg);
+                                        setIsCameraLoading(false);
+                                    }}
+                                    className="absolute inset-0 w-full h-full"
+                                    style={{
+                                        objectFit: 'cover',
+                                        transform: facingMode === 'user' ? 'scaleX(-1)' : 'none'
+                                        }}
+                                    forceScreenshotSourceSize={false}
+                                    minScreenshotWidth={1280}
+                                    minScreenshotHeight={720}
+                                />
+                                
+                                {/* Overlay de carga */}
+                                {isCameraLoading && (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
+                                        <div className="text-white text-center">
+                                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-2"></div>
+                                            <p>Iniciando cámara...</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                            
+                            {/* Indicador de cámara activa */}
+                            <div className="absolute top-4 left-4 flex items-center gap-2">
+                                <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                                <span className="text-white text-sm bg-black bg-opacity-50 px-2 py-1 rounded">
+                                    En vivo
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Botones de acción */}
+                        <div className="flex flex-col gap-4">
+                            <button
+                                onClick={takePhoto}
+                                disabled={isCameraLoading}
+                                className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center justify-center gap-3 text-lg"
+                            >
+                                <div className="w-6 h-6 bg-white rounded-full"></div>
+                                Capturar Foto
+                            </button>
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        {/* Vista previa de foto */}
+                        <div className="relative bg-gray-100 rounded-xl overflow-hidden mb-6 border-4 border-green-500">
+                            <img 
+                                src={currentPhoto} 
+                                alt="Vista previa" 
+                                className="w-full h-96 object-contain bg-black"
+                            />
+                            <div className="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+                                ✅ Vista previa
+                            </div>
+                        </div>
+                        
+                        {/* Descripción */}
+                        <div className="mb-6">
+                            <label className="block text-sm font-medium text-gray-700 mb-3">
+                                📝 Descripción (opcional):
+                            </label>
+                            <input
+                                type="text"
+                                value={photoDescription}
+                                onChange={(e) => setPhotoDescription(e.target.value)}
+                                placeholder="Ej: Estado de limpieza, problema encontrado, observación importante..."
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
+                                maxLength={120}
+                            />
+                            <div className="text-right text-sm text-gray-500 mt-2">
+                                {photoDescription.length}/120 caracteres
+                            </div>
+                        </div>
+                        
+                        {/* Botones de guardar/retomar */}
+                        <div className="flex gap-3">
+                            <button
+                                onClick={savePhoto}
+                                className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-lg transition-all transform hover:scale-105 flex items-center justify-center gap-3 text-lg"
+                            >
+                                💾 Guardar Foto
+                            </button>
+                            <button
+                                onClick={() => setCurrentPhoto('')}
+                                className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 px-6 rounded-lg transition-all flex items-center justify-center gap-2"
+                            >
+                                🔄 Retomar
+                            </button>
+                        </div>
+                    </>
+                )}
+            </div>
+        </Modal>
+    );
+
     if (isLoading && !isCameraLoading) {
         return (
             <div className="max-w-6xl mx-auto p-6">
@@ -650,136 +851,134 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
     return (
         <div className="max-w-6xl mx-auto p-2 bg-white rounded-lg shadow-lg">
             {/* Modal de cámara CON REACT-WEBCAM */}
-            {isCameraOpen && (
-                <Modal
-                    className1="fixed inset-0 flex items-center justify-center bg-black/70 z-50"
-                    className2="relative bg-white rounded-lg shadow-lg max-w-md w-full mx-4"
-                    closeModal={closeCamera}
+            {isCameraOpen && renderCameraModal()}
+            {/* <Modal
+                className1="fixed inset-0 flex items-center justify-center bg-black/70 z-50"
+                className2="relative bg-white rounded-lg shadow-lg max-w-md w-full mx-4"
+                closeModal={closeCamera}
                 >
-                    <div className="bg-white p-2 rounded-lg max-w-md w-full">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-lg font-bold text-gray-800">
-                                {currentArea}
-                            </h3>
-                            <div className="flex gap-2">
+                <div className="bg-white p-2 rounded-lg max-w-md w-full">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-bold text-gray-800">
+                            {currentArea}
+                        </h3>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={switchCamera}
+                                className="text-sm bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600 transition-colors"
+                                title="Cambiar cámara"
+                            >
+                                {facingMode === 'user' ? '📱 Cámara Frontal' : '📸 Cámara Trasera'}
+                            </button>
+                        </div>
+                    </div>
+                    
+                    {cameraError ? (
+                        <div className="text-center p-6">
+                            <div className="text-red-500 text-4xl mb-4">📷 ❌</div>
+                            <p className="text-red-600 mb-4 text-sm">{cameraError}</p>
+                            <div className="space-y-2">
                                 <button
-                                    onClick={switchCamera}
-                                    className="text-sm bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600 transition-colors"
-                                    title="Cambiar cámara"
+                                    onClick={openCamera}
+                                    className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 transition-colors font-medium"
                                 >
-                                    {facingMode === 'user' ? '📱 Cámara Frontal' : '📸 Cámara Trasera'}
+                                    Reintentar
+                                </button>
+                                <button
+                                    onClick={closeCamera}
+                                    className="w-full bg-gray-500 text-white py-2 rounded hover:bg-gray-600 transition-colors"
+                                >
+                                    Cerrar
                                 </button>
                             </div>
                         </div>
-                        
-                        {cameraError ? (
-                            <div className="text-center p-6">
-                                <div className="text-red-500 text-4xl mb-4">📷 ❌</div>
-                                <p className="text-red-600 mb-4 text-sm">{cameraError}</p>
-                                <div className="space-y-2">
-                                    <button
-                                        onClick={openCamera}
-                                        className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 transition-colors font-medium"
-                                    >
-                                        Reintentar
-                                    </button>
-                                    <button
-                                        onClick={closeCamera}
-                                        className="w-full bg-gray-500 text-white py-2 rounded hover:bg-gray-600 transition-colors"
-                                    >
-                                        Cerrar
-                                    </button>
+                    ) : !currentPhoto ? (
+                        <>
+                            <div className="relative bg-black rounded-lg mb-4 overflow-hidden">
+                                <Webcam
+                                    audio={false}
+                                    ref={webcamRef}
+                                    screenshotFormat="image/jpeg"
+                                    videoConstraints={videoConstraints}
+                                    onUserMedia={() => {
+                                        console.log('Cámara activada correctamente');
+                                        setIsCameraLoading(false);
+                                    }}
+                                    onUserMediaError={(error) => {
+                                        console.error('Error en cámara:', error);
+                                        setCameraError('Error al acceder a la cámara. Verifica los permisos.');
+                                        setIsCameraLoading(false);
+                                    }}
+                                    className="w-full h-64 object-cover"
+                                    screenshotQuality={0.8}
+                                    forceScreenshotSourceSize={false}
+                                />
+                                <div className="absolute bottom-2 left-0 right-0 flex justify-center">
+                                    <div className="bg-black bg-opacity-70 text-white px-3 py-1 rounded-md text-xs">
+                                        {facingMode === 'user' ? 'Cámara frontal' : 'Cámara trasera'}
+                                    </div>
                                 </div>
                             </div>
-                        ) : !currentPhoto ? (
-                            <>
-                                <div className="relative bg-black rounded-lg mb-4 overflow-hidden">
-                                    <Webcam
-                                        audio={false}
-                                        ref={webcamRef}
-                                        screenshotFormat="image/jpeg"
-                                        videoConstraints={videoConstraints}
-                                        onUserMedia={() => {
-                                            console.log('Cámara activada correctamente');
-                                            setIsCameraLoading(false);
-                                        }}
-                                        onUserMediaError={(error) => {
-                                            console.error('Error en cámara:', error);
-                                            setCameraError('Error al acceder a la cámara. Verifica los permisos.');
-                                            setIsCameraLoading(false);
-                                        }}
-                                        className="w-full h-64 object-cover"
-                                        screenshotQuality={0.8}
-                                        forceScreenshotSourceSize={false}
-                                    />
-                                    <div className="absolute bottom-2 left-0 right-0 flex justify-center">
-                                        <div className="bg-black bg-opacity-70 text-white px-3 py-1 rounded-md text-xs">
-                                            {facingMode === 'user' ? 'Cámara frontal' : 'Cámara trasera'}
-                                        </div>
-                                    </div>
+                            
+                            <div className="flex flex-col gap-2">
+                                <button
+                                    onClick={takePhoto}
+                                    className="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-3 rounded-md transition-colors flex items-center justify-center gap-2 shadow-lg"
+                                    disabled={isCameraLoading}
+                                >
+                                    <div className="w-3 h-3 bg-white rounded-md"></div>
+                                    {isCameraLoading ? 'Cargando cámara...' : 'Capturar Foto'}
+                                </button>
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <div className="relative bg-gray-100 rounded-lg mb-4 overflow-hidden border-2 border-green-500">
+                                <img 
+                                    src={currentPhoto} 
+                                    alt="Vista previa" 
+                                    className="w-full h-64 object-cover"
+                                />
+                                <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded text-xs">
+                                    ✅ Vista previa
                                 </div>
-                                
-                                <div className="flex flex-col gap-2">
-                                    <button
-                                        onClick={takePhoto}
-                                        className="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-3 rounded-md transition-colors flex items-center justify-center gap-2 shadow-lg"
-                                        disabled={isCameraLoading}
-                                    >
-                                        <div className="w-3 h-3 bg-white rounded-md"></div>
-                                        {isCameraLoading ? 'Cargando cámara...' : 'Capturar Foto'}
-                                    </button>
+                            </div>
+                            
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Descripción (opcional):
+                                </label>
+                                <input
+                                    type="text"
+                                    value={photoDescription}
+                                    onChange={(e) => setPhotoDescription(e.target.value)}
+                                    placeholder="Ej: Estado actual, problema encontrado, observación..."
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                    maxLength={100}
+                                />
+                                <div className="text-right text-xs text-gray-500 mt-1">
+                                    {photoDescription.length}/100 caracteres
                                 </div>
-                            </>
-                        ) : (
-                            <>
-                                <div className="relative bg-gray-100 rounded-lg mb-4 overflow-hidden border-2 border-green-500">
-                                    <img 
-                                        src={currentPhoto} 
-                                        alt="Vista previa" 
-                                        className="w-full h-64 object-cover"
-                                    />
-                                    <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded text-xs">
-                                        ✅ Vista previa
-                                    </div>
-                                </div>
-                                
-                                <div className="mb-4">
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Descripción (opcional):
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={photoDescription}
-                                        onChange={(e) => setPhotoDescription(e.target.value)}
-                                        placeholder="Ej: Estado actual, problema encontrado, observación..."
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                                        maxLength={100}
-                                    />
-                                    <div className="text-right text-xs text-gray-500 mt-1">
-                                        {photoDescription.length}/100 caracteres
-                                    </div>
-                                </div>
-                                
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={savePhoto}
-                                        className="flex-1 bg-green-500 text-white py-3 rounded-lg hover:bg-green-600 transition-colors font-medium flex items-center justify-center gap-2"
-                                    >
-                                        💾 Guardar Foto
-                                    </button>
-                                    <button
-                                        onClick={() => setCurrentPhoto('')}
-                                        className="bg-blue-500 text-white py-3 px-4 rounded-lg hover:bg-blue-600 transition-colors"
-                                    >
-                                        🔄 Retomar
-                                    </button>
-                                </div>
-                            </>
-                        )}
-                    </div>
-                </Modal>
-            )}
-
+                            </div>
+                            
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={savePhoto}
+                                    className="flex-1 bg-green-500 text-white py-3 rounded-lg hover:bg-green-600 transition-colors font-medium flex items-center justify-center gap-2"
+                                >
+                                    💾 Guardar Foto
+                                </button>
+                                <button
+                                    onClick={() => setCurrentPhoto('')}
+                                    className="bg-blue-500 text-white py-3 px-4 rounded-lg hover:bg-blue-600 transition-colors"
+                                >
+                                    🔄 Retomar
+                                </button>
+                            </div>
+                        </>
+                    )}
+                </div>
+            </Modal> */}
             <div className="mb-8">
                 <div className="flex justify-between items-center mb-4">
                     <h1 className="text-3xl font-bold text-gray-800">Checklist General de Supervisión</h1>
@@ -879,13 +1078,14 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
                         <label className="block text-sm font-medium text-gray-700">Área a evaluar:</label>
                         <button
                             onClick={openCamera}
-                            disabled={isCameraLoading}
-                            className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-600 transition-colors flex items-center gap-2 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={isCameraLoading || !hasCameraSupport}
+                            className="bg-green-500 hover:bg-green-600 text-white px-5 py-3 rounded-lg text-sm font-medium transition-all transform hover:scale-105 flex items-center gap-3 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                            title={!hasCameraSupport ? 'Cámara no disponible en este dispositivo' : 'Tomar foto del área actual'}
                         >
                             {isCameraLoading ? (
                                 <>
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                    Cargando...
+                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                    Iniciando cámara...
                                 </>
                             ) : (
                                 <>
@@ -894,6 +1094,7 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
                             )}
                         </button>
                     </div>
+
                     <div className="flex flex-wrap gap-2">
                         {areas.map(area => {
                             const areaPercentage = calculateBuenoPercentage(area);
