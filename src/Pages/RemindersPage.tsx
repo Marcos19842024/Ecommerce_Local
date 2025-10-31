@@ -32,11 +32,11 @@ export const RemindersPage = () => {
         if (response.statusText === 'WhatsApp inicializándose...') {
             setTimeout(async () => {
               setShowQr(true);
-              setStatustext('Escanea el código QR para conectar WhatsApp');
-              toast.success('WhatsApp iniciándose, por favor escanea el código QR', {
+              setStatustext('WhatsApp iniciándose, escanea el código QR');
+              toast.success('WhatsApp iniciándose, escanea el código QR', {
                 position: "top-right"
               });
-            }, 5000);
+            }, 4000);
         } else {
           setStatustext(response.statusText);
           toast.error(`Error ${response.status}: ${response.statusText}`, {
