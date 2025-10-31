@@ -11,11 +11,10 @@ import { GrDocumentUpload } from "react-icons/gr";
 import { RiMobileDownloadLine } from "react-icons/ri";
 import { Loader } from "../components/shared/Loader";
 import { apiService } from "../services/api";
-import { center, cel } from "../server/user";
 
 export const RemindersPage = () => {
   const [showQr, setShowQr] = useState(false);
-  const [status, setStatus] = useState("Conectar WhatsApp al Servidor");
+  const [statustext, setStatustext] = useState("Conectar WhatsApp al Servidor");
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [info, setInfo] = useState<string | null>(null);
   const [showIb, setShowIb] = useState(true);
@@ -25,28 +24,33 @@ export const RemindersPage = () => {
   const handleStatus = async () => {
     setLoader(true);
     try {
-      // ✅ Usar apiService para obtener el estado de WhatsApp
-      const response = await apiService.getWhatsAppStatus(center, cel);
-      
-      if (!response.err) {
-        setStatus(response.statusText);
-        toast.success(response.statusText, {
-          position: "top-right"
-        });
+      const res = await apiService.getWhatsAppStatus();
+      if (!res.err) {
+        setStatustext(res.statusText);
       } else {
-        setStatus(response.statusText);
-        toast.error(`Error ${response.status}: ${response.statusText}`, {
-          position: "top-right"
-        });
-        setTimeout(() => setStatus('Conectar WhatsApp al Servidor'), 4000);
+        const response = await apiService.startWhatsApp();
+        if (response.statusText === 'WhatsApp inicializándose...') {
+            setTimeout(async () => {
+              setShowQr(true);
+              setStatustext('Escanea el código QR para conectar WhatsApp');
+              toast.success('WhatsApp iniciándose, por favor escanea el código QR', {
+                position: "top-right"
+              });
+            }, 5000);
+        } else {
+          setStatustext(response.statusText);
+          toast.error(`Error ${response.status}: ${response.statusText}`, {
+            position: "top-right"
+          });
+          setTimeout(() => setStatustext('Conectar WhatsApp al Servidor'), 4000);
+        }
       }
-    } catch (error) {
-      console.error('Error checking WhatsApp status:', error);
+    } catch (error: any) {
       toast.error("Error en la respuesta del servidor", {
         position: "top-right"
       });
-      setStatus("Error en la respuesta del servidor");
-      setTimeout(() => setStatus('Conectar WhatsApp al Servidor'), 4000);
+      setStatustext("Error en la respuesta del servidor");
+      setTimeout(() => setStatustext('Conectar WhatsApp al Servidor'), 4000);
     } finally {
       setLoader(false);
     }
@@ -138,7 +142,7 @@ export const RemindersPage = () => {
               disabled={loader}
             >
               <FaWhatsapp /> 
-              {loader ? "Verificando..." : status}
+              {loader ? "WhatsApp iniciándose..." : statustext}
             </button>
 
             <button
@@ -175,7 +179,7 @@ export const RemindersPage = () => {
                 className="cursor-pointer bg-cyan-600 text-white flex items-center px-3 py-2 rounded-md gap-2 hover:bg-yellow-500 hover:scale-105 transition-all disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
                 <GrDocumentUpload />
-                Subir Lista
+                {loader ? "Cargando..." : "Subir Lista desde Excel"}
               </label>
             </div>
           ) : (

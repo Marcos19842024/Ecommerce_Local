@@ -1,3 +1,4 @@
+import { cel, center } from '../server/user';
 import { runtimeConfig } from './config';
 
 class ApiService {
@@ -205,7 +206,11 @@ class ApiService {
     }
 
     // Métodos para WhatsApp
-    async getWhatsAppStatus(center: string, cel: string): Promise<any> {
+    async startWhatsApp(): Promise<any> {
+        return this.post('/wwebjs/start', {});
+    }
+
+    async getWhatsAppStatus(): Promise<any> {
         return this.get(`/wwebjs/status/${center}/${cel}`);
     }
 
