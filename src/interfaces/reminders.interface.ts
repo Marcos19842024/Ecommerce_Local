@@ -54,3 +54,7 @@ export interface ContactResponse {
 export interface RemindersProps {
   clientes: Cliente[];
 }
+
+export interface QrCodeProps {
+  onWhatsAppConnected?: () => void;
+}

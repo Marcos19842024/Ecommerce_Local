@@ -91,7 +91,7 @@ export const Reminders = ({clientes}: Props) => {
                         checked={x5}
                         onChange={() => setX5(!x5)}
                     />
-                    Enviar 5 en 5
+                    Enviar de 5 en 5
                 </label>
 
                 <div className="text-sm">
