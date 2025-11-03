@@ -31,7 +31,6 @@ export default function OrgChartInteractive() {
   const [selectEmployee, setSelectEmployee] = useState<Employee | null>(null);
   const dataMemo = treeData ? [treeData] : [];
 
-  // 🌐 Cargar datos iniciales - ✅ ACTUALIZADO
   useEffect(() => {
     const loadOrgChart = async () => {
       try {
@@ -304,137 +303,134 @@ export default function OrgChartInteractive() {
   );
 
   return (
-    <>
-      <div className="h-screen w-full bg-gray-50 text-gray-800 relative">
-        {/* Barra superior */}
-        <div className="p-4 border-b bg-white sticky top-0 z-10 flex flex-wrap items-center gap-1 rounded-md">
-          <div className="text-lg font-semibold mr-auto">Organigrama interactivo</div>
-        </div>
+    <div className="h-screen w-full bg-white text-gray-800 relative">
+      <div className="flex justify-between items-center p-4 border-b border-gray-300 rounded-md">
+        <h1 className="text-2xl font-bold">Organigrama Interactivo</h1>
+      </div>
 
-        {/* Área del árbol */}
-        <div 
-          ref={containerRef} 
-          className="w-full bg-gray-100 relative" 
-          style={{ height: 'calc(100vh - 72px)', minHeight: '400px' }}
-          onClick={(e) => {
-            const target = e.target as Element;
-            if (!target.closest('.floating-buttons')) {
-              setNodePosition(prev => ({ ...prev, visible: false }));
-              setSelectEmployee(null);
-            }
-          }}
-        >
-          {treeData && (
-            <Tree
-              data={dataMemo}
-              translate={translate}
-              zoom={0.80}
-              collapsible
-              zoomable
-              nodeSize={{ x: 300, y: 200 }}
-              separation={{ siblings: 1.2, nonSiblings: 1.5 }}
-              renderCustomNodeElement={renderNode}
-              orientation="vertical"
-              pathFunc="step"
-            />
-          )}
-          
-          {/* Botones flotantes */}
-          {!selectEmployee || !isButtonsVisible ? null : (
-            <div 
-              className="floating-buttons absolute z-30 bg-white border border-cyan-600 rounded-lg shadow-lg p-1 flex gap-1 transition-all duration-200"
-              style={{
-                left: nodePosition.x,
-                top: nodePosition.y,
-                opacity: nodePosition.visible ? 1 : 0,
-                transform: nodePosition.visible 
-                  ? 'translateX(-50%) translateY(0)' 
-                  : 'translateX(-50%) translateY(-10px)',
-                pointerEvents: nodePosition.visible ? 'auto' : 'none'
-              }}
-              onClick={(e) => e.stopPropagation()}
+      {/* Área del árbol */}
+      <div 
+        ref={containerRef} 
+        className="w-full bg-gray-100 relative" 
+        style={{ height: 'calc(100vh - 72px)', minHeight: '400px' }}
+        onClick={(e) => {
+          const target = e.target as Element;
+          if (!target.closest('.floating-buttons')) {
+            setNodePosition(prev => ({ ...prev, visible: false }));
+            setSelectEmployee(null);
+          }
+        }}
+      >
+        {treeData && (
+          <Tree
+            data={dataMemo}
+            translate={translate}
+            zoom={0.80}
+            collapsible
+            zoomable
+            nodeSize={{ x: 300, y: 200 }}
+            separation={{ siblings: 1.2, nonSiblings: 1.5 }}
+            renderCustomNodeElement={renderNode}
+            orientation="vertical"
+            pathFunc="step"
+          />
+        )}
+        
+        {/* Botones flotantes */}
+        {!selectEmployee || !isButtonsVisible ? null : (
+          <div 
+            className="floating-buttons absolute z-30 bg-white border border-cyan-600 rounded-lg shadow-lg p-1 flex gap-1 transition-all duration-200"
+            style={{
+              left: nodePosition.x,
+              top: nodePosition.y,
+              opacity: nodePosition.visible ? 1 : 0,
+              transform: nodePosition.visible 
+                ? 'translateX(-50%) translateY(0)' 
+                : 'translateX(-50%) translateY(-10px)',
+              pointerEvents: nodePosition.visible ? 'auto' : 'none'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="flex items-center gap-1 p-1 rounded-md text-white bg-cyan-600 hover:bg-yellow-500 transition-all text-xs hover:scale-110 transform transition-transform duration-150"
+              onClick={() => openModal("add")}
+              title="Añadir nodo hijo"
             >
-              <button
-                className="flex items-center gap-1 p-1 rounded-md text-white bg-cyan-600 hover:bg-yellow-500 transition-all text-xs hover:scale-110 transform transition-transform duration-150"
-                onClick={() => openModal("add")}
-                title="Añadir nodo hijo"
-              >
-                <SiAwsorganizations size={14} />
-              </button>
-              
-              <button
-                className="flex items-center gap-1 p-1 rounded-md text-white bg-cyan-600 hover:bg-yellow-500 transition-all text-xs hover:scale-110 transform transition-transform duration-150"
-                onClick={() => openModal("edit")}
-                title="Editar nodo"
-              >
-                <FiEdit size={14} />
-              </button>
-              
-              <button
-                className="flex items-center gap-1 p-1 rounded-md text-white bg-cyan-600 hover:bg-yellow-500 transition-all text-xs hover:scale-110 transform transition-transform duration-150"
-                onClick={() => openModal("delete")}
-                title="Eliminar nodo"
-              >
-                <RiDeleteBin2Line size={14} />
-              </button>
-              
-              <button
-                className="flex items-center gap-1 p-1 rounded-md text-white bg-cyan-600 hover:bg-yellow-500 transition-all text-xs hover:scale-110 transform transition-transform duration-150"
-                onClick={() => {openModal("data")}}
-                title="Ver expediente"
-              >
-                <VscFileSymlinkDirectory size={14} />
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Modal de edición/añadir */}
-        {(showModal === "add" || showModal === "edit") && (
-          <Modal
-            className1="fixed inset-0 flex items-center justify-center bg-black/70 z-50 transition-opacity duration-200"
-            className2="bg-gray-900 p-6 rounded-lg shadow-lg text-white space-y-4 w-[90vw] max-w-md transform transition-transform duration-200"
-            closeModal={() => setShowModal("")}
-          >
-            <NodeAction
-              modalAction={showModal}
-              modalEmployee={modalEmployee}
-              onSuccess={handleSave}
-            />
-          </Modal>
-        )}
-
-        {/* Modal de expediente */}
-        {showModal === "data" && selectEmployee && (
-          <Modal
-            className1="fixed inset-0 flex items-center justify-center bg-black/70 z-50 transition-opacity duration-200"
-            className2="relative bg-white rounded-lg shadow-lg max-w-7xl max-h-[100vh] overflow-auto transform transition-transform duration-200"
-            closeModal={() => setShowModal("")}
-          >
-            <div className="p-2 w-fit">
-              <FileGallery 
-                employee={selectEmployee}
-              />
-            </div>
-          </Modal>
-        )}
-
-        {/* Modal de contraseña */}
-        {showModal === "delete" && (
-          <Modal
-            className1="fixed inset-0 flex items-center justify-center bg-black/70 z-50"
-            className2="relative bg-white rounded-lg shadow-lg max-w-md w-full p-6"
-            closeModal={() => setShowModal("")}
-          >
-            <PasswordPrompt
-              onSuccess={() => {
-                deleteNode();
-              }}
-              message="Ingrese la contraseña para eliminar el nodo"
-            />
-          </Modal>
+              <SiAwsorganizations size={14} />
+            </button>
+            
+            <button
+              className="flex items-center gap-1 p-1 rounded-md text-white bg-cyan-600 hover:bg-yellow-500 transition-all text-xs hover:scale-110 transform transition-transform duration-150"
+              onClick={() => openModal("edit")}
+              title="Editar nodo"
+            >
+              <FiEdit size={14} />
+            </button>
+            
+            <button
+              className="flex items-center gap-1 p-1 rounded-md text-white bg-cyan-600 hover:bg-yellow-500 transition-all text-xs hover:scale-110 transform transition-transform duration-150"
+              onClick={() => openModal("delete")}
+              title="Eliminar nodo"
+            >
+              <RiDeleteBin2Line size={14} />
+            </button>
+            
+            <button
+              className="flex items-center gap-1 p-1 rounded-md text-white bg-cyan-600 hover:bg-yellow-500 transition-all text-xs hover:scale-110 transform transition-transform duration-150"
+              onClick={() => {openModal("data")}}
+              title="Ver expediente"
+            >
+              <VscFileSymlinkDirectory size={14} />
+            </button>
+          </div>
         )}
       </div>
-    </>
+
+      {/* Modal de edición/añadir */}
+      {(showModal === "add" || showModal === "edit") && (
+        <Modal
+          className1="fixed inset-0 flex items-center justify-center bg-black/70 z-50 transition-opacity duration-200"
+          className2="bg-gray-900 p-6 rounded-lg shadow-lg text-white space-y-4 w-[90vw] max-w-md transform transition-transform duration-200"
+          closeModal={() => setShowModal("")}
+        >
+          <NodeAction
+            modalAction={showModal}
+            modalEmployee={modalEmployee}
+            onSuccess={handleSave}
+          />
+        </Modal>
+      )}
+
+      {/* Modal de expediente */}
+      {showModal === "data" && selectEmployee && (
+        <Modal
+          className1="fixed inset-0 flex items-center justify-center bg-black/70 z-50 transition-opacity duration-200"
+          className2="relative bg-white rounded-lg shadow-lg max-w-7xl max-h-[100vh] overflow-auto transform transition-transform duration-200"
+          closeModal={() => setShowModal("")}
+        >
+          <div className="p-2 w-fit">
+            <FileGallery 
+              employee={selectEmployee}
+            />
+          </div>
+        </Modal>
+      )}
+
+      {/* Modal de contraseña */}
+      {showModal === "delete" && (
+        <Modal
+          className1="fixed inset-0 flex items-center justify-center bg-black/70 z-50"
+          className2="relative bg-white rounded-lg shadow-lg max-w-md w-full p-6"
+          closeModal={() => setShowModal("")}
+        >
+          <PasswordPrompt
+            onSuccess={() => {
+              deleteNode();
+            }}
+            message="Ingrese la contraseña para eliminar el nodo"
+          />
+        </Modal>
+      )}
+    </div>
   );
 }

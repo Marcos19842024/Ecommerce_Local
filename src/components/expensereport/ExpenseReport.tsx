@@ -387,66 +387,68 @@ export const ExpenseReport = () => {
       ) : (
         <>
           {/* Selección tipo pago / mes / año */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-1 p-2">
-            <div className="flex flex-col">
-              <label htmlFor="tipoPago" className="text-sm font-medium">Tipo de pago</label>
-              <select
-                name="tipoPago"
-                value={selectValues.tipoPago}
-                onChange={handleFormChangeSelect}
-                className={`border ${errores.tipoPago ? "border-red-500" : "border-white"} text-cyan-600 rounded p-1`}
-                >
-                <option value="">Tipo de pago...</option>
-                <option value="Efectivo">Efectivo</option>
-                <option value="TC">Tarjeta Crédito</option>
-                <option value="TD">Tarjeta Débito</option>
-              </select>
-            </div>
-            <div className="flex flex-col">
-              <label htmlFor="mes" className="text-sm font-medium">Mes</label>
-              <select
-                name="mes"
-                value={selectValues.mes}
-                onChange={handleFormChangeSelect}
-                className={`border ${errores.mes ? "border-red-500" : "border-white"} text-cyan-600 rounded p-1`}
-                >
-                <option value="">Mes...</option>
-                {MESES.map((mes) => <option key={mes} value={mes}>{mes}</option>)}
-              </select>
-            </div>
-            <div className="flex flex-col">
-              <label htmlFor="anio" className="text-sm font-medium">Año</label>
-              <select
-                name="anio"
-                value={selectValues.anio ?? ""}
-                onChange={handleFormChangeSelect}
-                className={`border ${errores.anio ? "border-red-500" : "border-white"} text-cyan-600 rounded p-1`}
-                >
-                <option value="">Año...</option>
-                {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
-              </select>
-            </div>
-            <div className="flex flex-col justify-end text-center text-cyan-600">
-              <span>Registros: {rows.length}</span>
-            </div>
-            {!isLoading && (
-              <div className="flex col-span-2 gap-2 w-full items-center justify-end">
-                {rows.length > 0 && (
-                  <button
-                    onClick={() => handleSendReport()}
-                    className="flex w-full items-center gap-2 p-2 rounded-md text-white text-sm transition-all group bg-cyan-600 hover:bg-yellow-500 hover:scale-105"
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-1 mb-2 p-2 bg-white rounded-md w-full">
+              <div className="flex flex-col">
+                <label htmlFor="tipoPago" className="text-sm font-medium">Tipo de pago</label>
+                <select
+                  name="tipoPago"
+                  value={selectValues.tipoPago}
+                  onChange={handleFormChangeSelect}
+                  className={`border ${errores.tipoPago ? "border-red-500" : "border-white"} text-cyan-600 rounded p-1`}
                   >
-                    <CgCalendarNext size={18} color="white"/> Terminar Reporte
-                  </button>
-                )}
-                <button
-                  onClick={() => { resetForm(); handleSelectSave(); }}
-                  className="flex w-full items-center gap-2 p-2 rounded-md text-white text-sm transition-all group bg-cyan-600 hover:bg-yellow-500 hover:scale-105"
-                  >
-                  <TfiLayoutListThumbAlt size={18} color="white"/> Agregar factura
-                </button>
+                  <option value="">Tipo de pago...</option>
+                  <option value="Efectivo">Efectivo</option>
+                  <option value="TC">Tarjeta Crédito</option>
+                  <option value="TD">Tarjeta Débito</option>
+                </select>
               </div>
-            )}
+              <div className="flex flex-col">
+                <label htmlFor="mes" className="text-sm font-medium">Mes</label>
+                <select
+                  name="mes"
+                  value={selectValues.mes}
+                  onChange={handleFormChangeSelect}
+                  className={`border ${errores.mes ? "border-red-500" : "border-white"} text-cyan-600 rounded p-1`}
+                  >
+                  <option value="">Mes...</option>
+                  {MESES.map((mes) => <option key={mes} value={mes}>{mes}</option>)}
+                </select>
+              </div>
+              <div className="flex flex-col">
+                <label htmlFor="anio" className="text-sm font-medium">Año</label>
+                <select
+                  name="anio"
+                  value={selectValues.anio ?? ""}
+                  onChange={handleFormChangeSelect}
+                  className={`border ${errores.anio ? "border-red-500" : "border-white"} text-cyan-600 rounded p-1`}
+                  >
+                  <option value="">Año...</option>
+                  {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </div>
+              <div className="flex flex-col justify-end text-center text-cyan-600">
+                <span>Registros: {rows.length}</span>
+              </div>
+              {!isLoading && (
+                <div className="flex col-span-2 gap-2 w-full items-center justify-end">
+                  {rows.length > 0 && (
+                    <button
+                      onClick={() => handleSendReport()}
+                      className="flex w-full items-center gap-2 p-2 rounded-md text-white text-sm transition-all group bg-cyan-600 hover:bg-yellow-500 hover:scale-105"
+                    >
+                      <CgCalendarNext size={18} color="white"/> Terminar Reporte
+                    </button>
+                  )}
+                  <button
+                    onClick={() => { resetForm(); handleSelectSave(); }}
+                    className="flex w-full items-center gap-2 p-2 rounded-md text-white text-sm transition-all group bg-cyan-600 hover:bg-yellow-500 hover:scale-105"
+                    >
+                    <TfiLayoutListThumbAlt size={18} color="white"/> Agregar factura
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
           {isLoading && <Loader />}
           {/* Modal de formulario */}
