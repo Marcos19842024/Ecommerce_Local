@@ -12,7 +12,7 @@ export const RECORD_DOCUMENTS = {
         "RIBA.pdf",
         "RIT.pdf",
         "Perfil de puesto.pdf",
-        "Evaluacion de desempeño"
+        "Evaluacion de desempeno"
     ],
     excluir: [
         "Acta de nacimiento.pdf",
