@@ -3,6 +3,9 @@ import { prepareClients } from '../helpers';
 import { Cliente, Mascota, Recordatorio } from '../interfaces/reminders.interface';
 import toast from 'react-hot-toast';
 import { createNewMsg } from './messages';
+import { FileWithPreview } from '../interfaces/shared.interface';
+
+export type TypeContent = string | FileWithPreview;
 
 interface Props {
 	e: React.ChangeEvent<HTMLInputElement>;

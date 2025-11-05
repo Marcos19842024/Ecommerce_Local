@@ -4,30 +4,18 @@ import { BsFiletypePdf, BsFiletypeXml } from "react-icons/bs";
 import { CgCalendarNext } from "react-icons/cg";
 import { TfiLayoutListThumbAlt } from "react-icons/tfi";
 import { MdDeleteOutline } from "react-icons/md";
-import toast from "react-hot-toast";
 import { PiAppWindowBold } from "react-icons/pi";
 import { TfiPrinter } from "react-icons/tfi";
 import { pdf, PDFViewer } from "@react-pdf/renderer";
 import { formatString } from "../../helpers";
 import { FormValues, SelectValues } from "../../interfaces/report.interface";
-import FilePreviewModal from "./FilePreviewModal";
 import { Loader } from "../shared/Loader";
 import { PdfExpense } from "./PdfExpense";
-import { apiService } from "../../services/api"; // ✅ Importar apiService
-import { runtimeConfig } from "../../services/config"; // ✅ Importar runtimeConfig
-
-const currencyFormatter = new Intl.NumberFormat("es-MX", {
-  style: "currency",
-  currency: "MXN",
-});
-
-// Constantes globales
-const currentYear = new Date().getFullYear();
-const YEARS = [currentYear - 1, currentYear];
-const MESES = [
-  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
-];
+import { apiService } from "../../services/api";
+import { runtimeConfig } from "../../services/config";
+import toast from "react-hot-toast";
+import FilePreviewModal from "./FilePreviewModal";
+import { currencyFormatter, MESES, YEARS } from "../../utils/expense.report";
 
 export const ExpenseReport = () => {
   const [showPdf, setShowPdf] = useState(false);

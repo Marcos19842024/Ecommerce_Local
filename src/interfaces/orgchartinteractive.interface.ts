@@ -1,3 +1,4 @@
+import { EvaluationSection } from "../utils/orgchartinteractive";
 import { FileWithPreview } from "./shared.interface";
 
 export interface OrgNode {
@@ -154,7 +155,6 @@ export interface JobProfileData {
 }
 
 export interface EvaluationData {
-  // Información general
   ciudad: string;
   fecha: {
     dia: string;
@@ -164,8 +164,6 @@ export interface EvaluationData {
   nombreTrabajador: string;
   area: string;
   puesto: string;
-  
-  // Evaluación
   actitudTrabajo: {
     interesErrores: number;
     aprendizaje: number;
@@ -200,4 +198,15 @@ export interface EvaluationData {
   // Decisión del contrato
   decisionContrato: 'prorroga' | 'indefinido' | 'termina';
   nombreEvaluador: string;
+}
+
+export interface RecordStatus {
+  [key: string]: boolean;
+}
+
+export interface RadioGroupProps {
+  section: EvaluationSection;
+  field: string;
+  value: number;
+  label: string;
 }

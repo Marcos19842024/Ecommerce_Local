@@ -1,17 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import toast from 'react-hot-toast';
-import { EvaluationData, StaffRecruitmentProps } from '../../../interfaces/orgchartinteractive.interface';
+import { EvaluationData, RadioGroupProps, StaffRecruitmentProps } from '../../../interfaces/orgchartinteractive.interface';
 import { pdf } from '@react-pdf/renderer';
-import PdfPerformanceEvaluation from '../PdfDocuments/PdfPerformanceEvaluation';
 import { apiService } from '../../../services/api';
-
-type EvaluationSection = | 'actitudTrabajo' | 'cooperacion' | 'calidadTrabajo' | 'relaciones' | 'asistencia';
-interface RadioGroupProps {
-    section: EvaluationSection;
-    field: string;
-    value: number;
-    label: string;
-}
+import { EvaluationSection } from '../../../utils/orgchartinteractive';
+import toast from 'react-hot-toast';
+import PdfPerformanceEvaluation from '../PdfDocuments/PdfPerformanceEvaluation';
 
 const PerformanceEvaluation: React.FC<StaffRecruitmentProps> = ({ employee, onClose }) => {
     const [isLoading, setIsLoading] = useState(true);

@@ -1,39 +1,10 @@
 import { pdf } from "@react-pdf/renderer";
-import { Employee } from "../../../interfaces/orgchartinteractive.interface";
+import { Employee, RecordStatus } from "../../../interfaces/orgchartinteractive.interface";
 import { FileWithPreview } from "../../../interfaces/shared.interface";
 import toast from "react-hot-toast";
 import { PdfEmployeeRecord } from "../PdfDocuments/PdfEmployeeRecord";
 import { apiService } from "../../../services/api";
-
-interface RecordStatus {
-    [key: string]: boolean;
-}
-
-const RECORD_DOCUMENTS = {
-    incluir: [
-        "Caratula.pdf",
-        "Alta del personal.pdf",
-        "Contrato laboral.pdf",
-        "APDN.pdf",
-        "Acuerdo de confidencialidad.pdf",
-        "Codigo de etica.pdf",
-        "RIBA.pdf",
-        "RIT.pdf",
-        "Perfil de puesto.pdf",
-        "Evaluacion de desempeño"
-    ],
-    excluir: [
-        "Acta de nacimiento.pdf",
-        "Identificacion oficial.pdf",
-        "Comprobante de domicilio.pdf",
-        "CURP.pdf",
-        "NSS.pdf",
-        "RFC.pdf",
-        "Solicitud de empleo.pdf",
-        "Certificado de estudios.pdf",
-        "Cedula profesional.pdf"
-    ]
-};
+import { RECORD_DOCUMENTS } from "../../../utils/orgchartinteractive";
 
 export const EmployeeRecord = async (
     files: FileWithPreview[],

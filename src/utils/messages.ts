@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
-import { MessageBubble, TypeContent } from "../interfaces/reminders.interface";
+import { MessageBubble } from "../interfaces/reminders.interface";
+import { TypeContent } from "./clients";
 
 export const createNewMsg = (message: TypeContent): MessageBubble => ({
   id: uuidv4(),

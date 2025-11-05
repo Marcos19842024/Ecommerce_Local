@@ -4,18 +4,15 @@ import { PiAppWindowBold, PiPaperclipBold } from "react-icons/pi";
 import { TfiPrinter } from "react-icons/tfi";
 import { RiUserSearchLine } from "react-icons/ri";
 import { useReminders } from "../../hooks/useReminders";
-import { Cliente, TypeContent } from "../../interfaces/reminders.interface";
 import { getMascotas } from "../../utils/messages";
 import { MessageBubbles } from "./MessageBubble";
 import { Loader } from "../shared/Loader";
 import { PDFViewer } from "@react-pdf/renderer";
 import { PdfReminders } from "./PdfReminders";
+import { RemindersProps } from "../../interfaces/reminders.interface";
+import { TypeContent } from "../../utils/clients";
 
-interface Props {
-    clientes: Cliente[];
-}
-
-export const Reminders = ({clientes}: Props) => {
+export const Reminders = ({clientes}: RemindersProps) => {
     if (!clientes.length) {
         return (
             <div className="flex flex-col items-center justify-center h-full">

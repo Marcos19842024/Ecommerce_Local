@@ -15,3 +15,7 @@ export interface Fechas {
     fecha: string;
     clientes: Cliente[];
 }
+
+export interface TransportProps {
+    fechas: Fechas[];
+}

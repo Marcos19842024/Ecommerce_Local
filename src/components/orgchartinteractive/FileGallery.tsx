@@ -7,6 +7,12 @@ import { Employee } from '../../interfaces/orgchartinteractive.interface';
 import { MdOutlineRemoveRedEye } from 'react-icons/md';
 import { IoCloseOutline } from 'react-icons/io5';
 import { EmployeeRecord } from './Documents/EmployeeRecord';
+import { ConfidentialityAgreement } from './Documents/ConfidentialityAgreement';
+import { CodeOfEthics } from './Documents/CodeOfEthics';
+import { RIBA } from './Documents/RIBA';
+import { RIT } from './Documents/RIT';
+import { JobProfile } from './Documents/JobProfile';
+import { INITIAL_FILES, RECORD_DOCUMENTS } from '../../utils/orgchartinteractive';
 import Modal from '../shared/Modal';
 import toast from 'react-hot-toast';
 import PasswordPrompt from '../shared/PasswordPrompt';
@@ -14,42 +20,11 @@ import StaffRecruitment from './Documents/StaffRecruitment';
 import EmployeementContract from './Documents/EmploymentContract';
 import APDN from './Documents/APDN';
 import PerformanceEvaluation from './Documents/PerformanceEvaluation';
-import { ConfidentialityAgreement } from './Documents/ConfidentialityAgreement';
-import { CodeOfEthics } from './Documents/CodeOfEthics';
-import { RIBA } from './Documents/RIBA';
-import { RIT } from './Documents/RIT';
-import { JobProfile } from './Documents/JobProfile';
 
 // ✅ FUNCIÓN HELPER PARA GENERAR IDs ÚNICOS
 const generateUniqueId = (): string => {
   return `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 };
-
-const RECORD_DOCUMENTS = [
-  "Caratula.pdf",
-  "Alta del personal.pdf",
-  "Contrato laboral.pdf",
-  "APDN.pdf",
-  "Acuerdo de confidencialidad.pdf",
-  "Codigo de etica.pdf",
-  "RIBA.pdf",
-  "RIT.pdf",
-  "Perfil de puesto.pdf",
-  "Evaluacion de desempeño.pdf"
-];
-
-const INITIAL_FILES: FileWithPreview[] = [
-  {
-    id: '0',
-    name: 'Documento importante',
-    url: '/qr.png',
-    type: 'pdf',
-    size: '4.7 MB',
-    icon: 'fa fa-file-pdf-o',
-    color: 'red',
-    uploadDate: '2023-06-21',
-  }
-];
 
 const FileGallery = ({employee}: {employee: Employee}) => {
   const { name, alias, puesto, area } = employee;
@@ -343,7 +318,7 @@ const FileGallery = ({employee}: {employee: Employee}) => {
               className="text-cyan-600 rounded p-1 border"
             >
               <option value="">Selecciona el tipo de documento</option>
-              {RECORD_DOCUMENTS.map((documento) => (
+              {RECORD_DOCUMENTS.incluir.map((documento) => (
                 <option key={documento} value={documento}>{documento}</option>
               ))}
             </select>

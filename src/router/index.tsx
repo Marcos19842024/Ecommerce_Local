@@ -5,6 +5,7 @@ import { TransportPage } from '../Pages/TransportPage';
 import { ExpenseReportPage } from '../Pages/ExpenseReportPage';
 import { CheckListPage } from '../Pages/CheckListPage';
 import { OrgChartInteractivePage } from '../Pages/OrgChartInteractivePage';
+import { DebtorsPage } from '../Pages/DebtorsPage';
 
 export const router = createBrowserRouter([
 	{
@@ -34,6 +35,10 @@ export const router = createBrowserRouter([
 			{
 				path: 'expedientes',
 				element: <OrgChartInteractivePage />,
+			},
+			{
+				path: 'Deudores',
+				element: <DebtorsPage />,
 			},
 		],
 	}

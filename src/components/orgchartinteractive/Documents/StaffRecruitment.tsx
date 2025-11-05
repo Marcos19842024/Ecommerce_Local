@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { PersonalFormData, StaffRecruitmentProps } from '../../../interfaces/orgchartinteractive.interface';
 import { pdf } from '@react-pdf/renderer';
 import { PdfStaffRecruitment } from '../PdfDocuments/PdfStaffRecruitment';
-import toast from 'react-hot-toast';
 import { apiService } from '../../../services/api';
 
 const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {

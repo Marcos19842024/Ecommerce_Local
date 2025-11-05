@@ -14,3 +14,8 @@ export type SelectValues = {
     mes: string;
     anio: number | null;
 };
+
+export interface FilePreviewModalProps {
+  url: string;
+  type: "pdf" | "xml";
+}

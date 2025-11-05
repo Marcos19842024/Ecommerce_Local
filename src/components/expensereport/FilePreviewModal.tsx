@@ -1,11 +1,7 @@
 // src/components/expensereport/FilePreviewModal.tsx
 import { useState, useEffect } from "react";
 import { apiService } from "../../services/api";
-
-interface FilePreviewModalProps {
-  url: string;
-  type: "pdf" | "xml";
-}
+import { FilePreviewModalProps } from "../../interfaces/report.interface";
 
 export const FilePreviewModal = ({ url, type }: FilePreviewModalProps) => {
   const [fileContent, setFileContent] = useState<string>("");

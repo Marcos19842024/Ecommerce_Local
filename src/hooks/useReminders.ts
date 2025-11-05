@@ -26,22 +26,14 @@ export const useReminders = ({clientes}: RemindersProps) => {
 
       // ✅ Usar apiService para subir archivos - pero necesitamos parsear la respuesta
       const response = await apiService.uploadWhatsAppFile(formData);
-        
-      console.log('=== UPLOAD RESPONSE DEBUG ===');
-      console.log('Full response:', response);
       
       // Si la respuesta es un objeto Response de fetch, necesitamos parsearla
       let responseData;
       if (response instanceof Response) {
-        console.log('Response is a Fetch Response object, parsing JSON...');
         responseData = await response.json();
-        console.log('Parsed response data:', responseData);
       } else {
         responseData = response;
       }
-        
-      console.log('Response data to process:', responseData);
-      console.log('=== END DEBUG ===');
 
       // Función para generar IDs únicos (compatible con todos los navegadores)
       const generateId = () => {
@@ -104,7 +96,7 @@ export const useReminders = ({clientes}: RemindersProps) => {
           const ext = filename.split(".").pop()?.toLowerCase() || "";
           const [icon, color] = getFileTypes(ext);
           return {
-            id: generateId(), // Usar nuestra función compatible
+            id: generateId(),
             name: filename,
             type: ext,
             icon,
@@ -143,7 +135,7 @@ export const useReminders = ({clientes}: RemindersProps) => {
             type: ext,
             icon,
             color,
-            url: URL.createObjectURL(file), // Usar URL temporal del archivo local
+            url: URL.createObjectURL(file),
           };
         });
             
@@ -165,7 +157,6 @@ export const useReminders = ({clientes}: RemindersProps) => {
         toast.success(`Archivos preparados localmente: ${fileList.length} archivo(s)`);
       }
     } catch (error) {
-      console.error('Error uploading files:', error);
       toast.error("Error al subir los archivos");
     } finally {
       setLoader(false);
@@ -185,13 +176,9 @@ export const useReminders = ({clientes}: RemindersProps) => {
         phone: `521${cliente.telefono}`,
         pathtofiles: messagesFiles.map((file) => (file.message as FileWithPreview).name),
       };
-
-      console.log('Sending data:', data); // Para debugging
       
       // ✅ Usar apiService para enviar mensajes de WhatsApp
       const response = await apiService.sendWhatsAppMessage(center, cel, data);
-      
-      console.log('Send response:', response); // Para debugging
       
       if (!response.err) {
         cliente.status = true;
@@ -201,7 +188,6 @@ export const useReminders = ({clientes}: RemindersProps) => {
         toast.error(response.statusText || response.message || "Error al enviar el mensaje");
       }
     } catch (error) {
-      console.error('Error sending message:', error);
       toast.error("Error en la respuesta del servidor");
     } finally {
       setLoader(false);

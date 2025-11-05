@@ -3,13 +3,9 @@ import { TfiPrinter } from "react-icons/tfi";
 import { FiEdit } from "react-icons/fi";
 import { useEffect, useState } from "react";
 import { MdDeleteOutline } from "react-icons/md";
-import { Cliente, Fechas, Mascota } from "../../interfaces/transport.interface";
+import { Cliente, Fechas, Mascota, TransportProps } from "../../interfaces/transport.interface";
 import { PDFViewer } from "@react-pdf/renderer";
 import { PdfTransport } from "./PdfTransport";
-
-interface TransportProps {
-    fechas: Fechas[];
-}
 
 export const Transport = ({ fechas }: TransportProps) => {
 

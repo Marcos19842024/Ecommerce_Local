@@ -1,4 +1,4 @@
-import { FileWithPreview } from "./shared.interface";
+import { TypeContent } from "../utils/clients";
 
 export interface Tipo {
     nombre: string;
@@ -22,8 +22,6 @@ export interface Cliente {
     mensajes: MessageBubble[];
     status: boolean;
 }
-
-export type TypeContent = string | FileWithPreview;
 
 export interface MessageBubble {
     id: string;

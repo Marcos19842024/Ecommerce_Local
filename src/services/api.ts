@@ -73,7 +73,101 @@ class ApiService {
         });
     }
 
-    // Métodos específicos para checklist
+    // Métodos para upload de archivos (FormData)
+    async uploadFile(endpoint: string, formData: FormData): Promise<any> {
+        await this.ensureConfigLoaded();
+        const url = `${runtimeConfig.getApiUrl()}${endpoint}`;
+        
+        const response = await fetch(url, {
+            method: 'POST',
+            body: formData,
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        return response;
+    }
+
+    // Método para fetch directo (para casos especiales como FilePreviewModal)
+    async fetchDirect(url: string, options: RequestInit = {}): Promise<Response> {
+        await this.ensureConfigLoaded();
+        const fullUrl = url.startsWith('http') ? url : `${runtimeConfig.getApiUrl()}${url}`;
+        
+        const response = await fetch(fullUrl, options);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        return response;
+    }
+
+    // =============================================
+    // 🔥 MÉTODOS PARA REMINDERS
+    // =============================================
+
+    async startWhatsApp(): Promise<any> {
+        return this.post('/wwebjs/start', {});
+    }
+
+    async getWhatsAppStatus(): Promise<any> {
+        return this.get(`/wwebjs/status/${center}/${cel}`);
+    }
+
+    async getWhatsAppContacts(): Promise<any> {
+        return this.get('/wwebjs/contact');
+    }
+
+    async sendWhatsAppMessage(center: string, cel: string, data: any): Promise<any> {
+        return this.post(`/wwebjs/send/${center}/${cel}`, data);
+    }
+
+    async uploadWhatsAppFile(formData: FormData): Promise<any> {
+        return this.uploadFile('/wwebjs/upload', formData);
+    }
+
+    async deleteWhatsAppFile(fileName: string): Promise<any> {
+        return this.delete(`/wwebjs/${fileName}`);
+    }
+
+    // =============================================
+    // 🔥 MÉTODOS PARA EXPENSEREPORT
+    // =============================================
+
+    async getInvoices(): Promise<any> {
+        return this.get('/invoices');
+    }
+
+    async uploadInvoice(formData: FormData): Promise<any> {
+        return this.uploadFile('/invoices', formData);
+    }
+
+    async deleteInvoice(fecha: string, proveedor: string, factura: string): Promise<any> {
+        return this.delete(`/invoices/${fecha}/${proveedor}/${factura}`);
+    }
+
+    async downloadInvoiceZip(formData: FormData): Promise<Response> {
+        await this.ensureConfigLoaded();
+        const url = `${runtimeConfig.getApiUrl()}/invoices/download-send-mail-zip`;
+        
+        const response = await fetch(url, {
+            method: 'POST',
+            body: formData,
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        return response;
+    }
+
+    // =============================================
+    // 🔥 MÉTODOS PARA CHECKLIST
+    // =============================================
+
     async saveChecklist(formData: FormData): Promise<any> {
         await this.ensureConfigLoaded();
         const url = `${runtimeConfig.getApiUrl()}/checklist/save`;
@@ -98,24 +192,10 @@ class ApiService {
         return this.get(`/checklist/file/${encodeURIComponent(filename)}`);
     }
 
-    // Métodos para upload de archivos (FormData)
-    async uploadFile(endpoint: string, formData: FormData): Promise<any> {
-        await this.ensureConfigLoaded();
-        const url = `${runtimeConfig.getApiUrl()}${endpoint}`;
-        
-        const response = await fetch(url, {
-            method: 'POST',
-            body: formData,
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        return response;
-    }
-
-    // Métodos específicos para orgchart
+    // =============================================
+    // 🔥 MÉTODOS PARA ORGCHARTINTERACTIVE
+    // =============================================
+    
     async getOrgChart(): Promise<any> {
         return this.get('/orgchart');
     }
@@ -176,72 +256,64 @@ class ApiService {
         }
     }
 
-    // Métodos para invoices
-    async getInvoices(): Promise<any> {
-        return this.get('/invoices');
+    // =============================================
+    // 🔥 MÉTODOS PARA DEBTORS
+    // =============================================
+
+    // 👥 CLIENTES
+    async getDebtorsClientes(): Promise<any> {
+        return this.get('/debtors/clientes');
     }
 
-    async uploadInvoice(formData: FormData): Promise<any> {
-        return this.uploadFile('/invoices', formData);
+    async getDebtorsClienteById(id: string): Promise<any> {
+        return this.get(`/debtors/clientes/${id}`);
     }
 
-    async deleteInvoice(fecha: string, proveedor: string, factura: string): Promise<any> {
-        return this.delete(`/invoices/${fecha}/${proveedor}/${factura}`);
+    async getDebtorsClienteByNombre(nombre: string): Promise<any> {
+        return this.get(`/debtors/clientes/buscar?nombre=${encodeURIComponent(nombre)}`);
     }
 
-    async downloadInvoiceZip(formData: FormData): Promise<Response> {
-        await this.ensureConfigLoaded();
-        const url = `${runtimeConfig.getApiUrl()}/invoices/download-send-mail-zip`;
-        
-        const response = await fetch(url, {
-            method: 'POST',
-            body: formData,
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+    async createDebtorsCliente(clienteData: any): Promise<any> {
+        return this.post('/debtors/clientes', clienteData);
+    }
+
+    async updateDebtorsCliente(id: string, clienteData: any): Promise<any> {
+        return this.put(`/debtors/clientes/${id}`, clienteData);
+    }
+
+    async deleteDebtorsCliente(id: string): Promise<any> {
+        return this.delete(`/debtors/clientes/${id}`);
+    }
+
+    // 🐾 MASCOTAS
+    async addDebtorsMascota(clienteId: string, mascotaData: { nombre: string; especie: string }): Promise<any> {
+        return this.post(`/debtors/clientes/${clienteId}/mascotas`, mascotaData);
+    }
+
+    async deleteDebtorsMascota(clienteId: string, mascotaId: string): Promise<any> {
+        return this.delete(`/debtors/clientes/${clienteId}/mascotas/${mascotaId}`);
+    }
+
+    // 💰 MOVIMIENTOS
+    async addDebtorsMovimiento(clienteId: string, movimientoData: any): Promise<any> {
+        return this.post(`/debtors/clientes/${clienteId}/movimientos`, movimientoData);
+    }
+
+    async getDebtorsMovimientos(clienteId: string, año?: number, mes?: number): Promise<any> {
+        let url = `/debtors/clientes/${clienteId}/movimientos`;
+        if (año && mes) {
+            url += `?año=${año}&mes=${mes}`;
         }
-        
-        return response;
+        return this.get(url);
     }
 
-    // Métodos para WhatsApp
-    async startWhatsApp(): Promise<any> {
-        return this.post('/wwebjs/start', {});
+    // 📊 REPORTES
+    async getDebtorsReporteTipoCliente(tipoCliente: string, año: number, mes: number): Promise<any> {
+        return this.get(`/debtors/reportes/tipo-cliente?tipo=${tipoCliente}&año=${año}&mes=${mes}`);
     }
 
-    async getWhatsAppStatus(): Promise<any> {
-        return this.get(`/wwebjs/status/${center}/${cel}`);
-    }
-
-    async getWhatsAppContacts(): Promise<any> {
-        return this.get('/wwebjs/contact');
-    }
-
-    async sendWhatsAppMessage(center: string, cel: string, data: any): Promise<any> {
-        return this.post(`/wwebjs/send/${center}/${cel}`, data);
-    }
-
-    async uploadWhatsAppFile(formData: FormData): Promise<any> {
-        return this.uploadFile('/wwebjs/upload', formData);
-    }
-
-    async deleteWhatsAppFile(fileName: string): Promise<any> {
-        return this.delete(`/wwebjs/${fileName}`);
-    }
-
-    // Método para fetch directo (para casos especiales como FilePreviewModal)
-    async fetchDirect(url: string, options: RequestInit = {}): Promise<Response> {
-        await this.ensureConfigLoaded();
-        const fullUrl = url.startsWith('http') ? url : `${runtimeConfig.getApiUrl()}${url}`;
-        
-        const response = await fetch(fullUrl, options);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        return response;
+    async getDebtorsMetricasGlobales(año: number, mes: number): Promise<any> {
+        return this.get(`/debtors/reportes/metricas-globales?año=${año}&mes=${mes}`);
     }
 }
 
