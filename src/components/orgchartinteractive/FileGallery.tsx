@@ -504,7 +504,7 @@ const FileGallery = ({employee}: {employee: Employee}) => {
               onClose={handleCloseForm}
             />
           )}
-          {showComponent === "Evaluacion de desempeño.pdf" && (
+          {showComponent === "Evaluacion de desempeno.pdf" && (
             <PerformanceEvaluation
               employee={employee}
               onClose={handleCloseForm}
