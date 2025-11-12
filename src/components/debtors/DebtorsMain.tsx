@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import readXlsxFile from 'read-excel-file';
 import { apiService } from '../../services/api';
 import toast from 'react-hot-toast';
+import Modal from '../shared/Modal';
 
 interface Cliente {
   id: string;
@@ -108,6 +109,41 @@ export const DebtorsMain: React.FC = () => {
         return hasVeryHighValues;
     };
 
+
+    const formatDate = (dateString: string): string => {
+        if (!dateString || dateString.trim() === '') return '-';
+        
+        try {
+            // Si ya es una fecha en formato legible, intentar parsearla
+            let date: Date;
+            
+            // Verificar si es un número (fecha de Excel)
+            if (!isNaN(Number(dateString))) {
+                // Fecha de Excel (días desde 1900-01-01)
+                const excelDate = parseInt(dateString);
+                date = new Date((excelDate - 25569) * 86400 * 1000);
+            } else {
+                // Intentar parsear como fecha normal
+                date = new Date(dateString);
+            }
+            
+            // Verificar si la fecha es válida
+            if (isNaN(date.getTime())) {
+                return dateString; // Devolver el string original si no se puede parsear
+            }
+            
+            // Formatear la fecha
+            const day = date.getDate().toString().padStart(2, '0');
+            const month = date.toLocaleString('es-ES', { month: 'short' }).toLowerCase();
+            const year = date.getFullYear();
+            
+            return `${day}/${month}/${year}`;
+        } catch (error) {
+            // Si hay algún error, devolver el string original
+            return dateString;
+        }
+    };
+
     // Manejar carga de archivo Excel
     const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -168,6 +204,9 @@ export const DebtorsMain: React.FC = () => {
                         if (targetCol === 'totalImporte' || targetCol === 'cobradoLinea' || targetCol === 'deuda') {
                             rowData[targetCol] = typeof value === 'number' ? value : 
                             typeof value === 'string' ? parseFloat(value.toString().replace(',', '.')) || 0 : 0;
+                        } else if (targetCol === 'fechaAlbaran') {
+                            // Formatear la fecha
+                            rowData[targetCol] = formatDate(value?.toString() || '');
                         } else {
                             rowData[targetCol] = value?.toString() || '';
                         }
@@ -493,12 +532,17 @@ export const DebtorsMain: React.FC = () => {
             </div>
 
             {/* Contenido desplazable */}
-            <div className="mt-4">
-                {/* Navegación por pestañas */}
-                <div className="bg-white rounded-lg shadow mb-6">
-                    <div className="p-6">
-                        {activeTab === 'Clientes' && (
-                            <div>
+            {/* Navegación por pestañas */}
+            <div className="bg-white rounded-lg shadow mb-6">
+                {activeTab === 'Clientes' && (
+                    <div>
+                        {/* Tabla de clientes */}
+                        {clientes.length === 0 ? (
+                            <div className="text-center py-8 text-gray-500">
+                                No se encontraron clientes
+                            </div>
+                        ) : (
+                            <>
                                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                                     <div className="flex-1 max-w-md">
                                         <input
@@ -510,161 +554,161 @@ export const DebtorsMain: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {/* Tabla de clientes */}
-                                {clientes.length === 0 ? (
-                                    <div className="text-center py-8 text-gray-500">
-                                        No se encontraron clientes
-                                    </div>
-                                ) : (
-                                    <div className="overflow-hidden border border-gray-200 rounded-lg">
-                                        <table className="min-w-full divide-y divide-gray-200">
-                                            <thead className="bg-gray-50">
-                                                <tr>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Cliente
-                                                    </th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Tipo
-                                                    </th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Límite Crédito
-                                                    </th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Saldo Actual
-                                                    </th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Estado
-                                                    </th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Acciones
-                                                    </th>
+                                <div className="overflow-hidden border border-gray-200 rounded-lg">
+                                    <table className="min-w-full divide-y divide-gray-200">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Cliente
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Tipo
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Límite Crédito
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Saldo Actual
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Estado
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Acciones
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white divide-y divide-gray-200">
+                                            {clientes.map((cliente) => (
+                                                <tr key={cliente.id} className="hover:bg-gray-50 transition duration-150">
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="text-sm font-medium text-gray-900">{cliente.nombre}</div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                                            {cliente.tipoCliente}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                        ${cliente.limiteCredito.toLocaleString()}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                        ${cliente.saldoActual.toLocaleString()}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                                            cliente.estado === 'activo' ? 'bg-green-100 text-green-800' :
+                                                            cliente.estado === 'moroso' ? 'bg-red-100 text-red-800' :
+                                                            'bg-gray-100 text-gray-800'
+                                                        }`}>
+                                                            {cliente.estado}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                                                        <button
+                                                            onClick={() => handleEditCliente(cliente)}
+                                                            className="text-blue-600 hover:text-blue-900 transition duration-150"
+                                                        >
+                                                            Editar
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteCliente(cliente.id)}
+                                                            className="text-red-600 hover:text-red-900 transition duration-150"
+                                                        >
+                                                            Eliminar
+                                                        </button>
+                                                    </td>
                                                 </tr>
-                                            </thead>
-                                            <tbody className="bg-white divide-y divide-gray-200">
-                                                {clientes.map((cliente) => (
-                                                    <tr key={cliente.id} className="hover:bg-gray-50 transition duration-150">
-                                                        <td className="px-6 py-4 whitespace-nowrap">
-                                                            <div className="text-sm font-medium text-gray-900">{cliente.nombre}</div>
-                                                        </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap">
-                                                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                                                                {cliente.tipoCliente}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                            ${cliente.limiteCredito.toLocaleString()}
-                                                        </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                            ${cliente.saldoActual.toLocaleString()}
-                                                        </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap">
-                                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                                                cliente.estado === 'activo' ? 'bg-green-100 text-green-800' :
-                                                                cliente.estado === 'moroso' ? 'bg-red-100 text-red-800' :
-                                                                'bg-gray-100 text-gray-800'
-                                                            }`}>
-                                                                {cliente.estado}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                                                            <button
-                                                                onClick={() => handleEditCliente(cliente)}
-                                                                className="text-blue-600 hover:text-blue-900 transition duration-150"
-                                                            >
-                                                                Editar
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleDeleteCliente(cliente.id)}
-                                                                className="text-red-600 hover:text-red-900 transition duration-150"
-                                                            >
-                                                                Eliminar
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                )}
-                            </div>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </>
                         )}
+                    </div>
+                )}
 
-                        {activeTab === 'Excel' && (
-                            <div>
-                                {excelData.length === 0 ? (
-                                    <div className="text-center py-8 text-gray-500">
-                                        <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                        </svg>
-                                        <h3 className="mt-2 text-sm font-medium text-gray-900">Sin datos de Excel</h3>
-                                        <p className="mt-1 text-sm text-gray-500">Sube un archivo Excel para ver los datos aquí.</p>
-                                    </div>
-                                ) : (
-                                    <div className="overflow-x-auto border border-gray-200 rounded-lg">
-                                        <table className="min-w-full bg-white">
-                                            <thead className="bg-gray-50">
-                                                <tr>
-                                                    <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Fecha Albarán
-                                                    </th>
-                                                    <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Cliente
-                                                    </th>
-                                                    <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Total Importe
-                                                    </th>
-                                                    <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Cobrado
-                                                    </th>
-                                                    <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Deuda
-                                                    </th>
-                                                    <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Paciente
-                                                    </th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-gray-200">
-                                                {excelData.map((row, index) => (
-                                                    <tr key={index} className="hover:bg-gray-50 transition duration-150">
-                                                        <td className="px-4 py-3 text-sm text-gray-900">
-                                                            {row.fechaAlbaran || '-'}
-                                                        </td>
-                                                        <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                                                            {row.clienteNombre || 'Sin nombre'}
-                                                        </td>
-                                                        <td className="px-4 py-3 text-sm text-gray-900">
-                                                            ${row.totalImporte.toLocaleString()}
-                                                        </td>
-                                                        <td className="px-4 py-3 text-sm text-green-600 font-medium">
-                                                            ${row.cobradoLinea.toLocaleString()}
-                                                        </td>
-                                                        <td className="px-4 py-3 text-sm text-red-600 font-medium">
-                                                            ${row.deuda.toLocaleString()}
-                                                        </td>
-                                                        <td className="px-4 py-3 text-sm text-gray-900">
-                                                            {row.paciente || '-'}
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                )}
+                {activeTab === 'Excel' && (
+                    <div>
+                        {excelData.length === 0 ? (
+                            <div className="text-center py-8 text-gray-500">
+                                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                <h3 className="mt-2 text-sm font-medium text-gray-900">Sin datos de Excel</h3>
+                                <p className="mt-1 text-sm text-gray-500">Sube un archivo Excel para ver los datos aquí.</p>
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                                <table className="min-w-full bg-white">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Fecha Albarán
+                                            </th>
+                                            <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Cliente
+                                            </th>
+                                            <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Total Importe
+                                            </th>
+                                            <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Cobrado
+                                            </th>
+                                            <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Deuda
+                                            </th>
+                                            <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Paciente
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-200">
+                                        {excelData.map((row, index) => (
+                                            <tr key={index} className="hover:bg-gray-50 transition duration-150">
+                                                <td className="px-4 py-3 text-sm text-gray-900">
+                                                    {row.fechaAlbaran || '-'}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                                                    {row.clienteNombre || 'Sin nombre'}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-900">
+                                                    ${row.totalImporte.toLocaleString()}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-green-600 font-medium">
+                                                    ${row.cobradoLinea.toLocaleString()}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-red-600 font-medium">
+                                                    ${row.deuda.toLocaleString()}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-900">
+                                                    {row.paciente || '-'}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
                         )}
                     </div>
-                </div>
+                )}
             </div>
 
             {/* Formulario de cliente (modal) */}
             {showForm && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                <Modal
+                    className1="fixed inset-0 flex items-center justify-center bg-black/70 z-50"
+                    className2="relative bg-white rounded-lg shadow-lg max-w-md w-full p-6"
+                    closeModal={() => setShowForm(false)}
+                >
                     <div className="bg-white rounded-lg p-6 w-full max-w-md">
                         <h2 className="text-xl font-bold mb-4">
                             {selectedCliente ? 'Editar Cliente' : 'Nuevo Cliente'}
                         </h2>
-                        <form onSubmit={selectedCliente ? handleUpdateCliente : handleCreateCliente}>
+                        <form onSubmit={() => {
+                            selectedCliente ? handleUpdateCliente : handleCreateCliente;
+                            setShowForm(false)
+                        }}>
                             <div className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Nombre *</label>
@@ -731,13 +775,6 @@ export const DebtorsMain: React.FC = () => {
                             </div>
                             <div className="flex justify-end space-x-3 mt-6">
                                 <button
-                                    type="button"
-                                    onClick={() => setShowForm(false)}
-                                    className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 transition duration-200"
-                                >
-                                    Cancelar
-                                </button>
-                                <button
                                     type="submit"
                                     className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200"
                                 >
@@ -746,7 +783,7 @@ export const DebtorsMain: React.FC = () => {
                             </div>
                         </form>
                     </div>
-                </div>
+                </Modal>
             )}
         </div>
     );
