@@ -210,3 +210,20 @@ export interface RadioGroupProps {
   value: number;
   label: string;
 }
+
+export interface Documents {
+  id: string;
+  name: string;
+  url: string;
+  type: string;
+  size: string;
+  icon: string;
+  color: string;
+  uploadDate: string;
+  folder: string;
+  folderPath: string;
+}
+
+export interface FolderState {
+  [key: string]: boolean;
+}

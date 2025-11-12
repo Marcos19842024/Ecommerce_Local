@@ -257,6 +257,57 @@ class ApiService {
     }
 
     // =============================================
+    // 🔥 MÉTODOS PARA MYDOCUMENTS
+    // =============================================
+
+    async getMyDocumentsFiles(folderName: string): Promise<any> {
+        try {
+            // Usar encodeURIComponent para manejar caracteres especiales en los nombres de carpetas
+            const encodedFolderName = encodeURIComponent(folderName);
+            const response = await this.get(`/orgchart/mydocuments/${encodedFolderName}`);
+            return response;
+        } catch (error) {
+            console.error(`Error loading documents from folder ${folderName}:`, error);
+            throw error;
+        }
+    }
+
+    async getMyDocumentFile(folderName: string, fileName: string): Promise<any> {
+        try {
+            const encodedFolderName = encodeURIComponent(folderName);
+            const encodedFileName = encodeURIComponent(fileName);
+            const response = await this.get(`/orgchart/mydocuments/${encodedFolderName}/${encodedFileName}`);
+            return response;
+        } catch (error) {
+            console.error(`Error loading file ${fileName} from folder ${folderName}:`, error);
+            throw error;
+        }
+    }
+
+    async uploadMyDocumentsFile(folderName: string, formData: FormData): Promise<any> {
+        try {
+            const encodedFolderName = encodeURIComponent(folderName);
+            const response = await this.uploadFile(`/orgchart/mydocuments/${encodedFolderName}`, formData);
+            return response;
+        } catch (error) {
+            console.error(`Error uploading file to folder ${folderName}:`, error);
+            throw error;
+        }
+    }
+
+    async deleteMyDocumentsFile(folderName: string, fileName: string): Promise<any> {
+        try {
+            const encodedFolderName = encodeURIComponent(folderName);
+            const encodedFileName = encodeURIComponent(fileName);
+            const response = await this.delete(`/orgchart/mydocuments/${encodedFolderName}/${encodedFileName}`);
+            return response;
+        } catch (error) {
+            console.error(`Error deleting file ${fileName} from folder ${folderName}:`, error);
+            throw error;
+        }
+    }
+
+    // =============================================
     // 🔥 MÉTODOS PARA DEBTORS
     // =============================================
 
@@ -283,28 +334,6 @@ class ApiService {
 
     async deleteDebtorsCliente(id: string): Promise<any> {
         return this.delete(`/debtors/clientes/${id}`);
-    }
-
-    // 🐾 MASCOTAS
-    async addDebtorsMascota(clienteId: string, mascotaData: { nombre: string; especie: string }): Promise<any> {
-        return this.post(`/debtors/clientes/${clienteId}/mascotas`, mascotaData);
-    }
-
-    async deleteDebtorsMascota(clienteId: string, mascotaId: string): Promise<any> {
-        return this.delete(`/debtors/clientes/${clienteId}/mascotas/${mascotaId}`);
-    }
-
-    // 💰 MOVIMIENTOS
-    async addDebtorsMovimiento(clienteId: string, movimientoData: any): Promise<any> {
-        return this.post(`/debtors/clientes/${clienteId}/movimientos`, movimientoData);
-    }
-
-    async getDebtorsMovimientos(clienteId: string, año?: number, mes?: number): Promise<any> {
-        let url = `/debtors/clientes/${clienteId}/movimientos`;
-        if (año && mes) {
-            url += `?año=${año}&mes=${mes}`;
-        }
-        return this.get(url);
     }
 
     // 📊 REPORTES

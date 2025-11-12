@@ -40,12 +40,20 @@ export const INITIAL_FILES: FileWithPreview[] = [
     }
 ];
 
-export const uid = () => Math.random().toString(36).slice(2, 9);
 
 export const withIds = (node: OrgNode): OrgNode => ({
     ...node,
     id: node.id ?? uid(),
     children: node.children?.map(withIds) ?? [],
 });
+
+export const FOLDERS = [
+    { id: 'contratacion', name: 'Contratación', path: 'orgchart/mydocuments/contratacion' },
+    { id: 'leyes', name: 'Leyes, Procedimientos y Reglamentos', path: 'leyes, procedimientos y protocolos' },
+    { id: 'reportes', name: 'Reportes y Memorandums', path: 'reportes y memorandums' },
+    { id: 'router', name: 'Router', path: 'router' }
+];
+
+export const uid = () => Math.random().toString(36).slice(2, 9);
 
 export type EvaluationSection = | 'actitudTrabajo' | 'cooperacion' | 'calidadTrabajo' | 'relaciones' | 'asistencia';
