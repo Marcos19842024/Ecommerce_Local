@@ -458,6 +458,11 @@ const MyDocuments = () => {
         }
     }, [selectedFolder]);
 
+    // Inicialización
+    useEffect(() => {
+        resetAllExpansionStates();
+    }, [resetAllExpansionStates]);
+
     useEffect(() => {
         resetAllExpansionStates();
     }, [selectedFolder, resetAllExpansionStates]);
