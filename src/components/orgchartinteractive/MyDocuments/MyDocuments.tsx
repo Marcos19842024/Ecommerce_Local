@@ -416,10 +416,26 @@ const MyDocuments = () => {
     useEffect(() => {
         const initialFolderStates: FolderState = {};
         FOLDERS.forEach(folder => {
-            initialFolderStates[folder.id] = true;
+            initialFolderStates[folder.id] = false;
         });
         setFolderStates(initialFolderStates);
     }, []);
+
+    // Opcional: Expandir solo la carpeta seleccionada
+    useEffect(() => {
+        if (selectedFolder !== 'all') {
+            setFolderStates(prev => {
+                const newState = { ...prev };
+                // Cerrar todas primero
+                FOLDERS.forEach(folder => {
+                    newState[folder.id] = false;
+                });
+                // Abrir solo la seleccionada
+                newState[selectedFolder] = true;
+                return newState;
+            });
+        }
+    }, [selectedFolder]);
 
     // ✅ FILTRAR Y AGRUPAR DOCUMENTOS
     const filteredDocuments = documents.filter(doc => {
