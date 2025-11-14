@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import { cel, center } from '../server/user';
 import { runtimeConfig } from './config';
 
@@ -43,7 +44,7 @@ class ApiService {
             
             return response.ok;
         } catch (error) {
-            console.error('❌ Error de conectividad:', error);
+            toast.error(`❌ Error de conectividad: ${error}`);
             return false;
         }
     }
@@ -251,7 +252,7 @@ class ApiService {
             );
             return response;
         } catch (error) {
-            console.error(`Error loading file ${fileName} for employee ${employeeName}:`, error);
+            toast.error(`Error loading file ${fileName} for employee ${employeeName}: ${error}`);
             throw error;
         }
     }
@@ -267,7 +268,7 @@ class ApiService {
             const response = await this.get(`/orgchart/mydocuments/${encodedFolderName}`);
             return response;
         } catch (error) {
-            console.error(`Error loading documents from folder ${folderName}:`, error);
+            toast.error(`Error loading documents from folder ${folderName}: ${error}`);
             throw error;
         }
     }
@@ -279,7 +280,7 @@ class ApiService {
             const response = await this.get(`/orgchart/mydocuments/${encodedFolderName}/${encodedFileName}`);
             return response;
         } catch (error) {
-            console.error(`Error loading file ${fileName} from folder ${folderName}:`, error);
+            toast.error(`Error loading file ${fileName} from folder ${folderName}: ${error}`);
             throw error;
         }
     }
@@ -290,7 +291,7 @@ class ApiService {
             const response = await this.uploadFile(`/orgchart/mydocuments/${encodedFolderName}`, formData);
             return response;
         } catch (error) {
-            console.error(`Error uploading file to folder ${folderName}:`, error);
+            toast.error(`Error uploading file to folder ${folderName}: ${error}`);
             throw error;
         }
     }
@@ -302,7 +303,73 @@ class ApiService {
             const response = await this.delete(`/orgchart/mydocuments/${encodedFolderName}/${encodedFileName}`);
             return response;
         } catch (error) {
-            console.error(`Error deleting file ${fileName} from folder ${folderName}:`, error);
+            toast.error(`Error deleting file ${fileName} from folder ${folderName}: ${error}`);
+            throw error;
+        }
+    }
+
+    async initializeMyDocuments(): Promise<any> {
+    try {
+        const response = await this.get('/orgchart/mydocuments-init');
+        return response;
+    } catch (error) {
+        toast.error(`Error initializing MyDocuments: ${error}`);
+        throw error;
+    }
+    }
+
+    // =============================================
+    // 🔥 MÉTODOS PARA SUBCARPETAS EN MYDOCUMENTS
+    // =============================================
+
+    async getMyDocumentsStructure(folderId: string): Promise<any> {
+        try {
+            const encodedFolderId = encodeURIComponent(folderId);
+            const response = await this.get(`/orgchart/mydocuments-structure/${encodedFolderId}`);
+            return response;
+        } catch (error) {
+            toast.error(`Error loading structure for folder ${folderId}: ${error}`);
+            throw error;
+        }
+    }
+
+    async createMyDocumentsSubfolder(folderId: string, subfolderName: string, parentPath = ''): Promise<any> {
+        try {
+            const encodedFolderId = encodeURIComponent(folderId);
+            const response = await this.post(`/orgchart/mydocuments/${encodedFolderId}/subfolder`, {
+                subfolderName,
+                parentPath
+            });
+            return response;
+        } catch (error) {
+            toast.error(`Error creating subfolder in ${folderId}: ${error}`);
+            throw error;
+        }
+    }
+
+    async deleteMyDocumentsSubfolder(folderId: string, subfolderPath: string): Promise<any> {
+        try {
+            const encodedFolderId = encodeURIComponent(folderId);
+            // Usamos fetchWithConfig directamente porque necesitamos enviar un body en DELETE
+            const response = await this.fetchWithConfig(`/orgchart/mydocuments/${encodedFolderId}/subfolder`, {
+                method: 'DELETE',
+                body: JSON.stringify({ subfolderPath })
+            });
+            return response;
+        } catch (error) {
+            toast.error(`Error deleting subfolder from ${folderId}: ${error}`);
+            throw error;
+        }
+    }
+
+    async getMyDocumentsFilesFromSubfolder(folderId: string, subfolder = ''): Promise<any> {
+        try {
+            const encodedFolderId = encodeURIComponent(folderId);
+            const params = subfolder ? `?subfolder=${encodeURIComponent(subfolder)}` : '';
+            const response = await this.get(`/orgchart/mydocuments/${encodedFolderId}/files${params}`);
+            return response;
+        } catch (error) {
+            toast.error(`Error loading files from subfolder in ${folderId}: ${error}`);
             throw error;
         }
     }

@@ -48,11 +48,16 @@ export const withIds = (node: OrgNode): OrgNode => ({
 });
 
 export const FOLDERS = [
-    { id: 'contratacion', name: 'Contratación', path: 'orgchart/mydocuments/contratacion' },
-    { id: 'leyes', name: 'Leyes, Procedimientos y Reglamentos', path: 'leyes, procedimientos y protocolos' },
-    { id: 'reportes', name: 'Reportes y Memorandums', path: 'reportes y memorandums' },
-    { id: 'router', name: 'Router', path: 'router' }
+    { id: 'contratacion', name: 'Contratación' },
+    { id: 'leyes', name: 'Leyes, Procedimientos y Protocolos' },
+    { id: 'reportes', name: 'Reportes y Memorandums' },
+    { id: 'router', name: 'Router' },
+    { id: 'otros', name: 'Otros' }
 ];
+
+export const generateUniqueId = (): string => {
+    return `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+};
 
 export const uid = () => Math.random().toString(36).slice(2, 9);
 

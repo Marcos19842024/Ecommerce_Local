@@ -222,8 +222,16 @@ export interface Documents {
   uploadDate: string;
   folder: string;
   folderPath: string;
+  fullPath: string;
 }
 
 export interface FolderState {
   [key: string]: boolean;
+}
+
+export interface Subfolder {
+  name: string;
+  path: string;
+  type: string;
+  items: any[];
 }

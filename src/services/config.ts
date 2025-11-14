@@ -1,3 +1,5 @@
+import toast from "react-hot-toast";
+
 export interface AppConfig {
     apiUrl: string;
     backendIp: string;
@@ -21,11 +23,11 @@ class RuntimeConfig {
         }
 
         try {
-            console.log('🔄 Cargando configuración del backend...');
+            toast('🔄 Cargando configuración del backend...');
             
             // Intentar cargar desde el backend primero
             const backendUrl = this.getBackendBaseUrl();
-            console.log('🔗 Intentando conectar a:', backendUrl);
+            toast(`🔗 Intentando conectar a: ${backendUrl}`);
             
             const response = await fetch(`${backendUrl}/api/config`, {
                 method: 'GET',
@@ -41,12 +43,12 @@ class RuntimeConfig {
             const configData: AppConfig = await response.json();
             this.config = configData;
             this.isLoaded = true;
-            console.log('✅ Configuración cargada desde backend:', this.config);
+            toast(`✅ Configuración cargada desde backend: ${this.config}`);
             return configData;
 
         } catch (error) {
-            console.warn('⚠️ No se pudo cargar configuración del backend, usando configuración local');
-            console.error('Error details:', error);
+            toast('⚠️ No se pudo cargar configuración del backend, usando configuración local');
+            toast.error(`Error details: ${error}`);
             
             // Usar variable de entorno con fallback inteligente
             const envUrl = import.meta.env.VITE_URL_SERVER;
@@ -54,13 +56,13 @@ class RuntimeConfig {
             
             if (envUrl) {
                 apiUrl = envUrl.endsWith('/') ? envUrl.slice(0, -1) : envUrl;
-                console.log('🔗 Usando VITE_URL_SERVER:', apiUrl);
+                toast(`🔗 Usando VITE_URL_SERVER: ${apiUrl}`);
             } else if (window.location.hostname !== 'localhost' && !window.location.hostname.includes('127.0.0.1')) {
                 // Si estamos en ngrok, usar la misma URL del frontend para el backend
                 apiUrl = window.location.origin;
-                console.log('🔗 Usando window.origin (ngrok):', apiUrl);
+                toast(`🔗 Usando window.origin (ngrok): ${apiUrl}`);
             } else {
-                console.log('🔗 Usando localhost por defecto');
+                toast('🔗 Usando localhost por defecto');
             }
             
             const fallbackConfig: AppConfig = {
