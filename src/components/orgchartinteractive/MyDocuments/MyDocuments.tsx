@@ -405,6 +405,22 @@ const MyDocuments = () => {
         }).filter(Boolean);
     };
 
+    // Función para resetear todos los estados de expansión
+    const resetAllExpansionStates = useCallback(() => {
+        // Cerrar todas las carpetas principales
+        const closedFolderStates: FolderState = {};
+        FOLDERS.forEach(folder => {
+            closedFolderStates[folder.id] = false;
+        });
+        setFolderStates(closedFolderStates);
+        
+        // Cerrar todas las subcarpetas
+        setSubfolderStates({});
+        
+        // Resetear selección de subcarpeta
+        setSelectedSubfolder('');
+    }, []);
+
     useEffect(() => {
         const initialize = async () => {
             await initializeFolders();
@@ -414,11 +430,16 @@ const MyDocuments = () => {
     }, [initializeFolders]);
 
     useEffect(() => {
+        // Carpeta principal cerrada
         const initialFolderStates: FolderState = {};
         FOLDERS.forEach(folder => {
             initialFolderStates[folder.id] = false;
         });
         setFolderStates(initialFolderStates);
+        // Subcarpetas también cerradas (el estado vacío significa todas cerradas)
+        setSubfolderStates({});
+        // Resetear selección de subcarpeta
+        setSelectedSubfolder('');
     }, []);
 
     // Opcional: Expandir solo la carpeta seleccionada
@@ -436,6 +457,10 @@ const MyDocuments = () => {
             });
         }
     }, [selectedFolder]);
+
+    useEffect(() => {
+        resetAllExpansionStates();
+    }, [selectedFolder, resetAllExpansionStates]);
 
     // ✅ FILTRAR Y AGRUPAR DOCUMENTOS
     const filteredDocuments = documents.filter(doc => {
