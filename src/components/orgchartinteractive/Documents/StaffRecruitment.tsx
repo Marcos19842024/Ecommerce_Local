@@ -79,6 +79,12 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     
+    // Convertir a mayúsculas si es el campo RFC o CURP
+    let processedValue = value;
+    if (name === 'datosPersonales.rfc' || name === 'datosPersonales.curp') {
+      processedValue = value.toUpperCase();
+    }
+    
     if (name.includes('.')) {
       const [parent, child, subChild] = name.split('.');
       
@@ -89,7 +95,7 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
             ...((prev[parent as keyof PersonalFormData] ?? {}) as object),
             [child]: {
               ...(prev[parent as keyof PersonalFormData] as any)[child],
-              [subChild]: value
+              [subChild]: processedValue
             }
           }
         }));
@@ -98,14 +104,14 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
           ...prev,
           [parent]: {
             ...((prev[parent as keyof PersonalFormData] ?? {}) as object),
-            [child]: value
+            [child]: processedValue
           }
         }));
       }
     } else {
       setFormData(prev => ({
         ...prev,
-        [name]: value
+        [name]: processedValue
       }));
     }
   };
@@ -408,6 +414,10 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                 onChange={handleInputChange}
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                 required
+                pattern="[A-Z0-9]*"
+                onInput={(e) => {
+                  e.currentTarget.value = e.currentTarget.value.toUpperCase();
+                }}
               />
             </div>
           </div>
@@ -438,6 +448,10 @@ const StaffRecruitment = ({employee, onClose}: StaffRecruitmentProps) => {
                 onChange={handleInputChange}
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                 required
+                pattern="[A-Z0-9]*"
+                onInput={(e) => {
+                  e.currentTarget.value = e.currentTarget.value.toUpperCase();
+                }}
               />
             </div>
           </div>
