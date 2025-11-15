@@ -11,8 +11,80 @@ export const useReminders = ({clientes}: RemindersProps) => {
   const [messages, setMessages] = useState<MessageBubble[]>([]);
   const [msjo, setMsjo] = useState("");
   const [loader, setLoader] = useState(false);
+  const [whatsappStatus, setWhatsappStatus] = useState<'connected' | 'disconnected' | 'connecting' | 'error'>('disconnected');
+  
   const enviados = useMemo(() => clientes.filter((c) => c.status), [clientes]);
   const noEnviados = useMemo(() => clientes.filter((c) => !c.status), [clientes]);
+
+  // Verificar estado de WhatsApp al cargar
+  const checkWhatsAppStatus = async () => {
+    try {
+      const status = await apiService.getWhatsAppStatus();
+      setWhatsappStatus(status.err ? 'disconnected' : 'connected');
+    } catch (error) {
+      setWhatsappStatus('error');
+    }
+  };
+
+  // Conectar WhatsApp
+  const connectWhatsApp = async () => {
+    setLoader(true);
+    try {
+      const result = await apiService.startWhatsApp();
+      if (!result.err) {
+        setWhatsappStatus('connecting');
+        toast.success("WhatsApp iniciándose...");
+        // Verificar estado después de un momento
+        setTimeout(checkWhatsAppStatus, 3000);
+      } else {
+        toast.error("Error iniciando WhatsApp");
+        setWhatsappStatus('error');
+      }
+    } catch (error) {
+      toast.error("Error conectando WhatsApp");
+      setWhatsappStatus('error');
+    } finally {
+      setLoader(false);
+    }
+  };
+
+  // Desconectar WhatsApp
+  const disconnectWhatsApp = async () => {
+    setLoader(true);
+    try {
+      const result = await apiService.disconnectWhatsApp();
+      if (!result.err) {
+        setWhatsappStatus('disconnected');
+        toast.success("WhatsApp desconectado");
+      } else {
+        toast.error("Error desconectando WhatsApp");
+      }
+    } catch (error) {
+      toast.error("Error desconectando WhatsApp");
+    } finally {
+      setLoader(false);
+    }
+  };
+
+  // Forzar reconexión (cambiar número)
+  const reconnectWhatsApp = async () => {
+    setLoader(true);
+    try {
+      const result = await apiService.reconnectWhatsApp();
+      if (!result.err) {
+        setWhatsappStatus('connecting');
+        toast.success("Reconectando WhatsApp... Escanee el nuevo código QR");
+      } else {
+        toast.error("Error reconectando WhatsApp");
+        setWhatsappStatus('error');
+      }
+    } catch (error) {
+        toast.error("Error reconectando WhatsApp");
+        setWhatsappStatus('error');
+    } finally {
+      setLoader(false);
+    }
+  };
 
   const handleUpload = async (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
@@ -245,5 +317,10 @@ export const useReminders = ({clientes}: RemindersProps) => {
     handleSend,
     handleKeyDown,
     deleteMessage,
+    whatsappStatus,
+    checkWhatsAppStatus,
+    connectWhatsApp,
+    disconnectWhatsApp,
+    reconnectWhatsApp,
   };
 };

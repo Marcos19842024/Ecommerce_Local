@@ -10,7 +10,7 @@ export const FileViewer: React.FC<{ file: FileWithPreview }> = ({ file }) => {
                 <iframe
                     src={url}
                     title="preview"
-                    className="w-full h-[400px] border rounded bg-white text-black"
+                    className="w-full h-[340px] border rounded bg-white text-black"
                 />
             );
         case "mp3":

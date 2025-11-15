@@ -73,16 +73,8 @@ const styles = StyleSheet.create({
         margin: 'auto',
         flexDirection: 'row',
     },
-    tableColInfo16: {
-        width: '16.66%',
-        borderStyle: 'solid',
-        borderWidth: 1,
-        borderLeftWidth: 0,
-        borderTopWidth: 0,
-        padding: 3,
-        fontSize: 9,
-    },
-    tableColHeaderInfo16: {
+    // Primera línea: Puesto(16.66%) | Valor(16.66%) | Posiciones(16.66%) | Valor(16.66%) | Ubicación(16.66%) | Valor(16.66%)
+    tableColHeader16: {
         width: '16.66%',
         borderStyle: 'solid',
         borderWidth: 1,
@@ -93,6 +85,140 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         fontSize: 9,
     },
+    tableColValue16: {
+        width: '16.66%',
+        borderStyle: 'solid',
+        borderWidth: 1,
+        borderLeftWidth: 0,
+        borderTopWidth: 0,
+        padding: 3,
+        fontSize: 9,
+    },
+    // Segunda línea: Departamento(33.33%) | Valor(33.33%) | Reporta a:(16.66%) | Valor(16.66%)
+    tableColHeader33: {
+        width: '33.33%',
+        borderStyle: 'solid',
+        borderWidth: 1,
+        borderLeftWidth: 0,
+        borderTopWidth: 0,
+        padding: 3,
+        backgroundColor: '#dfdfdfff',
+        fontWeight: 'bold',
+        fontSize: 9,
+    },
+    tableColValue33: {
+        width: '33.33%',
+        borderStyle: 'solid',
+        borderWidth: 1,
+        borderLeftWidth: 0,
+        borderTopWidth: 0,
+        padding: 3,
+        fontSize: 9,
+    },
+    tableColHeader16_6: {
+        width: '16.66%',
+        borderStyle: 'solid',
+        borderWidth: 1,
+        borderLeftWidth: 0,
+        borderTopWidth: 0,
+        padding: 3,
+        backgroundColor: '#dfdfdfff',
+        fontWeight: 'bold',
+        fontSize: 9,
+    },
+    tableColValue16_6: {
+        width: '16.66%',
+        borderStyle: 'solid',
+        borderWidth: 1,
+        borderLeftWidth: 0,
+        borderTopWidth: 0,
+        padding: 3,
+        fontSize: 9,
+    },
+    // Tercera línea: Objetivo(16.66%) | Valor(83.34%)
+    tableColHeader16_66: {
+        width: '16.66%',
+        borderStyle: 'solid',
+        borderWidth: 1,
+        borderLeftWidth: 0,
+        borderTopWidth: 0,
+        padding: 3,
+        backgroundColor: '#dfdfdfff',
+        fontWeight: 'bold',
+        fontSize: 9,
+    },
+    tableColValue83: {
+        width: '83.34%',
+        borderStyle: 'solid',
+        borderWidth: 1,
+        borderLeftWidth: 0,
+        borderTopWidth: 0,
+        padding: 3,
+        fontSize: 9,
+    },
+    // Cuarta línea: Horario(16.66%) | Valor(83.34%)
+    tableColHeader16_66_horario: {
+        width: '16.66%',
+        borderStyle: 'solid',
+        borderWidth: 1,
+        borderLeftWidth: 0,
+        borderTopWidth: 0,
+        padding: 3,
+        backgroundColor: '#dfdfdfff',
+        fontWeight: 'bold',
+        fontSize: 9,
+    },
+    tableColValue83_horario: {
+        width: '83.34%',
+        borderStyle: 'solid',
+        borderWidth: 1,
+        borderLeftWidth: 0,
+        borderTopWidth: 0,
+        padding: 3,
+        fontSize: 9,
+    },
+    // Quinta línea: Capacidad(16.66%) | Física(8.33%) | Valor(16.66%) | Mental(8.33%) | Valor(16.66%) | (Espacio vacío 33.33%)
+    tableColHeader16_66_capacidad: {
+        width: '16.66%',
+        borderStyle: 'solid',
+        borderWidth: 1,
+        borderLeftWidth: 0,
+        borderTopWidth: 0,
+        padding: 3,
+        backgroundColor: '#dfdfdfff',
+        fontWeight: 'bold',
+        fontSize: 9,
+    },
+    tableColHeader8: {
+        width: '8.33%',
+        borderStyle: 'solid',
+        borderWidth: 1,
+        borderLeftWidth: 0,
+        borderTopWidth: 0,
+        padding: 3,
+        backgroundColor: '#dfdfdfff',
+        fontWeight: 'bold',
+        fontSize: 9,
+    },
+    tableColValue16_capacidad: {
+        width: '16.66%',
+        borderStyle: 'solid',
+        borderWidth: 1,
+        borderLeftWidth: 0,
+        borderTopWidth: 0,
+        padding: 3,
+        fontSize: 9,
+    },
+    tableColEmpty33: {
+        width: '33.33%',
+        borderStyle: 'solid',
+        borderWidth: 1,
+        borderLeftWidth: 0,
+        borderTopWidth: 0,
+        padding: 3,
+        fontSize: 9,
+    },
+    // Estilos para el resto de las tablas (se mantienen igual)
     tableColReq25: {
         width: '25%',
         borderStyle: 'solid',
@@ -264,39 +390,48 @@ export const PdfJobProfile: React.FC<{ data: JobProfileData }> = ({ data }) => (
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>1. Información general</Text>
                 <View style={styles.table}>
+                    {/* Primera línea: Puesto | "" | Posiciones | "" | Ubicación | "" */}
                     <View style={styles.tableRow}>
-                        <View style={styles.tableColHeaderInfo16}><Text>Puesto</Text></View>
-                        <View style={styles.tableColInfo16}><Text>{data.generalInfo.position}</Text></View>
-                        <View style={styles.tableColHeaderInfo16}><Text>No. Posiciones</Text></View>
-                        <View style={styles.tableColInfo16}><Text>{data.generalInfo.numberOfPositions}</Text></View>
-                        <View style={styles.tableColHeaderInfo16}><Text>Ubicación</Text></View>
-                        <View style={styles.tableColInfo16}><Text>{data.generalInfo.location}</Text></View>
+                        <View style={styles.tableColHeader16}><Text>Puesto</Text></View>
+                        <View style={styles.tableColValue16}><Text>{data.generalInfo.position}</Text></View>
+                        <View style={styles.tableColHeader16}><Text>Posiciones</Text></View>
+                        <View style={styles.tableColValue16}><Text>{data.generalInfo.numberOfPositions}</Text></View>
+                        <View style={styles.tableColHeader16}><Text>Ubicación</Text></View>
+                        <View style={styles.tableColValue16}><Text>{data.generalInfo.location}</Text></View>
                     </View>
 
+                    {/* Segunda línea: Departamento | "" | Reporta a: | "" */}
                     <View style={styles.tableRow}>
-                        <View style={styles.tableColHeaderInfo16}><Text>Departamento</Text></View>
-                        <View style={styles.tableColInfo16}><Text>{data.generalInfo.department}</Text></View>
-                        <View style={styles.tableColHeaderInfo16}><Text>Reporta a:</Text></View>
-                        <View style={styles.tableColInfo16}><Text>{data.generalInfo.reportsTo}</Text></View>
-                        <View style={styles.tableColHeaderInfo16}><Text>Horario</Text></View>
-                        <View style={styles.tableColInfo16}><Text>{data.generalInfo.schedule}</Text></View>
+                        <View style={styles.tableColHeader33}><Text>Departamento</Text></View>
+                        <View style={styles.tableColValue33}><Text>{data.generalInfo.department}</Text></View>
+                        <View style={styles.tableColHeader16_6}><Text>Reporta a:</Text></View>
+                        <View style={styles.tableColValue16_6}><Text>{data.generalInfo.reportsTo}</Text></View>
                     </View>
 
+                    {/* Tercera línea: Objetivo | "" */}
                     <View style={styles.tableRow}>
-                        <View style={styles.tableColHeaderInfo16}><Text>Capacidad</Text></View>
-                        <View style={styles.tableColHeaderInfo16}><Text>Física</Text></View>
-                        <View style={styles.tableColReq25}><Text>{data.generalInfo.capacity.physical}</Text></View>
-                        <View style={styles.tableColHeaderInfo16}><Text>Mental</Text></View>
-                        <View style={styles.tableColReq25}><Text>{data.generalInfo.capacity.mental}</Text></View>
-                    </View>
-
-                    <View style={styles.tableRow}>
-                        <View style={styles.tableColHeaderInfo16}><Text>Objetivo</Text></View>
-                        <View style={[styles.tableColReq25, {width: '83.34%'}]}>
-                            <Text>
-                                {data.generalInfo.objective}
-                            </Text>
+                        <View style={styles.tableColHeader16_66}><Text>Objetivo</Text></View>
+                        <View style={styles.tableColValue83}>
+                            <Text>{data.generalInfo.objective}</Text>
                         </View>
+                    </View>
+
+                    {/* Cuarta línea: Horario | "" */}
+                    <View style={styles.tableRow}>
+                        <View style={styles.tableColHeader16_66_horario}><Text>Horario</Text></View>
+                        <View style={styles.tableColValue83_horario}>
+                            <Text>{data.generalInfo.schedule}</Text>
+                        </View>
+                    </View>
+
+                    {/* Quinta línea: Capacidad | Física | "" | Mental | "" */}
+                    <View style={styles.tableRow}>
+                        <View style={styles.tableColHeader16_66_capacidad}><Text>Capacidad</Text></View>
+                        <View style={styles.tableColHeader8}><Text>Física</Text></View>
+                        <View style={styles.tableColValue16_capacidad}><Text>{data.generalInfo.capacity.physical}</Text></View>
+                        <View style={styles.tableColHeader8}><Text>Mental</Text></View>
+                        <View style={styles.tableColValue16_capacidad}><Text>{data.generalInfo.capacity.mental}</Text></View>
+                        <View style={styles.tableColEmpty33}><Text></Text></View>
                     </View>
                 </View>
             </View>

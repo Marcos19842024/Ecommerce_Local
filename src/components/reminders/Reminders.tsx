@@ -11,6 +11,7 @@ import { PDFViewer } from "@react-pdf/renderer";
 import { PdfReminders } from "./PdfReminders";
 import { RemindersProps } from "../../interfaces/reminders.interface";
 import { TypeContent } from "../../utils/clients";
+import { FiRefreshCw, FiWifi, FiWifiOff } from "react-icons/fi";
 
 export const Reminders = ({clientes}: RemindersProps) => {
     if (!clientes.length) {
@@ -37,7 +38,17 @@ export const Reminders = ({clientes}: RemindersProps) => {
         handleSend,
         handleKeyDown,
         deleteMessage,
+        whatsappStatus,
+        connectWhatsApp,
+        disconnectWhatsApp,
+        reconnectWhatsApp,
+        checkWhatsAppStatus,
     } = useReminders({clientes});
+
+    // Verificar estado de WhatsApp al cargar el componente
+    useEffect(() => {
+        checkWhatsAppStatus();
+    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -78,30 +89,97 @@ export const Reminders = ({clientes}: RemindersProps) => {
         return "";
     }
 
+    // Función para obtener el color del estado de WhatsApp
+    const getStatusColor = () => {
+        switch (whatsappStatus) {
+            case 'connected': return 'text-green-500';
+            case 'disconnected': return 'text-red-500';
+            case 'connecting': return 'text-yellow-500';
+            case 'error': return 'text-red-500';
+            default: return 'text-gray-500';
+        }
+    };
+
+    // Función para obtener el icono del estado de WhatsApp
+    const getStatusIcon = () => {
+        switch (whatsappStatus) {
+            case 'connected': return <FiWifi className="text-green-500" />;
+            case 'disconnected': return <FiWifiOff className="text-red-500" />;
+            case 'connecting': return <Loader />;
+            case 'error': return <FiWifiOff className="text-red-500" />;
+            default: return <FiWifiOff className="text-gray-500" />;
+        }
+    };
+
     return (
         <>
             {/* Controles superiores */}
             <div className="w-full flex flex-wrap justify-between items-center gap-2">
-                <label className="flex items-center gap-2 p-2 rounded-md text-cyan-600 transition-all group hover:scale-105">
-                    <input
-                        type="checkbox"
-                        checked={x5}
-                        onChange={() => setX5(!x5)}
-                    />
-                    Enviar de 5 en 5
-                </label>
+                <div className="flex items-center gap-4">
+                    {/* Estado de WhatsApp */}
+                    <div className="flex items-center gap-2">
+                        {getStatusIcon()}
+                        <span className={`text-sm font-medium ${getStatusColor()}`}>
+                            WhatsApp: {whatsappStatus}
+                        </span>
+                    </div>
 
-                <div className="text-sm">
-                    Enviados: {enviados.length} | No enviados: {noEnviados.length}
+                    {/* Botones de gestión de WhatsApp */}
+                    <div className="flex items-center gap-2">
+                        {whatsappStatus === 'disconnected' || whatsappStatus === 'error' ? (
+                            <button
+                                onClick={connectWhatsApp}
+                                disabled={loader}
+                                className="flex items-center gap-1 px-3 py-1 text-sm rounded-md text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 transition-all"
+                            >
+                                <FiWifi size={14} />
+                                Conectar
+                            </button>
+                        ) : (
+                            <button
+                                onClick={disconnectWhatsApp}
+                                disabled={loader}
+                                className="flex items-center gap-1 px-3 py-1 text-sm rounded-md text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-all"
+                            >
+                                <FiWifiOff size={14} />
+                                Desconectar
+                            </button>
+                        )}
+                        
+                        <button
+                            onClick={reconnectWhatsApp}
+                            disabled={loader}
+                            className="flex items-center gap-1 px-3 py-1 text-sm rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition-all"
+                            title="Cambiar número de WhatsApp"
+                        >
+                            <FiRefreshCw size={14} />
+                            Cambiar Número
+                        </button>
+                    </div>
                 </div>
 
-                <button
-                    className="flex items-center p-2 rounded-md text-white bg-cyan-600 hover:bg-yellow-500 hover:scale-105 transition-all"
-                    type="button"
-                    onClick={() => setShowPdf(!showPdf)}
-                >
-                    {showPdf ? <PiAppWindowBold /> : <TfiPrinter />}
-                </button>
+                <div className="flex items-center gap-4">
+                    <label className="flex items-center gap-2 p-2 rounded-md text-cyan-600 transition-all group hover:scale-105">
+                        <input
+                            type="checkbox"
+                            checked={x5}
+                            onChange={() => setX5(!x5)}
+                        />
+                        Enviar de 5 en 5
+                    </label>
+
+                    <div className="text-sm">
+                        Enviados: {enviados.length} | No enviados: {noEnviados.length}
+                    </div>
+
+                    <button
+                        className="flex items-center p-2 rounded-md text-white bg-cyan-600 hover:bg-yellow-500 hover:scale-105 transition-all"
+                        type="button"
+                        onClick={() => setShowPdf(!showPdf)}
+                    >
+                        {showPdf ? <PiAppWindowBold /> : <TfiPrinter />}
+                    </button>
+                </div>
             </div>
 
             <form
