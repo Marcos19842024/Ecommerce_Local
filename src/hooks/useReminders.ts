@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
 import { getFileTypes } from "../utils/files";
 import { Cliente, MessageBubble, RemindersProps } from "../interfaces/reminders.interface";
@@ -11,127 +11,8 @@ export const useReminders = ({clientes}: RemindersProps) => {
   const [messages, setMessages] = useState<MessageBubble[]>([]);
   const [msjo, setMsjo] = useState("");
   const [loader, setLoader] = useState(false);
-  const [whatsappStatus, setWhatsappStatus] = useState<'connected' | 'disconnected' | 'connecting' | 'error'>('disconnected');
-  
-  // 🔥 Refs para prevenir múltiples llamadas
-  const statusCheckRef = useRef<NodeJS.Timeout | null>(null);
-  const initializationRef = useRef<boolean>(false);
-  
   const enviados = useMemo(() => clientes.filter((c) => c.status), [clientes]);
   const noEnviados = useMemo(() => clientes.filter((c) => !c.status), [clientes]);
-
-  // 🔥 Verificar estado de WhatsApp (con debounce)
-  const checkWhatsAppStatus = async () => {
-    // Limpiar timeout anterior
-    if (statusCheckRef.current) {
-      clearTimeout(statusCheckRef.current);
-    }
-
-    statusCheckRef.current = setTimeout(async () => {
-      try {
-        const status = await apiService.getWhatsAppStatus();
-        setWhatsappStatus(status.err ? 'disconnected' : 'connected');
-      } catch (error) {
-        setWhatsappStatus('error');
-      }
-    }, 1000); // Debounce de 1 segundo
-  };
-
-  // 🔥 Conectar WhatsApp (con protección contra múltiples llamadas)
-  const connectWhatsApp = async () => {
-    if (initializationRef.current) {
-      console.log("🔄 Inicialización ya en progreso, ignorando llamada duplicada");
-      return;
-    }
-
-    initializationRef.current = true;
-    setLoader(true);
-    
-    try {
-      const result = await apiService.startWhatsApp();
-      if (!result.err) {
-        setWhatsappStatus('connecting');
-        toast.success("WhatsApp iniciándose...");
-        
-        // Verificar estado después de un momento
-        setTimeout(() => {
-          checkWhatsAppStatus();
-          initializationRef.current = false;
-        }, 5000);
-      } else {
-        toast.error("Error iniciando WhatsApp");
-        setWhatsappStatus('error');
-        initializationRef.current = false;
-      }
-    } catch (error) {
-      toast.error("Error conectando WhatsApp");
-      setWhatsappStatus('error');
-      initializationRef.current = false;
-    } finally {
-      setLoader(false);
-    }
-  };
-
-  // 🔥 Desconectar WhatsApp
-  const disconnectWhatsApp = async () => {
-    setLoader(true);
-    try {
-      const result = await apiService.disconnectWhatsApp();
-      if (!result.err) {
-        setWhatsappStatus('disconnected');
-        toast.success("WhatsApp desconectado");
-      } else {
-        toast.error("Error desconectando WhatsApp");
-      }
-    } catch (error) {
-      toast.error("Error desconectando WhatsApp");
-    } finally {
-      setLoader(false);
-    }
-  };
-
-  // 🔥 Forzar reconexión (cambiar número)
-  const reconnectWhatsApp = async () => {
-    if (initializationRef.current) {
-      console.log("🔄 Reconexión ya en progreso, ignorando llamada duplicada");
-      return;
-    }
-
-    initializationRef.current = true;
-    setLoader(true);
-    
-    try {
-      const result = await apiService.reconnectWhatsApp();
-      if (!result.err) {
-        setWhatsappStatus('connecting');
-        toast.success("Reconectando WhatsApp... Escanee el nuevo código QR");
-        
-        // Resetear bandera después de un tiempo
-        setTimeout(() => {
-          initializationRef.current = false;
-        }, 10000);
-      } else {
-        toast.error("Error reconectando WhatsApp");
-        setWhatsappStatus('error');
-        initializationRef.current = false;
-      }
-    } catch (error) {
-      toast.error("Error reconectando WhatsApp");
-      setWhatsappStatus('error');
-      initializationRef.current = false;
-    } finally {
-      setLoader(false);
-    }
-  };
-
-  // 🔥 Cleanup al desmontar el componente
-  useEffect(() => {
-    return () => {
-      if (statusCheckRef.current) {
-        clearTimeout(statusCheckRef.current);
-      }
-    };
-  }, []);
 
   const handleUpload = async (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
@@ -195,7 +76,7 @@ export const useReminders = ({clientes}: RemindersProps) => {
             }
           });
           if (filenames.length > 0) {
-            return filenames;
+              return filenames;
           }
         }
             
@@ -364,10 +245,5 @@ export const useReminders = ({clientes}: RemindersProps) => {
     handleSend,
     handleKeyDown,
     deleteMessage,
-    whatsappStatus,
-    checkWhatsAppStatus,
-    connectWhatsApp,
-    disconnectWhatsApp,
-    reconnectWhatsApp,
   };
 };

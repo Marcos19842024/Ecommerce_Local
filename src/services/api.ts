@@ -109,14 +109,6 @@ class ApiService {
     // 🔥 MÉTODOS PARA REMINDERS
     // =============================================
 
-    async disconnectWhatsApp(): Promise<any> {
-        return this.post('/wwebjs/disconnect', {});
-    }
-
-    async reconnectWhatsApp(): Promise<any> {
-        return this.post('/wwebjs/reconnect', {});
-    }
-
     async startWhatsApp(): Promise<any> {
         return this.post('/wwebjs/start', {});
     }
