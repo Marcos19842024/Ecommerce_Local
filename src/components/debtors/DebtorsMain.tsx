@@ -1,35 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import readXlsxFile from 'read-excel-file';
 import { apiService } from '../../services/api';
+import { Cliente, ExcelRow, MetricasGlobales, ResumenEtiquetas } from '../../interfaces/debtors.interface';
+import readXlsxFile from 'read-excel-file';
 import toast from 'react-hot-toast';
 import Modal from '../shared/Modal';
-
-interface Cliente {
-  id: string;
-  nombre: string;
-  tipoCliente: string;
-  limiteCredito: number;
-  saldoActual: number;
-  estado: string;
-}
-
-interface MetricasGlobales {
-  totalClientes: number;
-  clientesActivos: number;
-  clientesMorosos: number;
-  carteraTotal: number;
-  carteraVencida: number;
-}
-
-interface ExcelRow {
-  fechaAlbaran: string;
-  clienteNombre: string;
-  totalImporte: number;
-  cobradoLinea: number;
-  deuda: number;
-  paciente: string;
-  [key: string]: any;
-}
+import coloresEtiquetas from '../../utils/debtors';
 
 export const DebtorsMain: React.FC = () => {
     const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -41,6 +16,14 @@ export const DebtorsMain: React.FC = () => {
     const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [activeTab, setActiveTab] = useState<'Clientes' | 'Excel'>('Clientes');
+    const [selectedClientes, setSelectedClientes] = useState<string[]>([]);
+    const [selectedExcelRows, setSelectedExcelRows] = useState<string[]>([]);
+    const [showDetalleCliente, setShowDetalleCliente] = useState(false);
+    const [clienteDetallado, setClienteDetallado] = useState<Cliente | null>(null);
+    const [showEtiquetarModal, setShowEtiquetarModal] = useState(false);
+    const [etiquetaSeleccionada, setEtiquetaSeleccionada] = useState('');
+    const [filasCliente, setFilasCliente] = useState<ExcelRow[]>([]);
+    const [modalDesdeExcel, setModalDesdeExcel] = useState(false);
 
     // Estados para el formulario
     const [formData, setFormData] = useState({
@@ -67,21 +50,220 @@ export const DebtorsMain: React.FC = () => {
             setClientes(clientesData);
             setMetricas(metricasData);
         } catch (err) {
-            setError('Error al cargar los datos: ' + (err as Error).message);
+            const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+            setError('Error al cargar los datos: ' + errorMessage);
         } finally {
             setLoading(false);
         }
     };
 
+    // Calcular resumen de etiquetas
+    const calcularResumenEtiquetas = (): ResumenEtiquetas => {
+        const resumen: ResumenEtiquetas = {};
+        
+        if (activeTab === 'Clientes') {
+            // Contar etiquetas de clientes
+            clientes.forEach(cliente => {
+                const etiqueta = cliente.etiqueta || 'Sin etiqueta';
+                resumen[etiqueta] = (resumen[etiqueta] || 0) + 1;
+            });
+        } else {
+            // Contar etiquetas de filas de Excel
+            excelData.forEach(fila => {
+                const etiqueta = fila.etiqueta || 'Sin etiqueta';
+                resumen[etiqueta] = (resumen[etiqueta] || 0) + 1;
+            });
+        }
+        
+        return resumen;
+    };
+
+    // Función para descargar PDF (placeholder por ahora)
+    const handleDescargarPDF = () => {
+        toast.success('Funcionalidad de descarga PDF en desarrollo');
+        // Aquí se implementará la lógica de generación de PDF
+        console.log('Descargando PDF...');
+    };
+
+    // Función para obtener todas las filas de Excel de un cliente
+    const obtenerFilasCliente = (nombreCliente: string): ExcelRow[] => {
+        return excelData.filter(row => 
+            row.clienteNombre.toLowerCase().includes(nombreCliente.toLowerCase())
+        );
+    };
+
+    // Función para cargar TODOS los datos de un cliente
+    const cargarDetallesCliente = async (cliente: Cliente) => {
+        try {
+            // Obtener todas las filas de Excel de este cliente
+            const filasDelCliente = obtenerFilasCliente(cliente.nombre);
+            setFilasCliente(filasDelCliente);
+            setModalDesdeExcel(false);
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+            setError('Error al cargar detalles del cliente: ' + errorMessage);
+            setFilasCliente([]);
+        }
+    };
+
+    // Función para obtener el color de una etiqueta
+    const getColorEtiqueta = (etiqueta: string) => {
+        return coloresEtiquetas[etiqueta] || { bg: 'bg-gray-100', text: 'text-gray-800' };
+    };
+
+    // Obtener el resumen de etiquetas actual
+    const resumenEtiquetas = calcularResumenEtiquetas();
+
+    // Manejar doble click en cliente (desde tab Clientes)
+    const handleDoubleClickCliente = async (cliente: Cliente) => {
+        setClienteDetallado(cliente);
+        await cargarDetallesCliente(cliente);
+        setShowDetalleCliente(true);
+    };
+
+    // Manejar doble click en fila de Excel (desde tab Excel)
+    const handleDoubleClickExcel = (row: ExcelRow) => {
+        // Buscar todas las filas del mismo cliente
+        const filasDelMismoCliente = obtenerFilasCliente(row.clienteNombre);
+        setFilasCliente(filasDelMismoCliente);
+        
+        // Crear un cliente temporal para el modal
+        setClienteDetallado({
+            id: `temp-${row.clienteNombre}`,
+            nombre: row.clienteNombre,
+            tipoCliente: 'No especificado',
+            limiteCredito: 0,
+            saldoActual: 0,
+            estado: 'activo'
+        });
+        
+        setModalDesdeExcel(true);
+        setShowDetalleCliente(true);
+    };
+
+    // Etiquetar cliente desde el modal de detalles
+    const handleEtiquetarClienteDesdeModal = async () => {
+        if (!clienteDetallado || !etiquetaSeleccionada) {
+            toast.error('Selecciona una etiqueta');
+            return;
+        }
+
+        try {
+            if (modalDesdeExcel) {
+                // Si el modal se abrió desde Excel, etiquetar todas las filas del cliente
+                const filasIds = filasCliente.map(fila => fila.id);
+                setExcelData(prev => prev.map(row => 
+                    filasIds.includes(row.id) 
+                        ? { ...row, etiqueta: etiquetaSeleccionada }
+                        : row
+                ));
+                toast.success(`${filasCliente.length} registro(s) etiquetado(s) como ${etiquetaSeleccionada}`);
+            } else {
+                // Si el modal se abrió desde Clientes, etiquetar el cliente
+                setClientes(prev => prev.map(cliente => 
+                    cliente.id === clienteDetallado.id 
+                        ? { ...cliente, etiqueta: etiquetaSeleccionada }
+                        : cliente
+                ));
+                setClienteDetallado(prev => prev ? { ...prev, etiqueta: etiquetaSeleccionada } : null);
+                toast.success(`Cliente etiquetado como ${etiquetaSeleccionada}`);
+            }
+            
+            setEtiquetaSeleccionada('');
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+            setError('Error al etiquetar: ' + errorMessage);
+        }
+    };
+
+    // Calcular totales de las filas del cliente
+    const calcularTotalesFilasCliente = () => {
+        const totalImporte = filasCliente.reduce((sum, row) => sum + row.totalImporte, 0);
+        const totalCobrado = filasCliente.reduce((sum, row) => sum + row.cobradoLinea, 0);
+        const totalDeuda = filasCliente.reduce((sum, row) => sum + row.deuda, 0);
+        
+        return { totalImporte, totalCobrado, totalDeuda };
+    };
+
+    // Manejar selección/deselección de clientes
+    const handleSelectCliente = (clienteId: string) => {
+        setSelectedClientes(prev => {
+            if (prev.includes(clienteId)) {
+                return prev.filter(id => id !== clienteId);
+            } else {
+                return [...prev, clienteId];
+            }
+        });
+    };
+
+    // Manejar selección/deselección de filas de Excel
+    const handleSelectExcelRow = (rowId: string) => {
+        setSelectedExcelRows(prev => {
+            if (prev.includes(rowId)) {
+                return prev.filter(id => id !== rowId);
+            } else {
+                return [...prev, rowId];
+            }
+        });
+    };
+
+    // Seleccionar/deseleccionar todos los clientes
+    const handleSelectAllClientes = () => {
+        if (selectedClientes.length === clientes.length) {
+            setSelectedClientes([]);
+        } else {
+            setSelectedClientes(clientes.map(cliente => cliente.id));
+        }
+    };
+
+    // Seleccionar/deseleccionar todas las filas de Excel
+    const handleSelectAllExcelRows = () => {
+        if (selectedExcelRows.length === excelData.length) {
+            setSelectedExcelRows([]);
+        } else {
+            setSelectedExcelRows(excelData.map(row => row.id));
+        }
+    };
+
+    // Etiquetar elementos seleccionados
+    const handleEtiquetarElementos = async () => {
+        if (!etiquetaSeleccionada) {
+            toast.error('Selecciona una etiqueta');
+            return;
+        }
+
+        if (activeTab === 'Clientes' && selectedClientes.length > 0) {
+            setClientes(prev => prev.map(cliente => 
+                selectedClientes.includes(cliente.id) 
+                    ? { ...cliente, etiqueta: etiquetaSeleccionada }
+                    : cliente
+            ));
+            toast.success(`${selectedClientes.length} cliente(s) etiquetado(s) como ${etiquetaSeleccionada}`);
+            setSelectedClientes([]);
+        } else if (activeTab === 'Excel' && selectedExcelRows.length > 0) {
+            setExcelData(prev => prev.map(row => 
+                selectedExcelRows.includes(row.id) 
+                    ? { ...row, etiqueta: etiquetaSeleccionada }
+                    : row
+            ));
+            toast.success(`${selectedExcelRows.length} registro(s) de Excel etiquetado(s) como ${etiquetaSeleccionada}`);
+            setSelectedExcelRows([]);
+        } else {
+            toast.error('Selecciona al menos un elemento');
+            return;
+        }
+
+        setShowEtiquetarModal(false);
+        setEtiquetaSeleccionada('');
+    };
+
     // Función para detectar si una fila es de totales
     const isTotalRow = (row: any[]): boolean => {
-        // Buscar patrones comunes en filas de totales
         const totalPatterns = [
             'total', 'totales', 'suma', 'sumatoria', 'gran total', 'general total',
             'subtotal', 'resumen', 'conclusión', 'final'
         ];
 
-        // Verificar si alguna celda contiene patrones de totales
         for (let i = 0; i < row.length; i++) {
             const cellValue = row[i]?.toString().toLowerCase();
             if (totalPatterns.some(pattern => cellValue?.includes(pattern))) {
@@ -89,13 +271,11 @@ export const DebtorsMain: React.FC = () => {
             }
         }
 
-        // Verificar si es la última fila y tiene valores numéricos muy altos (posible suma)
         const hasVeryHighValues = row.some(cell => {
             const numValue = parseFloat(cell);
             return !isNaN(numValue) && numValue > 1000000;
         });
 
-        // Verificar si todas las celdas de texto están vacías pero hay valores numéricos
         const textCells = row.filter(cell => typeof cell === 'string' && cell.trim() !== '');
         const numericCells = row.filter(cell => {
             const numValue = parseFloat(cell);
@@ -109,37 +289,31 @@ export const DebtorsMain: React.FC = () => {
         return hasVeryHighValues;
     };
 
-
     const formatDate = (dateString: string): string => {
         if (!dateString || dateString.trim() === '') return '-';
         
         try {
-            // Si ya es una fecha en formato legible, intentar parsearla
-            let date: Date;
-            
-            // Verificar si es un número (fecha de Excel)
             if (!isNaN(Number(dateString))) {
-                // Fecha de Excel (días desde 1900-01-01)
                 const excelDate = parseInt(dateString);
-                date = new Date((excelDate - 25569) * 86400 * 1000);
+                const date = new Date((excelDate - 25569) * 86400 * 1000);
+                if (isNaN(date.getTime())) {
+                    return dateString;
+                }
+                const day = date.getDate().toString().padStart(2, '0');
+                const month = date.toLocaleString('es-ES', { month: 'short' }).toLowerCase();
+                const year = date.getFullYear();
+                return `${day}/${month}/${year}`;
             } else {
-                // Intentar parsear como fecha normal
-                date = new Date(dateString);
+                const date = new Date(dateString);
+                if (isNaN(date.getTime())) {
+                    return dateString;
+                }
+                const day = date.getDate().toString().padStart(2, '0');
+                const month = date.toLocaleString('es-ES', { month: 'short' }).toLowerCase();
+                const year = date.getFullYear();
+                return `${day}/${month}/${year}`;
             }
-            
-            // Verificar si la fecha es válida
-            if (isNaN(date.getTime())) {
-                return dateString; // Devolver el string original si no se puede parsear
-            }
-            
-            // Formatear la fecha
-            const day = date.getDate().toString().padStart(2, '0');
-            const month = date.toLocaleString('es-ES', { month: 'short' }).toLowerCase();
-            const year = date.getFullYear();
-            
-            return `${day}/${month}/${year}`;
         } catch (error) {
-            // Si hay algún error, devolver el string original
             return dateString;
         }
     };
@@ -149,7 +323,6 @@ export const DebtorsMain: React.FC = () => {
         const file = event.target.files?.[0];
         if (!file) return;
 
-        // Validar que sea un archivo Excel
         if (!file.name.match(/\.(xlsx|xls)$/)) {
             setError('Por favor, sube un archivo Excel válido (.xlsx o .xls)');
             return;
@@ -159,7 +332,6 @@ export const DebtorsMain: React.FC = () => {
         setError(null);
 
         try {
-            // Leer el archivo Excel
             const rows = await readXlsxFile(file);
             
             if (rows.length === 0) {
@@ -167,25 +339,19 @@ export const DebtorsMain: React.FC = () => {
                 return;
             }
 
-            // La primera fila contiene los headers
             const headers = rows[0] as string[];
-            
-            // Mapear automáticamente las columnas basado en nombres comunes
             const autoMapping = autoDetectColumns(headers);
-
-            // Procesar las filas de datos (empezando desde la fila 1)
             const processedData: ExcelRow[] = [];
         
             for (let i = 1; i < rows.length; i++) {
                 const row = rows[i];
             
-                // Saltar filas de totales
                 if (isTotalRow(row)) {
-                    toast(`Fila de totales detectada y excluida: ${row}`);
                     continue;
                 }
 
                 const rowData: ExcelRow = {
+                    id: `excel-${i}-${Date.now()}`,
                     fechaAlbaran: '',
                     clienteNombre: '',
                     totalImporte: 0,
@@ -194,18 +360,15 @@ export const DebtorsMain: React.FC = () => {
                     paciente: ''
                 };
 
-                // Mapear cada columna según el mapeo automático
                 Object.entries(autoMapping).forEach(([targetCol, sourceCol]) => {
                     const sourceIndex = headers.indexOf(sourceCol);
                     if (sourceIndex !== -1 && row[sourceIndex] !== undefined) {
                         const value = row[sourceIndex];
                         
-                        // Convertir valores numéricos
                         if (targetCol === 'totalImporte' || targetCol === 'cobradoLinea' || targetCol === 'deuda') {
                             rowData[targetCol] = typeof value === 'number' ? value : 
                             typeof value === 'string' ? parseFloat(value.toString().replace(',', '.')) || 0 : 0;
                         } else if (targetCol === 'fechaAlbaran') {
-                            // Formatear la fecha
                             rowData[targetCol] = formatDate(value?.toString() || '');
                         } else {
                             rowData[targetCol] = value?.toString() || '';
@@ -213,7 +376,6 @@ export const DebtorsMain: React.FC = () => {
                     }
                 });
 
-                // Solo agregar filas que tengan datos válidos
                 if (rowData.clienteNombre || rowData.totalImporte > 0) {
                     processedData.push(rowData);
                 }
@@ -225,15 +387,15 @@ export const DebtorsMain: React.FC = () => {
                 setError('No se encontraron datos válidos en el archivo Excel');
             } else {
                 setError(null);
-                setActiveTab('Excel'); // Cambiar a la pestaña de Excel automáticamente
+                setActiveTab('Excel');
             }
 
         } catch (err) {
-            toast.error(`Error al procesar el archivo Excel: ${err}`);
-            setError('Error al procesar el archivo Excel: ' + (err as Error).message);
+            const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+            toast.error(`Error al procesar el archivo Excel: ${errorMessage}`);
+            setError('Error al procesar el archivo Excel: ' + errorMessage);
         } finally {
             setIsUploading(false);
-            // Limpiar el input file
             event.target.value = '';
         }
     };
@@ -255,7 +417,6 @@ export const DebtorsMain: React.FC = () => {
       
             Object.entries(columnPatterns).forEach(([targetCol, patterns]) => {
                 if (patterns.some(pattern => headerLower.includes(pattern.toLowerCase()))) {
-                    // Si no hemos mapeado esta columna objetivo todavía, o si encontramos un match más específico
                     if (!mapping[targetCol] || headerLower === patterns[0].toLowerCase()) {
                         mapping[targetCol] = header;
                     }
@@ -290,7 +451,8 @@ export const DebtorsMain: React.FC = () => {
                 estado: 'activo'
             });
         } catch (err) {
-            setError('Error al crear cliente: ' + (err as Error).message);
+            const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+            setError('Error al crear cliente: ' + errorMessage);
         }
     };
 
@@ -312,7 +474,8 @@ export const DebtorsMain: React.FC = () => {
                 estado: 'activo'
             });
         } catch (err) {
-            setError('Error al actualizar cliente: ' + (err as Error).message);
+            const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+            setError('Error al actualizar cliente: ' + errorMessage);
         }
     };
 
@@ -324,7 +487,8 @@ export const DebtorsMain: React.FC = () => {
             await apiService.deleteDebtorsCliente(id);
             await loadInitialData();
         } catch (err) {
-            setError('Error al eliminar cliente: ' + (err as Error).message);
+            const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+            setError('Error al eliminar cliente: ' + errorMessage);
         }
     };
 
@@ -352,7 +516,8 @@ export const DebtorsMain: React.FC = () => {
             const resultado = await apiService.getDebtorsClienteByNombre(nombre);
             setClientes(Array.isArray(resultado) ? resultado : [resultado]);
         } catch (err) {
-            setError('Error al buscar cliente: ' + (err as Error).message);
+            const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+            setError('Error al buscar cliente: ' + errorMessage);
         }
     };
 
@@ -371,6 +536,21 @@ export const DebtorsMain: React.FC = () => {
         setActiveTab('Clientes');
     };
 
+    // Obtener elementos seleccionados actualmente
+    const getElementosSeleccionados = () => {
+        if (activeTab === 'Clientes') {
+            return {
+                count: selectedClientes.length,
+                type: 'clientes'
+            };
+        } else {
+            return {
+                count: selectedExcelRows.length,
+                type: 'registros de Excel'
+            };
+        }
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
@@ -380,14 +560,29 @@ export const DebtorsMain: React.FC = () => {
     }
 
     const excelTotals = calculateExcelTotals();
+    const elementosSeleccionados = getElementosSeleccionados();
+    const totalesFilas = calcularTotalesFilasCliente();
 
     return (
         <div className="min-h-screen bg-gray-50 p-6">
             {/* Sección fija superior */}
             <div className="sticky top-0 bg-gray-50 pt-6 pb-4 z-10">
                 <header className="mb-4">
-                    <h1 className="text-3xl font-bold text-gray-800">Sistema de Gestión de Crédito</h1>
-                    <p className="text-gray-600 mt-2">Administra tus clientes y controla la cartera de crédito</p>
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <h1 className="text-3xl font-bold text-gray-800">Sistema de Gestión de Crédito</h1>
+                            <p className="text-gray-600 mt-2">Administra tus clientes y controla la cartera de crédito</p>
+                        </div>
+                        <button
+                            onClick={handleDescargarPDF}
+                            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition duration-200 flex items-center hover:scale-105"
+                        >
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            Descargar PDF
+                        </button>
+                    </div>
                 </header>
 
                 {error && (
@@ -423,6 +618,44 @@ export const DebtorsMain: React.FC = () => {
                         </div>
                     </div>
                 )}
+
+                {/* Resumen de Etiquetas */}
+                <div className="bg-white rounded-lg shadow p-4 mb-4">
+                    <div className="flex justify-between items-center mb-3">
+                        <h2 className="text-xl font-bold">Resumen de Etiquetas</h2>
+                        <span className="text-sm text-gray-500">
+                            Total {activeTab === 'Clientes' ? clientes.length : excelData.length} elementos
+                        </span>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                        {Object.entries(resumenEtiquetas).map(([etiqueta, count]) => (
+                            <div 
+                                key={etiqueta} 
+                                className={`p-3 rounded-lg border ${
+                                    etiqueta === 'Sin etiqueta' 
+                                        ? 'bg-gray-50 border-gray-200' 
+                                        : `${getColorEtiqueta(etiqueta).bg} border-transparent`
+                                }`}
+                            >
+                                <div className={`text-sm font-medium ${
+                                    etiqueta === 'Sin etiqueta' 
+                                        ? 'text-gray-600' 
+                                        : getColorEtiqueta(etiqueta).text
+                                }`}>
+                                    {etiqueta}
+                                </div>
+                                <div className={`text-2xl font-bold ${
+                                    etiqueta === 'Sin etiqueta' 
+                                        ? 'text-gray-800' 
+                                        : getColorEtiqueta(etiqueta).text
+                                }`}>
+                                    {count}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
 
                 {/* Sección de carga de Excel */}
                 <div className="bg-white rounded-lg shadow p-4 mb-4">
@@ -479,7 +712,7 @@ export const DebtorsMain: React.FC = () => {
                         {excelData.length > 0 && (
                             <button
                                 onClick={clearExcelData}
-                                className="px-4 py-2 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition duration-200"
+                                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-red-600 transition duration-200"
                             >
                                 Limpiar Datos
                             </button>
@@ -513,14 +746,45 @@ export const DebtorsMain: React.FC = () => {
                         </nav>
                     </div>
 
-                    {/* Totales del Excel - Solo se muestra cuando hay datos */}
-                    {excelData.length > 0 && activeTab === 'Excel' && (
+                    {/* Barra de herramientas para selección múltiple */}
+                    {(selectedClientes.length > 0 || selectedExcelRows.length > 0) && (
                         <div className="mt-3 p-3 bg-blue-50 rounded-lg">
                             <div className="flex justify-between items-center">
-                                <h3 className="text-lg font-semibold text-blue-800">
+                                <span className="text-blue-700 font-medium">
+                                    {elementosSeleccionados.count} {elementosSeleccionados.type} seleccionado(s)
+                                </span>
+                                <div className="flex space-x-2">
+                                    <button
+                                        onClick={() => setShowEtiquetarModal(true)}
+                                        className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-yellow-500 transition duration-200"
+                                    >
+                                        Etiquetar Seleccionados
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            if (activeTab === 'Clientes') {
+                                                setSelectedClientes([]);
+                                            } else {
+                                                setSelectedExcelRows([]);
+                                            }
+                                        }}
+                                        className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-red-600 transition duration-200"
+                                    >
+                                        Cancelar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Totales del Excel - Solo se muestra cuando hay datos */}
+                    {excelData.length > 0 && activeTab === 'Excel' && (
+                        <div className="mt-3 p-3 bg-green-50 rounded-lg">
+                            <div className="flex justify-between items-center">
+                                <h3 className="text-lg font-semibold text-green-800">
                                     Resumen del Excel ({excelData.length} registros)
                                 </h3>
-                                <div className="text-sm text-blue-700 space-x-4">
+                                <div className="text-sm text-green-700 space-x-4">
                                     <span>Total Importe: <span className="font-bold">${excelTotals.totalImporte.toLocaleString()}</span></span>
                                     <span>Total Cobrado: <span className="font-bold text-green-600">${excelTotals.totalCobrado.toLocaleString()}</span></span>
                                     <span>Total Deuda: <span className="font-bold text-red-600">${excelTotals.totalDeuda.toLocaleString()}</span></span>
@@ -532,7 +796,6 @@ export const DebtorsMain: React.FC = () => {
             </div>
 
             {/* Contenido desplazable */}
-            {/* Navegación por pestañas */}
             <div className="bg-white rounded-lg shadow mb-6">
                 {activeTab === 'Clientes' && (
                     <div>
@@ -558,6 +821,14 @@ export const DebtorsMain: React.FC = () => {
                                     <table className="min-w-full divide-y divide-gray-200">
                                         <thead className="bg-gray-50">
                                             <tr>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedClientes.length === clientes.length && clientes.length > 0}
+                                                        onChange={handleSelectAllClientes}
+                                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                    />
+                                                </th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                     Cliente
                                                 </th>
@@ -574,13 +845,29 @@ export const DebtorsMain: React.FC = () => {
                                                     Estado
                                                 </th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Etiqueta
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                     Acciones
                                                 </th>
                                             </tr>
                                         </thead>
                                         <tbody className="bg-white divide-y divide-gray-200">
                                             {clientes.map((cliente) => (
-                                                <tr key={cliente.id} className="hover:bg-gray-50 transition duration-150">
+                                                <tr 
+                                                    key={cliente.id} 
+                                                    className="hover:bg-gray-50 transition duration-150 cursor-pointer"
+                                                    onDoubleClick={() => handleDoubleClickCliente(cliente)}
+                                                >
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedClientes.includes(cliente.id)}
+                                                            onChange={() => handleSelectCliente(cliente.id)}
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                        />
+                                                    </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <div className="text-sm font-medium text-gray-900">{cliente.nombre}</div>
                                                     </td>
@@ -604,15 +891,28 @@ export const DebtorsMain: React.FC = () => {
                                                             {cliente.estado}
                                                         </span>
                                                     </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        {cliente.etiqueta && (
+                                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getColorEtiqueta(cliente.etiqueta).bg} ${getColorEtiqueta(cliente.etiqueta).text}`}>
+                                                                {cliente.etiqueta}
+                                                            </span>
+                                                        )}
+                                                    </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                                                         <button
-                                                            onClick={() => handleEditCliente(cliente)}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleEditCliente(cliente);
+                                                            }}
                                                             className="text-blue-600 hover:text-blue-900 transition duration-150"
                                                         >
                                                             Editar
                                                         </button>
                                                         <button
-                                                            onClick={() => handleDeleteCliente(cliente.id)}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleDeleteCliente(cliente.id);
+                                                            }}
                                                             className="text-red-600 hover:text-red-900 transition duration-150"
                                                         >
                                                             Eliminar
@@ -643,6 +943,14 @@ export const DebtorsMain: React.FC = () => {
                                 <table className="min-w-full bg-white">
                                     <thead className="bg-gray-50">
                                         <tr>
+                                            <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedExcelRows.length === excelData.length && excelData.length > 0}
+                                                    onChange={handleSelectAllExcelRows}
+                                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                />
+                                            </th>
                                             <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Fecha Albarán
                                             </th>
@@ -661,11 +969,27 @@ export const DebtorsMain: React.FC = () => {
                                             <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Paciente
                                             </th>
+                                            <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Etiqueta
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-200">
-                                        {excelData.map((row, index) => (
-                                            <tr key={index} className="hover:bg-gray-50 transition duration-150">
+                                        {excelData.map((row) => (
+                                            <tr 
+                                                key={row.id} 
+                                                className="hover:bg-gray-50 transition duration-150 cursor-pointer"
+                                                onDoubleClick={() => handleDoubleClickExcel(row)}
+                                            >
+                                                <td className="px-4 py-3 whitespace-nowrap">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedExcelRows.includes(row.id)}
+                                                        onChange={() => handleSelectExcelRow(row.id)}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                    />
+                                                </td>
                                                 <td className="px-4 py-3 text-sm text-gray-900">
                                                     {row.fechaAlbaran || '-'}
                                                 </td>
@@ -684,6 +1008,13 @@ export const DebtorsMain: React.FC = () => {
                                                 <td className="px-4 py-3 text-sm text-gray-900">
                                                     {row.paciente || '-'}
                                                 </td>
+                                                <td className="px-4 py-3 whitespace-nowrap">
+                                                    {row.etiqueta && (
+                                                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getColorEtiqueta(row.etiqueta).bg} ${getColorEtiqueta(row.etiqueta).text}`}>
+                                                            {row.etiqueta}
+                                                        </span>
+                                                    )}
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -693,6 +1024,241 @@ export const DebtorsMain: React.FC = () => {
                     </div>
                 )}
             </div>
+
+            {/* Modal de Detalle de Cliente con TODAS sus filas de Excel - FUNCIONAL EN AMBOS TABS */}
+            {showDetalleCliente && clienteDetallado && (
+                <Modal
+                    className1="fixed inset-0 flex items-center justify-center bg-black/70 z-50"
+                    className2="relative bg-white rounded-lg shadow-lg max-w-7xl w-full p-6 max-h-[90vh] overflow-y-auto"
+                    closeModal={() => {
+                        setShowDetalleCliente(false);
+                        setModalDesdeExcel(false);
+                    }}
+                >
+                    <div className="bg-white rounded-lg p-6 w-full">
+                        <div className="flex justify-between items-start mb-6">
+                            <div>
+                                <h2 className="text-2xl font-bold text-gray-800">
+                                    {modalDesdeExcel ? 'Registros del Cliente: ' : 'Detalles del Cliente: '} {clienteDetallado.nombre}
+                                </h2>
+                                <p className="text-gray-600 mt-1">
+                                    {filasCliente.length} registro(s) encontrado(s) en Excel
+                                    {modalDesdeExcel && ' • Desde tab Excel'}
+                                </p>
+                            </div>
+                            
+                            {/* Sección de etiquetado en el modal */}
+                            <div className="flex items-center space-x-3">
+                                <select
+                                    value={etiquetaSeleccionada}
+                                    onChange={(e) => setEtiquetaSeleccionada(e.target.value)}
+                                    className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                >
+                                    <option value="">
+                                        {modalDesdeExcel ? 'Etiquetar registros...' : 'Etiquetar cliente...'}
+                                    </option>
+                                    {Object.keys(coloresEtiquetas).map(etiqueta => (
+                                        <option key={etiqueta} value={etiqueta}>
+                                            {etiqueta}
+                                        </option>
+                                    ))}
+                                </select>
+                                
+                                <button
+                                    onClick={handleEtiquetarClienteDesdeModal}
+                                    disabled={!etiquetaSeleccionada}
+                                    className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-yellow-500 transition duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                >
+                                    Aplicar
+                                </button>
+                            </div>
+                        </div>
+                        
+                        {/* Información general del cliente - Solo mostrar si no es desde Excel */}
+                        {!modalDesdeExcel && (
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+                                <div>
+                                    <h3 className="text-sm font-medium text-gray-500">Tipo de Cliente</h3>
+                                    <p className="text-lg font-semibold text-gray-800">{clienteDetallado.tipoCliente}</p>
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-medium text-gray-500">Límite de Crédito</h3>
+                                    <p className="text-lg font-semibold text-blue-600">${clienteDetallado.limiteCredito.toLocaleString()}</p>
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-medium text-gray-500">Saldo Actual</h3>
+                                    <p className={`text-lg font-semibold ${
+                                        clienteDetallado.saldoActual > 0 ? 'text-red-600' : 'text-green-600'
+                                    }`}>
+                                        ${clienteDetallado.saldoActual.toLocaleString()}
+                                    </p>
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-medium text-gray-500">Estado / Etiqueta</h3>
+                                    <div className="flex flex-col space-y-1">
+                                        <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${
+                                            clienteDetallado.estado === 'activo' ? 'bg-green-100 text-green-800' :
+                                            clienteDetallado.estado === 'moroso' ? 'bg-red-100 text-red-800' :
+                                            'bg-gray-100 text-gray-800'
+                                        }`}>
+                                            {clienteDetallado.estado}
+                                        </span>
+                                        {clienteDetallado.etiqueta && (
+                                            <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getColorEtiqueta(clienteDetallado.etiqueta).bg} ${getColorEtiqueta(clienteDetallado.etiqueta).text}`}>
+                                                {clienteDetallado.etiqueta}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Resumen de las filas del cliente */}
+                        {filasCliente.length > 0 && (
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                <div className="bg-blue-50 p-4 rounded-lg">
+                                    <h3 className="text-sm font-medium text-blue-600">Total Importe</h3>
+                                    <p className="text-2xl font-bold text-blue-700">${totalesFilas.totalImporte.toLocaleString()}</p>
+                                </div>
+                                <div className="bg-green-50 p-4 rounded-lg">
+                                    <h3 className="text-sm font-medium text-green-600">Total Cobrado</h3>
+                                    <p className="text-2xl font-bold text-green-700">${totalesFilas.totalCobrado.toLocaleString()}</p>
+                                </div>
+                                <div className="bg-red-50 p-4 rounded-lg">
+                                    <h3 className="text-sm font-medium text-red-600">Total Deuda</h3>
+                                    <p className="text-2xl font-bold text-red-700">${totalesFilas.totalDeuda.toLocaleString()}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Lista de TODAS las filas de Excel del cliente */}
+                        <div className="mt-6">
+                            <h3 className="text-xl font-semibold mb-4 text-gray-800">
+                                Registros en Excel ({filasCliente.length})
+                            </h3>
+                            
+                            {filasCliente.length === 0 ? (
+                                <div className="text-center py-8 text-gray-500">
+                                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    <p className="mt-2">No se encontraron registros de Excel para este cliente.</p>
+                                </div>
+                            ) : (
+                                <div className="overflow-hidden border border-gray-200 rounded-lg">
+                                    <table className="min-w-full divide-y divide-gray-200">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Fecha Albarán
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Total Importe
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Cobrado
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Deuda
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Paciente
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Etiqueta
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white divide-y divide-gray-200">
+                                            {filasCliente.map((fila) => (
+                                                <tr key={fila.id} className="hover:bg-gray-50 transition duration-150">
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                        {fila.fechaAlbaran || '-'}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                        ${fila.totalImporte.toLocaleString()}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-medium">
+                                                        ${fila.cobradoLinea.toLocaleString()}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-medium">
+                                                        ${fila.deuda.toLocaleString()}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-sm text-gray-900">
+                                                        {fila.paciente || '-'}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        {fila.etiqueta && (
+                                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getColorEtiqueta(fila.etiqueta).bg} ${getColorEtiqueta(fila.etiqueta).text}`}>
+                                                                {fila.etiqueta}
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </Modal>
+            )}
+
+            {/* Modal para Etiquetar Elementos */}
+            {showEtiquetarModal && (
+                <Modal
+                    className1="fixed inset-0 flex items-center justify-center bg-black/70 z-50"
+                    className2="relative bg-white rounded-lg shadow-lg max-w-md w-full p-2"
+                    closeModal={() => setShowEtiquetarModal(false)}
+                >
+                    <div className="bg-white rounded-lg p-2">
+                        <h2 className="text-xl font-bold mb-2 text-center">Etiquetar {elementosSeleccionados.type}</h2>
+                        <p className="text-gray-600 mb-2">
+                            Etiquetar {elementosSeleccionados.count} {elementosSeleccionados.type} seleccionado(s)
+                        </p>
+                        
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Seleccionar Etiqueta
+                                </label>
+                                <select
+                                    value={etiquetaSeleccionada}
+                                    onChange={(e) => setEtiquetaSeleccionada(e.target.value)}
+                                    className="w-full border border-gray-300 rounded-lg px-2 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                >
+                                    <option value="">Selecciona una etiqueta</option>
+                                    {Object.keys(coloresEtiquetas).map(etiqueta => (
+                                        <option key={etiqueta} value={etiqueta}>
+                                            {etiqueta}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            
+                            {/* Vista previa del color de la etiqueta */}
+                            {etiquetaSeleccionada && (
+                                <div className="p-2 bg-gray-50 rounded-lg">
+                                    <p className="text-sm text-gray-600 mb-2">Vista previa:</p>
+                                    <span className={`inline-flex px-3 py-2 text-sm font-semibold rounded-full ${getColorEtiqueta(etiquetaSeleccionada).bg} ${getColorEtiqueta(etiquetaSeleccionada).text}`}>
+                                        {etiquetaSeleccionada}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex justify-center space-x-2 mt-4">
+                            <button
+                                onClick={handleEtiquetarElementos}
+                                className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-yellow-500 transition duration-200"
+                            >
+                                Aplicar Etiqueta
+                            </button>
+                        </div>
+                    </div>
+                </Modal>
+            )}
 
             {/* Formulario de cliente (modal) */}
             {showForm && (
@@ -705,10 +1271,7 @@ export const DebtorsMain: React.FC = () => {
                         <h2 className="text-xl font-bold mb-4">
                             {selectedCliente ? 'Editar Cliente' : 'Nuevo Cliente'}
                         </h2>
-                        <form onSubmit={() => {
-                            selectedCliente ? handleUpdateCliente : handleCreateCliente;
-                            setShowForm(false)
-                        }}>
+                        <form onSubmit={selectedCliente ? handleUpdateCliente : handleCreateCliente}>
                             <div className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Nombre *</label>
@@ -776,7 +1339,7 @@ export const DebtorsMain: React.FC = () => {
                             <div className="flex justify-end space-x-3 mt-6">
                                 <button
                                     type="submit"
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200"
+                                    className="px-4 py-2 bg-cyan-600 text-white rounded-md hover:bg-yellow-500 transition duration-200"
                                 >
                                     {selectedCliente ? 'Actualizar' : 'Crear'}
                                 </button>

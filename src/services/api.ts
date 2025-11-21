@@ -379,6 +379,10 @@ class ApiService {
     // =============================================
 
     // 👥 CLIENTES
+    async getAdeudosByClienteId(clienteId: string): Promise<any> {
+        return this.get(`/debtors/adeudos/cliente/${clienteId}`);
+    }
+    
     async getDebtorsClientes(): Promise<any> {
         return this.get('/debtors/clientes');
     }
