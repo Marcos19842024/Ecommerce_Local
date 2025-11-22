@@ -1,29 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import { apiService } from '../../services/api';
-import { Cliente, ExcelRow, MetricasGlobales, ResumenEtiquetas } from '../../interfaces/debtors.interface';
 import readXlsxFile from 'read-excel-file';
 import toast from 'react-hot-toast';
 import Modal from '../shared/Modal';
 import coloresEtiquetas from '../../utils/debtors';
+import { ClienteComparativa, ExcelRow, MetricasGlobales, ResumenEtiquetas } from '../../interfaces/debtors.interface';
+
 
 export const DebtorsMain: React.FC = () => {
-    const [clientes, setClientes] = useState<Cliente[]>([]);
+    const [clientes, setClientes] = useState<ClienteComparativa[]>([]);
     const [excelData, setExcelData] = useState<ExcelRow[]>([]);
     const [metricas, setMetricas] = useState<MetricasGlobales | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showForm, setShowForm] = useState(false);
-    const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
+    const [selectedCliente, setSelectedCliente] = useState<ClienteComparativa | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [activeTab, setActiveTab] = useState<'Clientes' | 'Excel'>('Clientes');
     const [selectedClientes, setSelectedClientes] = useState<string[]>([]);
     const [selectedExcelRows, setSelectedExcelRows] = useState<string[]>([]);
     const [showDetalleCliente, setShowDetalleCliente] = useState(false);
-    const [clienteDetallado, setClienteDetallado] = useState<Cliente | null>(null);
+    const [clienteDetallado, setClienteDetallado] = useState<ClienteComparativa | null>(null);
     const [showEtiquetarModal, setShowEtiquetarModal] = useState(false);
     const [etiquetaSeleccionada, setEtiquetaSeleccionada] = useState('');
     const [filasCliente, setFilasCliente] = useState<ExcelRow[]>([]);
     const [modalDesdeExcel, setModalDesdeExcel] = useState(false);
+    
+    // Nuevos estados para comparativas
+    const [showFiltros, setShowFiltros] = useState(false);
+    const [filtroTendencia, setFiltroTendencia] = useState('');
+    const [filtroEstado, setFiltroEstado] = useState('');
+    const [filtroEtiqueta, setFiltroEtiqueta] = useState('');
 
     // Estados para el formulario
     const [formData, setFormData] = useState({
@@ -57,31 +64,61 @@ export const DebtorsMain: React.FC = () => {
         }
     };
 
-    // Calcular resumen de etiquetas
-    const calcularResumenEtiquetas = (): ResumenEtiquetas => {
+    // Calcular resumen de etiquetas con total de deuda
+    const calcularResumenEtiquetas = (): { resumen: ResumenEtiquetas, deudaPorEtiqueta: { [etiqueta: string]: number } } => {
         const resumen: ResumenEtiquetas = {};
+        const deudaPorEtiqueta: { [etiqueta: string]: number } = {};
         
         if (activeTab === 'Clientes') {
-            // Contar etiquetas de clientes
+            // Contar etiquetas de clientes y calcular deuda
             clientes.forEach(cliente => {
                 const etiqueta = cliente.etiqueta || 'Sin etiqueta';
                 resumen[etiqueta] = (resumen[etiqueta] || 0) + 1;
+                deudaPorEtiqueta[etiqueta] = (deudaPorEtiqueta[etiqueta] || 0) + cliente.saldoActual;
             });
         } else {
-            // Contar etiquetas de filas de Excel
+            // Contar etiquetas de filas de Excel y calcular deuda
             excelData.forEach(fila => {
                 const etiqueta = fila.etiqueta || 'Sin etiqueta';
                 resumen[etiqueta] = (resumen[etiqueta] || 0) + 1;
+                deudaPorEtiqueta[etiqueta] = (deudaPorEtiqueta[etiqueta] || 0) + fila.deuda;
             });
         }
         
-        return resumen;
+        return { resumen, deudaPorEtiqueta };
     };
 
-    // Función para descargar PDF (placeholder por ahora)
+    // Función para obtener el período actual
+    const obtenerPeriodoActual = (): string => {
+        const ahora = new Date();
+        const anio = ahora.getFullYear();
+        const mes = (ahora.getMonth() + 1).toString().padStart(2, '0');
+        return `${anio}-${mes}`;
+    };
+
+    // Función para procesar comparativa
+    const handleProcesarComparativa = async () => {
+        try {
+            const periodo = obtenerPeriodoActual();
+            const resultado = await apiService.procesarExcelComparativa(excelData, periodo);
+            
+            toast.success(resultado.message);
+            
+            // Recargar los clientes para ver las comparativas actualizadas
+            await loadInitialData();
+            
+            // Cambiar al tab Clientes para ver los resultados
+            setActiveTab('Clientes');
+            
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+            toast.error('Error al procesar comparativa: ' + errorMessage);
+        }
+    };
+
+    // Función para descargar PDF
     const handleDescargarPDF = () => {
         toast.success('Funcionalidad de descarga PDF en desarrollo');
-        // Aquí se implementará la lógica de generación de PDF
         console.log('Descargando PDF...');
     };
 
@@ -93,7 +130,7 @@ export const DebtorsMain: React.FC = () => {
     };
 
     // Función para cargar TODOS los datos de un cliente
-    const cargarDetallesCliente = async (cliente: Cliente) => {
+    const cargarDetallesCliente = async (cliente: ClienteComparativa) => {
         try {
             // Obtener todas las filas de Excel de este cliente
             const filasDelCliente = obtenerFilasCliente(cliente.nombre);
@@ -111,11 +148,45 @@ export const DebtorsMain: React.FC = () => {
         return coloresEtiquetas[etiqueta] || { bg: 'bg-gray-100', text: 'text-gray-800' };
     };
 
-    // Obtener el resumen de etiquetas actual
-    const resumenEtiquetas = calcularResumenEtiquetas();
+    // Obtener el resumen de etiquetas actual con deuda
+    const { resumen: resumenEtiquetas, deudaPorEtiqueta } = calcularResumenEtiquetas();
+
+    // Calcular variaciones totales para el resumen
+    const variacionTotal = clientes.reduce((sum, c) => sum + (c.variacion || 0), 0);
+    const deudaAnteriorTotal = clientes.reduce((sum, c) => sum + (c.deudaAnterior || 0), 0);
+    const porcentajeVariacion = deudaAnteriorTotal > 0 ? (variacionTotal / deudaAnteriorTotal) * 100 : 0;
+
+    // Filtrar clientes
+    const clientesFiltrados = clientes.filter(cliente => {
+        if (filtroTendencia && cliente.variacion !== undefined) {
+            if (filtroTendencia === 'aumento' && cliente.variacion <= 0) return false;
+            if (filtroTendencia === 'disminucion' && cliente.variacion >= 0) return false;
+            if (filtroTendencia === 'estable' && cliente.variacion !== 0) return false;
+        }
+        if (filtroEstado && cliente.estado !== filtroEstado) return false;
+        if (filtroEtiqueta) {
+            if (filtroEtiqueta === 'Sin etiqueta' && cliente.etiqueta) return false;
+            if (filtroEtiqueta !== 'Sin etiqueta' && cliente.etiqueta !== filtroEtiqueta) return false;
+        }
+        return true;
+    });
+
+    // Limpiar filtros
+    const limpiarFiltros = () => {
+        setFiltroTendencia('');
+        setFiltroEstado('');
+        setFiltroEtiqueta('');
+    };
 
     // Manejar doble click en cliente (desde tab Clientes)
-    const handleDoubleClickCliente = async (cliente: Cliente) => {
+    const handleDoubleClickCliente = async (cliente: ClienteComparativa) => {
+        setClienteDetallado(cliente);
+        await cargarDetallesCliente(cliente);
+        setShowDetalleCliente(true);
+    };
+
+    // Manejar ver detalle del cliente (nueva función)
+    const handleVerDetalleCliente = async (cliente: ClienteComparativa) => {
         setClienteDetallado(cliente);
         await cargarDetallesCliente(cliente);
         setShowDetalleCliente(true);
@@ -185,17 +256,6 @@ export const DebtorsMain: React.FC = () => {
         return { totalImporte, totalCobrado, totalDeuda };
     };
 
-    // Manejar selección/deselección de clientes
-    const handleSelectCliente = (clienteId: string) => {
-        setSelectedClientes(prev => {
-            if (prev.includes(clienteId)) {
-                return prev.filter(id => id !== clienteId);
-            } else {
-                return [...prev, clienteId];
-            }
-        });
-    };
-
     // Manejar selección/deselección de filas de Excel
     const handleSelectExcelRow = (rowId: string) => {
         setSelectedExcelRows(prev => {
@@ -205,15 +265,6 @@ export const DebtorsMain: React.FC = () => {
                 return [...prev, rowId];
             }
         });
-    };
-
-    // Seleccionar/deseleccionar todos los clientes
-    const handleSelectAllClientes = () => {
-        if (selectedClientes.length === clientes.length) {
-            setSelectedClientes([]);
-        } else {
-            setSelectedClientes(clientes.map(cliente => cliente.id));
-        }
     };
 
     // Seleccionar/deseleccionar todas las filas de Excel
@@ -479,21 +530,8 @@ export const DebtorsMain: React.FC = () => {
         }
     };
 
-    // Eliminar cliente
-    const handleDeleteCliente = async (id: string) => {
-        if (!confirm('¿Estás seguro de que quieres eliminar este cliente?')) return;
-        
-        try {
-            await apiService.deleteDebtorsCliente(id);
-            await loadInitialData();
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
-            setError('Error al eliminar cliente: ' + errorMessage);
-        }
-    };
-
     // Editar cliente
-    const handleEditCliente = (cliente: Cliente) => {
+    const handleEditCliente = (cliente: ClienteComparativa) => {
         setSelectedCliente(cliente);
         setFormData({
             nombre: cliente.nombre,
@@ -513,7 +551,7 @@ export const DebtorsMain: React.FC = () => {
         }
 
         try {
-            const resultado = await apiService.getDebtorsClienteByNombre(nombre);
+            const resultado = await apiService.searchDebtorsCliente(nombre);
             setClientes(Array.isArray(resultado) ? resultado : [resultado]);
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
@@ -549,6 +587,12 @@ export const DebtorsMain: React.FC = () => {
                 type: 'registros de Excel'
             };
         }
+    };
+
+    // Función para descargar comparativa
+    const handleDescargarComparativa = () => {
+        toast.success('Funcionalidad de exportación en desarrollo');
+        console.log('Exportando comparativa...');
     };
 
     if (loading) {
@@ -623,34 +667,30 @@ export const DebtorsMain: React.FC = () => {
                 <div className="bg-white rounded-lg shadow p-4 mb-4">
                     <div className="flex justify-between items-center mb-3">
                         <h2 className="text-xl font-bold">Resumen de Etiquetas</h2>
-                        <span className="text-sm text-gray-500">
-                            Total {activeTab === 'Clientes' ? clientes.length : excelData.length} elementos
-                        </span>
                     </div>
                     
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
                         {Object.entries(resumenEtiquetas).map(([etiqueta, count]) => (
                             <div 
                                 key={etiqueta} 
-                                className={`p-3 rounded-lg border ${
-                                    etiqueta === 'Sin etiqueta' 
-                                        ? 'bg-gray-50 border-gray-200' 
-                                        : `${getColorEtiqueta(etiqueta).bg} border-transparent`
+                                className={`p-2 rounded-lg border ${
+                                    etiqueta === 'Sin etiqueta' ? 'bg-gray-50 border-gray-200 text-xs font-bold' 
+                                    : `${getColorEtiqueta(etiqueta).bg} border-transparent text-xs font-bold`
                                 }`}
                             >
-                                <div className={`text-sm font-medium ${
-                                    etiqueta === 'Sin etiqueta' 
-                                        ? 'text-gray-600' 
-                                        : getColorEtiqueta(etiqueta).text
-                                }`}>
-                                    {etiqueta}
-                                </div>
-                                <div className={`text-2xl font-bold ${
-                                    etiqueta === 'Sin etiqueta' 
-                                        ? 'text-gray-800' 
-                                        : getColorEtiqueta(etiqueta).text
-                                }`}>
-                                    {count}
+                                <div
+                                    className={` ${
+                                        etiqueta === 'Sin etiqueta' ? 'text-gray-600' : getColorEtiqueta(etiqueta).text
+                                    }`}
+                                >
+                                    {`${etiqueta} (${count})`}
+                                    <div
+                                        className={` ${
+                                            etiqueta === 'Sin etiqueta' ? 'text-gray-600 font-medium' : `${getColorEtiqueta(etiqueta).text} font-medium`
+                                        }`}
+                                    >
+                                        {`Total Deuda: $${deudaPorEtiqueta[etiqueta]?.toLocaleString() || '0'}`}
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -709,13 +749,21 @@ export const DebtorsMain: React.FC = () => {
                             </div>
                         )}
 
-                        {excelData.length > 0 && (
-                            <button
-                                onClick={clearExcelData}
-                                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-red-600 transition duration-200"
-                            >
-                                Limpiar Datos
-                            </button>
+                        {excelData.length > 0 && activeTab === 'Excel' && (
+                            <div className="flex space-x-2">
+                                <button
+                                    onClick={handleProcesarComparativa}
+                                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-200"
+                                >
+                                    Procesar Comparativa
+                                </button>
+                                <button
+                                    onClick={clearExcelData}
+                                    className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-red-600 transition duration-200"
+                                >
+                                    Limpiar Datos
+                                </button>
+                            </div>
                         )}
                     </div>
 
@@ -799,7 +847,42 @@ export const DebtorsMain: React.FC = () => {
             <div className="bg-white rounded-lg shadow mb-6">
                 {activeTab === 'Clientes' && (
                     <div>
-                        {/* Tabla de clientes */}
+                        {/* Resumen Comparativo */}
+                        <div className="bg-white rounded-lg shadow p-6 mb-6">
+                            <h2 className="text-xl font-bold mb-4">Resumen Comparativo</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div className="bg-blue-50 p-4 rounded-lg">
+                                    <h3 className="text-sm font-medium text-blue-600">Deuda Actual</h3>
+                                    <p className="text-2xl font-bold text-blue-700">
+                                        ${clientes.reduce((sum, c) => sum + c.saldoActual, 0).toLocaleString()}
+                                    </p>
+                                </div>
+                                <div className="bg-green-50 p-4 rounded-lg">
+                                    <h3 className="text-sm font-medium text-green-600">Deuda Anterior</h3>
+                                    <p className="text-2xl font-bold text-green-700">
+                                        ${clientes.reduce((sum, c) => sum + (c.deudaAnterior || 0), 0).toLocaleString()}
+                                    </p>
+                                </div>
+                                <div className="bg-purple-50 p-4 rounded-lg">
+                                    <h3 className="text-sm font-medium text-purple-600">Variación</h3>
+                                    <p className={`text-2xl font-bold ${
+                                        variacionTotal >= 0 ? 'text-red-600' : 'text-green-600'
+                                    }`}>
+                                        {variacionTotal >= 0 ? '+' : ''}${variacionTotal.toLocaleString()}
+                                    </p>
+                                </div>
+                                <div className="bg-orange-50 p-4 rounded-lg">
+                                    <h3 className="text-sm font-medium text-orange-600">% Cambio</h3>
+                                    <p className={`text-2xl font-bold ${
+                                        porcentajeVariacion >= 0 ? 'text-red-600' : 'text-green-600'
+                                    }`}>
+                                        {porcentajeVariacion >= 0 ? '+' : ''}{porcentajeVariacion.toFixed(1)}%
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Tabla de Clientes con Comparativa */}
                         {clientes.length === 0 ? (
                             <div className="text-center py-8 text-gray-500">
                                 No se encontraron clientes
@@ -815,20 +898,70 @@ export const DebtorsMain: React.FC = () => {
                                             onChange={(e) => handleSearchCliente(e.target.value)}
                                         />
                                     </div>
+                                    <div className="flex space-x-2">
+                                        <button
+                                            onClick={() => setShowFiltros(!showFiltros)}
+                                            className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-200"
+                                        >
+                                            Filtros
+                                        </button>
+                                        <button
+                                            onClick={handleDescargarComparativa}
+                                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-200"
+                                        >
+                                            Exportar Comparativa
+                                        </button>
+                                    </div>
                                 </div>
+
+                                {/* Filtros */}
+                                {showFiltros && (
+                                    <div className="bg-gray-50 p-4 rounded-lg mb-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                            <select
+                                                value={filtroTendencia}
+                                                onChange={(e) => setFiltroTendencia(e.target.value)}
+                                                className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            >
+                                                <option value="">Todas las tendencias</option>
+                                                <option value="aumento">En aumento</option>
+                                                <option value="disminucion">En disminución</option>
+                                                <option value="estable">Estables</option>
+                                            </select>
+                                            <select
+                                                value={filtroEstado}
+                                                onChange={(e) => setFiltroEstado(e.target.value)}
+                                                className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            >
+                                                <option value="">Todos los estados</option>
+                                                <option value="activo">Activos</option>
+                                                <option value="moroso">Morosos</option>
+                                                <option value="inactivo">Inactivos</option>
+                                            </select>
+                                            <select
+                                                value={filtroEtiqueta}
+                                                onChange={(e) => setFiltroEtiqueta(e.target.value)}
+                                                className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            >
+                                                <option value="">Todas las etiquetas</option>
+                                                {Object.keys(coloresEtiquetas).map(etiqueta => (
+                                                    <option key={etiqueta} value={etiqueta}>{etiqueta}</option>
+                                                ))}
+                                            </select>
+                                            <button
+                                                onClick={limpiarFiltros}
+                                                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition duration-200"
+                                            >
+                                                Limpiar Filtros
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div className="overflow-hidden border border-gray-200 rounded-lg">
                                     <table className="min-w-full divide-y divide-gray-200">
                                         <thead className="bg-gray-50">
                                             <tr>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={selectedClientes.length === clientes.length && clientes.length > 0}
-                                                        onChange={handleSelectAllClientes}
-                                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                                    />
-                                                </th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                     Cliente
                                                 </th>
@@ -836,10 +969,16 @@ export const DebtorsMain: React.FC = () => {
                                                     Tipo
                                                 </th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Límite Crédito
+                                                    Deuda Actual
                                                 </th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Saldo Actual
+                                                    Deuda Anterior
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Variación
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Tendencia
                                                 </th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                     Estado
@@ -853,21 +992,12 @@ export const DebtorsMain: React.FC = () => {
                                             </tr>
                                         </thead>
                                         <tbody className="bg-white divide-y divide-gray-200">
-                                            {clientes.map((cliente) => (
+                                            {clientesFiltrados.map((cliente) => (
                                                 <tr 
                                                     key={cliente.id} 
                                                     className="hover:bg-gray-50 transition duration-150 cursor-pointer"
                                                     onDoubleClick={() => handleDoubleClickCliente(cliente)}
                                                 >
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={selectedClientes.includes(cliente.id)}
-                                                            onChange={() => handleSelectCliente(cliente.id)}
-                                                            onClick={(e) => e.stopPropagation()}
-                                                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                                        />
-                                                    </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <div className="text-sm font-medium text-gray-900">{cliente.nombre}</div>
                                                     </td>
@@ -876,11 +1006,50 @@ export const DebtorsMain: React.FC = () => {
                                                             {cliente.tipoCliente}
                                                         </span>
                                                     </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                        ${cliente.limiteCredito.toLocaleString()}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                                         ${cliente.saldoActual.toLocaleString()}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                        ${(cliente.deudaAnterior || 0).toLocaleString()}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="flex items-center">
+                                                            <span className={`text-sm font-medium ${
+                                                                cliente.variacion && cliente.variacion > 0 ? 'text-red-600' : 
+                                                                cliente.variacion && cliente.variacion < 0 ? 'text-green-600' : 'text-gray-600'
+                                                            }`}>
+                                                                {cliente.variacion && cliente.variacion > 0 ? '+' : ''}${cliente.variacion?.toLocaleString()}
+                                                            </span>
+                                                            {cliente.porcentajeVariacion !== undefined && (
+                                                                <span className={`ml-2 text-xs ${
+                                                                    cliente.porcentajeVariacion > 0 ? 'text-red-500' : 
+                                                                    cliente.porcentajeVariacion < 0 ? 'text-green-500' : 'text-gray-500'
+                                                                }`}>
+                                                                    ({cliente.porcentajeVariacion > 0 ? '+' : ''}{cliente.porcentajeVariacion.toFixed(1)}%)
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="flex items-center">
+                                                            {cliente.variacion && cliente.variacion > 0 ? (
+                                                                <svg className="w-4 h-4 text-red-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                                                                </svg>
+                                                            ) : cliente.variacion && cliente.variacion < 0 ? (
+                                                                <svg className="w-4 h-4 text-green-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                                                                </svg>
+                                                            ) : (
+                                                                <svg className="w-4 h-4 text-gray-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14" />
+                                                                </svg>
+                                                            )}
+                                                            <span className="text-sm text-gray-600">
+                                                                {cliente.variacion && cliente.variacion > 0 ? 'Aumentando' : 
+                                                                 cliente.variacion && cliente.variacion < 0 ? 'Disminuyendo' : 'Estable'}
+                                                            </span>
+                                                        </div>
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -911,11 +1080,11 @@ export const DebtorsMain: React.FC = () => {
                                                         <button
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                handleDeleteCliente(cliente.id);
+                                                                handleVerDetalleCliente(cliente);
                                                             }}
-                                                            className="text-red-600 hover:text-red-900 transition duration-150"
+                                                            className="text-green-600 hover:text-green-900 transition duration-150"
                                                         >
-                                                            Eliminar
+                                                            Detalle
                                                         </button>
                                                     </td>
                                                 </tr>
@@ -1025,7 +1194,8 @@ export const DebtorsMain: React.FC = () => {
                 )}
             </div>
 
-            {/* Modal de Detalle de Cliente con TODAS sus filas de Excel - FUNCIONAL EN AMBOS TABS */}
+            {/* Los modales existentes se mantienen igual */}
+            {/* Modal de Detalle de Cliente */}
             {showDetalleCliente && clienteDetallado && (
                 <Modal
                     className1="fixed inset-0 flex items-center justify-center bg-black/70 z-50"

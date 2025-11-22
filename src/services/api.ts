@@ -391,7 +391,8 @@ class ApiService {
         return this.get(`/debtors/clientes/${id}`);
     }
 
-    async getDebtorsClienteByNombre(nombre: string): Promise<any> {
+    // 🔍 MÉTODO NUEVO: Búsqueda de cliente por nombre
+    async searchDebtorsCliente(nombre: string): Promise<any> {
         return this.get(`/debtors/clientes/buscar?nombre=${encodeURIComponent(nombre)}`);
     }
 
@@ -414,6 +415,14 @@ class ApiService {
 
     async getDebtorsMetricasGlobales(año: number, mes: number): Promise<any> {
         return this.get(`/debtors/reportes/metricas-globales?año=${año}&mes=${mes}`);
+    }
+
+    // 🔄 MÉTODO NUEVO: Procesar comparativa de Excel
+    async procesarExcelComparativa(excelData: any[], periodo: string): Promise<any> {
+        return this.post('/debtors/procesar-comparativa', {
+            excelData,
+            periodo
+        });
     }
 }
 

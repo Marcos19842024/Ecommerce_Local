@@ -31,3 +31,10 @@ export interface ExcelRow {
 export interface ResumenEtiquetas {
   [key: string]: number;
 }
+
+export interface ClienteComparativa extends Cliente {
+    deudaAnterior?: number;
+    variacion?: number;
+    porcentajeVariacion?: number;
+    periodoActual?: string;
+}
