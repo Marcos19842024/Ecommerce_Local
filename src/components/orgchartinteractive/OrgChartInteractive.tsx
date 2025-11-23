@@ -300,7 +300,7 @@ export default function OrgChartInteractive() {
   );
 
   return (
-    <div className="h-screen w-full bg-white text-gray-800 relative">
+    <div className="h-screen w-full bg-white text-gray-800 relative rounded-md">
       <div className="flex justify-between items-center p-2 border-b border-gray-300 rounded-md">
         <h1 className="text-2xl font-bold">{showMyDocuments ? "Mis documentos" : "Organigrama Interactivo"}</h1>
         <button

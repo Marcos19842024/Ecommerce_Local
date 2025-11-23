@@ -659,10 +659,6 @@ export const CheckList: React.FC<ChecklistSupervisionProps> = ({ onClose }) => {
             {/* Modal de cámara CON REACT-WEBCAM */}
             {isCameraOpen && renderCameraModal()}
             <div>
-                <div className="flex justify-between items-center p-4 border-b border-gray-300 rounded-md">
-                    <h1 className="text-2xl font-bold">Checklist General de Supervisión</h1>
-                </div>
-
                 {availableChecklists.length > 0 && (
                     <div className="mb-4 p-4 bg-blue-50 rounded-lg">
                         <label className="block text-sm font-medium text-gray-700 mb-2">

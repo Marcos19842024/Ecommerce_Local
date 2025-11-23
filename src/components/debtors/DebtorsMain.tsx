@@ -64,6 +64,137 @@ export const DebtorsMain: React.FC = () => {
         }
     };
 
+    // Función para subir clientes al backend
+    const handleSubirClientes = async () => {
+        try {
+            setIsUploading(true);
+            
+            // Filtrar solo los clientes que tienen datos válidos
+            const clientesParaSubir = clientes.filter(cliente => 
+                cliente.nombre && cliente.nombre.trim() !== ''
+            );
+
+            if (clientesParaSubir.length === 0) {
+                toast.error('No hay clientes válidos para subir');
+                return;
+            }
+
+            // Subir cada cliente individualmente
+            const resultados = [];
+            for (const cliente of clientesParaSubir) {
+                try {
+                    let resultado;
+                    if (cliente.id && cliente.id.startsWith('temp-')) {
+                        // Es un cliente nuevo (sin ID real)
+                        resultado = await apiService.createDebtorsCliente({
+                            nombre: cliente.nombre,
+                            tipoCliente: cliente.tipoCliente || 'regular',
+                            limiteCredito: cliente.limiteCredito || 0,
+                            saldoActual: cliente.saldoActual || 0,
+                            estado: cliente.estado || 'activo',
+                            etiqueta: cliente.etiqueta || ''
+                        });
+                    } else {
+                        // Es un cliente existente
+                        resultado = await apiService.updateDebtorsCliente(cliente.id, {
+                            nombre: cliente.nombre,
+                            tipoCliente: cliente.tipoCliente,
+                            limiteCredito: cliente.limiteCredito,
+                            saldoActual: cliente.saldoActual,
+                            estado: cliente.estado,
+                            etiqueta: cliente.etiqueta || ''
+                        });
+                    }
+                    resultados.push(resultado);
+                } catch (error) {
+                    console.error(`Error subiendo cliente ${cliente.nombre}:`, error);
+                    const mensajeError = error instanceof Error ? error.message : String(error);
+                    resultados.push({ error: `Error con ${cliente.nombre}: ${mensajeError}` });
+                }
+            }
+
+            toast.success(`Se subieron ${resultados.filter(r => !r.error).length} de ${clientesParaSubir.length} clientes correctamente`);
+            
+            // Recargar los datos desde el backend
+            await loadInitialData();
+            
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+            toast.error(`Error al subir clientes: ${errorMessage}`);
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    // Función para subir datos de Excel procesados al backend
+    const handleSubirExcelProcesado = async () => {
+        try {
+            setIsUploading(true);
+            
+            if (excelData.length === 0) {
+                toast.error('No hay datos de Excel para subir');
+                return;
+            }
+
+            // Procesar el Excel (esto ya lo tienes implementado)
+            const periodo = obtenerPeriodoActual();
+            const resultado = await apiService.procesarExcelComparativa(excelData, periodo);
+            
+            toast.success(resultado.message || 'Datos de Excel procesados correctamente');
+            
+            // Recargar los clientes para ver las comparativas actualizadas
+            await loadInitialData();
+            
+            // Cambiar al tab Clientes para ver los resultados
+            setActiveTab('Clientes');
+            
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+            toast.error('Error al procesar y subir datos de Excel: ' + errorMessage);
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    // Función para sincronizar etiquetas con el backend
+    const handleSincronizarEtiquetas = async () => {
+        try {
+            setIsUploading(true);
+            
+            // Obtener clientes que tienen etiquetas
+            const clientesConEtiquetas = clientes.filter(cliente => 
+                cliente.etiqueta && cliente.etiqueta.trim() !== ''
+            );
+
+            if (clientesConEtiquetas.length === 0) {
+                toast.error('No hay clientes con etiquetas para sincronizar');
+                return;
+            }
+
+            // Actualizar cada cliente con su etiqueta
+            const actualizaciones = [];
+            for (const cliente of clientesConEtiquetas) {
+                try {
+                    const resultado = await apiService.updateDebtorsCliente(cliente.id, {
+                        etiqueta: cliente.etiqueta
+                        // Mantener los demás datos igual
+                    });
+                    actualizaciones.push(resultado);
+                } catch (error) {
+                    console.error(`Error sincronizando etiqueta de ${cliente.nombre}:`, error);
+                }
+            }
+
+            toast.success(`Etiquetas de ${actualizaciones.length} clientes sincronizadas correctamente`);
+            
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+            toast.error('Error al sincronizar etiquetas: ' + errorMessage);
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
     // Calcular resumen de etiquetas con total de deuda
     const calcularResumenEtiquetas = (): { resumen: ResumenEtiquetas, deudaPorEtiqueta: { [etiqueta: string]: number } } => {
         const resumen: ResumenEtiquetas = {};
@@ -608,100 +739,13 @@ export const DebtorsMain: React.FC = () => {
     const totalesFilas = calcularTotalesFilasCliente();
 
     return (
-        <div className="min-h-screen bg-gray-50 p-6">
-            {/* Sección fija superior */}
-            <div className="sticky top-0 bg-gray-50 pt-6 pb-4 z-10">
-                <header className="mb-4">
+        <div className="min-h-screen bg-white p-2 rounded-md">
+            {/* Sección completamente fija superior */}
+            <div className='bg-white sticky top-0 z-50 mb-2'>
+                {/* Header principal */}
+                <header className="bg-white p-1 mb-1 rounded-md shadow">
                     <div className="flex justify-between items-center">
-                        <div>
-                            <h1 className="text-3xl font-bold text-gray-800">Sistema de Gestión de Crédito</h1>
-                            <p className="text-gray-600 mt-2">Administra tus clientes y controla la cartera de crédito</p>
-                        </div>
-                        <button
-                            onClick={handleDescargarPDF}
-                            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition duration-200 flex items-center hover:scale-105"
-                        >
-                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            Descargar PDF
-                        </button>
-                    </div>
-                </header>
-
-                {error && (
-                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-                        {error}
-                        <button 
-                            onClick={() => setError(null)}
-                            className="float-right font-bold"
-                        >
-                            ×
-                        </button>
-                    </div>
-                )}
-
-                {/* Métricas Globales */}
-                {metricas && (
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                        <div className="bg-white p-4 rounded-lg shadow">
-                            <h3 className="text-sm font-medium text-gray-500">Total Clientes</h3>
-                            <p className="text-2xl font-bold text-gray-800">{metricas.totalClientes}</p>
-                        </div>
-                        <div className="bg-white p-4 rounded-lg shadow">
-                            <h3 className="text-sm font-medium text-gray-500">Clientes Activos</h3>
-                            <p className="text-2xl font-bold text-green-600">{metricas.clientesActivos}</p>
-                        </div>
-                        <div className="bg-white p-4 rounded-lg shadow">
-                            <h3 className="text-sm font-medium text-gray-500">Clientes Morosos</h3>
-                            <p className="text-2xl font-bold text-red-600">{metricas.clientesMorosos}</p>
-                        </div>
-                        <div className="bg-white p-4 rounded-lg shadow">
-                            <h3 className="text-sm font-medium text-gray-500">Cartera Total</h3>
-                            <p className="text-2xl font-bold text-blue-600">${metricas.carteraTotal.toLocaleString()}</p>
-                        </div>
-                    </div>
-                )}
-
-                {/* Resumen de Etiquetas */}
-                <div className="bg-white rounded-lg shadow p-4 mb-4">
-                    <div className="flex justify-between items-center mb-3">
-                        <h2 className="text-xl font-bold">Resumen de Etiquetas</h2>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
-                        {Object.entries(resumenEtiquetas).map(([etiqueta, count]) => (
-                            <div 
-                                key={etiqueta} 
-                                className={`p-2 rounded-lg border ${
-                                    etiqueta === 'Sin etiqueta' ? 'bg-gray-50 border-gray-200 text-xs font-bold' 
-                                    : `${getColorEtiqueta(etiqueta).bg} border-transparent text-xs font-bold`
-                                }`}
-                            >
-                                <div
-                                    className={` ${
-                                        etiqueta === 'Sin etiqueta' ? 'text-gray-600' : getColorEtiqueta(etiqueta).text
-                                    }`}
-                                >
-                                    {`${etiqueta} (${count})`}
-                                    <div
-                                        className={` ${
-                                            etiqueta === 'Sin etiqueta' ? 'text-gray-600 font-medium' : `${getColorEtiqueta(etiqueta).text} font-medium`
-                                        }`}
-                                    >
-                                        {`Total Deuda: $${deudaPorEtiqueta[etiqueta]?.toLocaleString() || '0'}`}
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Sección de carga de Excel */}
-                <div className="bg-white rounded-lg shadow p-4 mb-4">
-                    <div className="flex justify-between items-center mb-3">
                         <h2 className="text-xl font-bold">{`Cargar Datos desde ${activeTab}`}</h2>
-                        
                         {activeTab === 'Clientes' ? (
                             <button
                                 onClick={() => {
@@ -748,25 +792,120 @@ export const DebtorsMain: React.FC = () => {
                                 )}
                             </div>
                         )}
-
-                        {excelData.length > 0 && activeTab === 'Excel' && (
-                            <div className="flex space-x-2">
-                                <button
-                                    onClick={handleProcesarComparativa}
-                                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-200"
-                                >
-                                    Procesar Comparativa
-                                </button>
-                                <button
-                                    onClick={clearExcelData}
-                                    className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-red-600 transition duration-200"
-                                >
-                                    Limpiar Datos
-                                </button>
-                            </div>
-                        )}
+                        <button
+                            onClick={handleDescargarPDF}
+                            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition duration-200 flex items-center hover:scale-105"
+                        >
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            Descargar PDF
+                        </button>
                     </div>
+                </header>
 
+                {error && (
+                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-1">
+                        {error}
+                        <button 
+                            onClick={() => setError(null)}
+                            className="float-right font-bold"
+                        >
+                            ×
+                        </button>
+                    </div>
+                )}
+
+                {/* Métricas Globales */}
+                {metricas && (
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white p-1 mb-1 rounded-md shadow">
+                        <div className="bg-white p-4 rounded-lg shadow">
+                            <h3 className="text-sm font-medium text-gray-500">Total Clientes</h3>
+                            <p className="text-2xl font-bold text-gray-800">{metricas.totalClientes}</p>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg shadow">
+                            <h3 className="text-sm font-medium text-gray-500">Clientes Activos</h3>
+                            <p className="text-2xl font-bold text-green-600">{metricas.clientesActivos}</p>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg shadow">
+                            <h3 className="text-sm font-medium text-gray-500">Clientes Morosos</h3>
+                            <p className="text-2xl font-bold text-red-600">{metricas.clientesMorosos}</p>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg shadow">
+                            <h3 className="text-sm font-medium text-gray-500">Cartera Total</h3>
+                            <p className="text-2xl font-bold text-blue-600">${metricas.carteraTotal.toLocaleString()}</p>
+                        </div>
+                    </div>
+                )}
+
+                {/* Resumen de Etiquetas / Resumen Comparativo*/}
+                {activeTab === 'Clientes' ? (
+                    <div className="bg-white rounded-lg shadow p-1 mb-1">
+                        <h2 className="text-xl font-bold mb-1">Resumen Comparativo</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-1">
+                            <div className="bg-blue-50 p-4 rounded-lg flex justify-between items-center">
+                                <h3 className="text-xs font-bold text-blue-600">Deuda Actual</h3>
+                                <p className="text-xs text-blue-700">
+                                    ${clientes.reduce((sum, c) => sum + c.saldoActual, 0).toLocaleString()}
+                                </p>
+                            </div>
+                            <div className="bg-green-50 p-4 rounded-lg flex justify-between items-center">
+                                <h3 className="text-xs font-bold text-green-600">Deuda Anterior</h3>
+                                <p className="text-xs text-green-700">
+                                    ${clientes.reduce((sum, c) => sum + (c.deudaAnterior || 0), 0).toLocaleString()}
+                                </p>
+                            </div>
+                            <div className="bg-purple-50 p-4 rounded-lg flex justify-between items-center">
+                                <h3 className="text-xs font-bold text-purple-600">Variación</h3>
+                                <p className={`text-xs ${variacionTotal >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                    {variacionTotal >= 0 ? '+' : ''}${variacionTotal.toLocaleString()}
+                                </p>
+                            </div>
+                            <div className="bg-orange-50 p-4 rounded-lg flex justify-between items-center">
+                                <h3 className="text-xs font-bold text-orange-600">% Cambio</h3>
+                                <p className={`text-xs ${porcentajeVariacion >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                    {porcentajeVariacion >= 0 ? '+' : ''}{porcentajeVariacion.toFixed(1)}%
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="bg-white rounded-lg shadow p-1 mb-1">
+                        <div className="flex justify-between items-center mb-1">
+                            <h2 className="text-xl font-bold">Resumen de Etiquetas</h2>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                            {Object.entries(resumenEtiquetas).map(([etiqueta, count]) => (
+                                <div 
+                                    key={etiqueta} 
+                                    className={`p-2 rounded-lg border ${
+                                        etiqueta === 'Sin etiqueta' ? 'bg-gray-50 border-gray-200 text-xs font-bold flex justify-between items-center' 
+                                        : `${getColorEtiqueta(etiqueta).bg} border-transparent text-xs font-bold`
+                                    }`}
+                                >
+                                    <div
+                                        className={` ${
+                                            etiqueta === 'Sin etiqueta' ? 'text-gray-600' : getColorEtiqueta(etiqueta).text
+                                        }`}
+                                    >
+                                        {`${etiqueta} (${count})`}
+                                        <div
+                                            className={` ${
+                                                etiqueta === 'Sin etiqueta' ? 'text-gray-600 font-medium' : `${getColorEtiqueta(etiqueta).text} font-medium`
+                                            }`}
+                                        >
+                                            {`Total Deuda: $${deudaPorEtiqueta[etiqueta]?.toLocaleString() || '0'}`}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Sección de pestañas y herramientas */}
+                <div className="bg-white rounded-lg shadow p-1 mb-1">
                     <div className="border-b border-gray-200">
                         <nav className="flex -mb-px">
                             <button
@@ -794,9 +933,25 @@ export const DebtorsMain: React.FC = () => {
                         </nav>
                     </div>
 
+                    {/* Totales del Excel - Solo se muestra cuando hay datos */}
+                    {excelData.length > 0 && activeTab === 'Excel' && (
+                        <div className="bg-green-50 p-1 mt-1 mb-1 rounded-md shadow">
+                            <div className="flex justify-between items-center">
+                                <h3 className="text-lg font-semibold text-green-800">
+                                    Resumen del Excel ({excelData.length} registros)
+                                </h3>
+                                <div className="text-sm text-green-700 space-x-4">
+                                    <span>Total Importe: <span className="font-bold">${excelTotals.totalImporte.toLocaleString()}</span></span>
+                                    <span>Total Cobrado: <span className="font-bold text-green-600">${excelTotals.totalCobrado.toLocaleString()}</span></span>
+                                    <span>Total Deuda: <span className="font-bold text-red-600">${excelTotals.totalDeuda.toLocaleString()}</span></span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Barra de herramientas para selección múltiple */}
                     {(selectedClientes.length > 0 || selectedExcelRows.length > 0) && (
-                        <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                        <div className="bg-blue-50 p-1 mb-1 rounded-md shadow">
                             <div className="flex justify-between items-center">
                                 <span className="text-blue-700 font-medium">
                                     {elementosSeleccionados.count} {elementosSeleccionados.type} seleccionado(s)
@@ -824,62 +979,83 @@ export const DebtorsMain: React.FC = () => {
                             </div>
                         </div>
                     )}
-
-                    {/* Totales del Excel - Solo se muestra cuando hay datos */}
-                    {excelData.length > 0 && activeTab === 'Excel' && (
-                        <div className="mt-3 p-3 bg-green-50 rounded-lg">
-                            <div className="flex justify-between items-center">
-                                <h3 className="text-lg font-semibold text-green-800">
-                                    Resumen del Excel ({excelData.length} registros)
-                                </h3>
-                                <div className="text-sm text-green-700 space-x-4">
-                                    <span>Total Importe: <span className="font-bold">${excelTotals.totalImporte.toLocaleString()}</span></span>
-                                    <span>Total Cobrado: <span className="font-bold text-green-600">${excelTotals.totalCobrado.toLocaleString()}</span></span>
-                                    <span>Total Deuda: <span className="font-bold text-red-600">${excelTotals.totalDeuda.toLocaleString()}</span></span>
-                                </div>
-                            </div>
-                        </div>
-                    )}
                 </div>
             </div>
 
-            {/* Contenido desplazable */}
-            <div className="bg-white rounded-lg shadow mb-6">
+            {/* Contenido desplazable - TABLAS */}
+            <div className="bg-white p-1 mb-1 rounded-md shadow">
                 {activeTab === 'Clientes' && (
                     <div>
-                        {/* Resumen Comparativo */}
-                        <div className="bg-white rounded-lg shadow p-6 mb-6">
-                            <h2 className="text-xl font-bold mb-4">Resumen Comparativo</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                <div className="bg-blue-50 p-4 rounded-lg">
-                                    <h3 className="text-sm font-medium text-blue-600">Deuda Actual</h3>
-                                    <p className="text-2xl font-bold text-blue-700">
-                                        ${clientes.reduce((sum, c) => sum + c.saldoActual, 0).toLocaleString()}
-                                    </p>
+                        {/* Barra de búsqueda y filtros - STICKY */}
+                        <div className="sticky top-0 z-40 bg-white py-2 mb-2 border-b">
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                <div className="flex-1 max-w-md">
+                                    <input
+                                        type="text"
+                                        placeholder="Buscar cliente por nombre..."
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        onChange={(e) => handleSearchCliente(e.target.value)}
+                                    />
                                 </div>
-                                <div className="bg-green-50 p-4 rounded-lg">
-                                    <h3 className="text-sm font-medium text-green-600">Deuda Anterior</h3>
-                                    <p className="text-2xl font-bold text-green-700">
-                                        ${clientes.reduce((sum, c) => sum + (c.deudaAnterior || 0), 0).toLocaleString()}
-                                    </p>
-                                </div>
-                                <div className="bg-purple-50 p-4 rounded-lg">
-                                    <h3 className="text-sm font-medium text-purple-600">Variación</h3>
-                                    <p className={`text-2xl font-bold ${
-                                        variacionTotal >= 0 ? 'text-red-600' : 'text-green-600'
-                                    }`}>
-                                        {variacionTotal >= 0 ? '+' : ''}${variacionTotal.toLocaleString()}
-                                    </p>
-                                </div>
-                                <div className="bg-orange-50 p-4 rounded-lg">
-                                    <h3 className="text-sm font-medium text-orange-600">% Cambio</h3>
-                                    <p className={`text-2xl font-bold ${
-                                        porcentajeVariacion >= 0 ? 'text-red-600' : 'text-green-600'
-                                    }`}>
-                                        {porcentajeVariacion >= 0 ? '+' : ''}{porcentajeVariacion.toFixed(1)}%
-                                    </p>
+                                <div className="flex space-x-2">
+                                    <button
+                                        onClick={() => setShowFiltros(!showFiltros)}
+                                        className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-200"
+                                    >
+                                        Filtros
+                                    </button>
+                                    <button
+                                        onClick={handleDescargarComparativa}
+                                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-200"
+                                    >
+                                        Exportar Comparativa
+                                    </button>
                                 </div>
                             </div>
+
+                            {/* Filtros */}
+                            {showFiltros && (
+                                <div className="bg-gray-50 p-4 rounded-lg mt-2">
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                        <select
+                                            value={filtroTendencia}
+                                            onChange={(e) => setFiltroTendencia(e.target.value)}
+                                            className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        >
+                                            <option value="">Todas las tendencias</option>
+                                            <option value="aumento">En aumento</option>
+                                            <option value="disminucion">En disminución</option>
+                                            <option value="estable">Estables</option>
+                                        </select>
+                                        <select
+                                            value={filtroEstado}
+                                            onChange={(e) => setFiltroEstado(e.target.value)}
+                                            className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        >
+                                            <option value="">Todos los estados</option>
+                                            <option value="activo">Activos</option>
+                                            <option value="moroso">Morosos</option>
+                                            <option value="inactivo">Inactivos</option>
+                                        </select>
+                                        <select
+                                            value={filtroEtiqueta}
+                                            onChange={(e) => setFiltroEtiqueta(e.target.value)}
+                                            className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        >
+                                            <option value="">Todas las etiquetas</option>
+                                            {Object.keys(coloresEtiquetas).map(etiqueta => (
+                                                <option key={etiqueta} value={etiqueta}>{etiqueta}</option>
+                                            ))}
+                                        </select>
+                                        <button
+                                            onClick={limpiarFiltros}
+                                            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition duration-200"
+                                        >
+                                            Limpiar Filtros
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Tabla de Clientes con Comparativa */}
@@ -888,79 +1064,11 @@ export const DebtorsMain: React.FC = () => {
                                 No se encontraron clientes
                             </div>
                         ) : (
-                            <>
-                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                                    <div className="flex-1 max-w-md">
-                                        <input
-                                            type="text"
-                                            placeholder="Buscar cliente por nombre..."
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                            onChange={(e) => handleSearchCliente(e.target.value)}
-                                        />
-                                    </div>
-                                    <div className="flex space-x-2">
-                                        <button
-                                            onClick={() => setShowFiltros(!showFiltros)}
-                                            className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-200"
-                                        >
-                                            Filtros
-                                        </button>
-                                        <button
-                                            onClick={handleDescargarComparativa}
-                                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-200"
-                                        >
-                                            Exportar Comparativa
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Filtros */}
-                                {showFiltros && (
-                                    <div className="bg-gray-50 p-4 rounded-lg mb-4">
-                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                            <select
-                                                value={filtroTendencia}
-                                                onChange={(e) => setFiltroTendencia(e.target.value)}
-                                                className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            >
-                                                <option value="">Todas las tendencias</option>
-                                                <option value="aumento">En aumento</option>
-                                                <option value="disminucion">En disminución</option>
-                                                <option value="estable">Estables</option>
-                                            </select>
-                                            <select
-                                                value={filtroEstado}
-                                                onChange={(e) => setFiltroEstado(e.target.value)}
-                                                className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            >
-                                                <option value="">Todos los estados</option>
-                                                <option value="activo">Activos</option>
-                                                <option value="moroso">Morosos</option>
-                                                <option value="inactivo">Inactivos</option>
-                                            </select>
-                                            <select
-                                                value={filtroEtiqueta}
-                                                onChange={(e) => setFiltroEtiqueta(e.target.value)}
-                                                className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            >
-                                                <option value="">Todas las etiquetas</option>
-                                                {Object.keys(coloresEtiquetas).map(etiqueta => (
-                                                    <option key={etiqueta} value={etiqueta}>{etiqueta}</option>
-                                                ))}
-                                            </select>
-                                            <button
-                                                onClick={limpiarFiltros}
-                                                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition duration-200"
-                                            >
-                                                Limpiar Filtros
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div className="overflow-hidden border border-gray-200 rounded-lg">
-                                    <table className="min-w-full divide-y divide-gray-200">
-                                        <thead className="bg-gray-50">
+                            <div className="border border-gray-200 rounded-lg overflow-hidden">
+                                {/* Encabezado de tabla STICKY */}
+                                <div className="sticky top-12 z-30 bg-gray-50">
+                                    <table className="min-w-full">
+                                        <thead>
                                             <tr>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                     Cliente
@@ -991,6 +1099,12 @@ export const DebtorsMain: React.FC = () => {
                                                 </th>
                                             </tr>
                                         </thead>
+                                    </table>
+                                </div>
+                                
+                                {/* Cuerpo de la tabla con scroll */}
+                                <div className="overflow-y-auto max-h-[calc(100vh-400px)]">
+                                    <table className="min-w-full divide-y divide-gray-200">
                                         <tbody className="bg-white divide-y divide-gray-200">
                                             {clientesFiltrados.map((cliente) => (
                                                 <tr 
@@ -1047,7 +1161,7 @@ export const DebtorsMain: React.FC = () => {
                                                             )}
                                                             <span className="text-sm text-gray-600">
                                                                 {cliente.variacion && cliente.variacion > 0 ? 'Aumentando' : 
-                                                                 cliente.variacion && cliente.variacion < 0 ? 'Disminuyendo' : 'Estable'}
+                                                                cliente.variacion && cliente.variacion < 0 ? 'Disminuyendo' : 'Estable'}
                                                             </span>
                                                         </div>
                                                     </td>
@@ -1092,13 +1206,13 @@ export const DebtorsMain: React.FC = () => {
                                         </tbody>
                                     </table>
                                 </div>
-                            </>
+                            </div>
                         )}
                     </div>
                 )}
 
                 {activeTab === 'Excel' && (
-                    <div>
+                    <div className='gap-2'>
                         {excelData.length === 0 ? (
                             <div className="text-center py-8 text-gray-500">
                                 <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1108,93 +1222,168 @@ export const DebtorsMain: React.FC = () => {
                                 <p className="mt-1 text-sm text-gray-500">Sube un archivo Excel para ver los datos aquí.</p>
                             </div>
                         ) : (
-                            <div className="overflow-x-auto border border-gray-200 rounded-lg">
-                                <table className="min-w-full bg-white">
-                                    <thead className="bg-gray-50">
-                                        <tr>
-                                            <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedExcelRows.length === excelData.length && excelData.length > 0}
-                                                    onChange={handleSelectAllExcelRows}
-                                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                                />
-                                            </th>
-                                            <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Fecha Albarán
-                                            </th>
-                                            <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Cliente
-                                            </th>
-                                            <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Total Importe
-                                            </th>
-                                            <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Cobrado
-                                            </th>
-                                            <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Deuda
-                                            </th>
-                                            <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Paciente
-                                            </th>
-                                            <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Etiqueta
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-200">
-                                        {excelData.map((row) => (
-                                            <tr 
-                                                key={row.id} 
-                                                className="hover:bg-gray-50 transition duration-150 cursor-pointer"
-                                                onDoubleClick={() => handleDoubleClickExcel(row)}
-                                            >
-                                                <td className="px-4 py-3 whitespace-nowrap">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={selectedExcelRows.includes(row.id)}
-                                                        onChange={() => handleSelectExcelRow(row.id)}
-                                                        onClick={(e) => e.stopPropagation()}
-                                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                                    />
-                                                </td>
-                                                <td className="px-4 py-3 text-sm text-gray-900">
-                                                    {row.fechaAlbaran || '-'}
-                                                </td>
-                                                <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                                                    {row.clienteNombre || 'Sin nombre'}
-                                                </td>
-                                                <td className="px-4 py-3 text-sm text-gray-900">
-                                                    ${row.totalImporte.toLocaleString()}
-                                                </td>
-                                                <td className="px-4 py-3 text-sm text-green-600 font-medium">
-                                                    ${row.cobradoLinea.toLocaleString()}
-                                                </td>
-                                                <td className="px-4 py-3 text-sm text-red-600 font-medium">
-                                                    ${row.deuda.toLocaleString()}
-                                                </td>
-                                                <td className="px-4 py-3 text-sm text-gray-900">
-                                                    {row.paciente || '-'}
-                                                </td>
-                                                <td className="px-4 py-3 whitespace-nowrap">
-                                                    {row.etiqueta && (
-                                                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getColorEtiqueta(row.etiqueta).bg} ${getColorEtiqueta(row.etiqueta).text}`}>
-                                                            {row.etiqueta}
-                                                        </span>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                            <>
+                                {/* Botones de acciones - STICKY */}
+                                <div className="sticky top-10 z-20 bg-white p-1 mb-1 rounded-md shadow">
+                                    <div className="flex flex-row space-x-2">
+                                        <button
+                                            onClick={handleSubirClientes}
+                                            disabled={isUploading || clientes.length === 0}
+                                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center"
+                                        >
+                                            {isUploading ? (
+                                                <>
+                                                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                    Subiendo...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                                    </svg>
+                                                    Subir Clientes ({clientes.length})
+                                                </>
+                                            )}
+                                        </button>
+
+                                        {/* Botón para subir Excel procesado */}
+                                        <button
+                                            onClick={handleSubirExcelProcesado}
+                                            disabled={isUploading}
+                                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center"
+                                        >
+                                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                            Procesar y Subir Excel
+                                        </button>
+
+                                        {/* Botón para sincronizar etiquetas */}
+                                        <button
+                                            onClick={handleSincronizarEtiquetas}
+                                            disabled={isUploading || !clientes.some(cliente => cliente.etiqueta)}
+                                            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center"
+                                        >
+                                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                            </svg>
+                                            Sincronizar Etiquetas
+                                        </button>
+
+                                        <button
+                                            onClick={handleProcesarComparativa}
+                                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-200"
+                                        >
+                                            Procesar Comparativa
+                                        </button>
+                                        <button
+                                            onClick={clearExcelData}
+                                            className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-red-600 transition duration-200"
+                                        >
+                                            Limpiar Datos
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="border border-gray-200 rounded-lg ">
+                                    {/* Encabezado de tabla STICKY */}
+                                    <div className="sticky top-10 z-20 bg-gray-50 overflow-hidden">
+                                        <table className="min-w-full bg-white">
+                                            <thead>
+                                                <tr>
+                                                    <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedExcelRows.length === excelData.length && excelData.length > 0}
+                                                            onChange={handleSelectAllExcelRows}
+                                                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                        />
+                                                    </th>
+                                                    <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Fecha Albarán
+                                                    </th>
+                                                    <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Cliente
+                                                    </th>
+                                                    <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Total Importe
+                                                    </th>
+                                                    <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Cobrado
+                                                    </th>
+                                                    <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Deuda
+                                                    </th>
+                                                    <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Paciente
+                                                    </th>
+                                                    <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Etiqueta
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                        </table>
+                                    </div>
+
+                                    {/* Cuerpo de la tabla con scroll */}
+                                    <div className="overflow-y-auto max-h-[calc(100vh-400px)]">
+                                        <table className="min-w-full bg-white">
+                                            <tbody className="divide-y divide-gray-200">
+                                                {excelData.map((row) => (
+                                                    <tr 
+                                                        key={row.id} 
+                                                        className="hover:bg-gray-50 transition duration-150 cursor-pointer"
+                                                        onDoubleClick={() => handleDoubleClickExcel(row)}
+                                                    >
+                                                        <td className="px-4 py-3 whitespace-nowrap">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={selectedExcelRows.includes(row.id)}
+                                                                onChange={() => handleSelectExcelRow(row.id)}
+                                                                onClick={(e) => e.stopPropagation()}
+                                                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                            />
+                                                        </td>
+                                                        <td className="px-4 py-3 text-sm text-gray-900">
+                                                            {row.fechaAlbaran || '-'}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                                                            {row.clienteNombre || 'Sin nombre'}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-sm text-gray-900">
+                                                            ${row.totalImporte.toLocaleString()}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-sm text-green-600 font-medium">
+                                                            ${row.cobradoLinea.toLocaleString()}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-sm text-red-600 font-medium">
+                                                            ${row.deuda.toLocaleString()}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-sm text-gray-900">
+                                                            {row.paciente || '-'}
+                                                        </td>
+                                                        <td className="px-4 py-3 whitespace-nowrap">
+                                                            {row.etiqueta && (
+                                                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getColorEtiqueta(row.etiqueta).bg} ${getColorEtiqueta(row.etiqueta).text}`}>
+                                                                    {row.etiqueta}
+                                                                </span>
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </>
                         )}
                     </div>
                 )}
             </div>
-
-            {/* Los modales existentes se mantienen igual */}
+            
             {/* Modal de Detalle de Cliente */}
             {showDetalleCliente && clienteDetallado && (
                 <Modal
@@ -1280,6 +1469,29 @@ export const DebtorsMain: React.FC = () => {
                                         )}
                                     </div>
                                 </div>
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            await apiService.updateDebtorsCliente(clienteDetallado.id, {
+                                                etiqueta: clienteDetallado.etiqueta,
+                                                saldoActual: clienteDetallado.saldoActual,
+                                                estado: clienteDetallado.estado
+                                            });
+                                            toast.success('Cliente actualizado en el backend');
+                                        } catch (err) {
+                                            console.error('Error al actualizar cliente:', err);
+                                            const message = err instanceof Error
+                                                ? err.message
+                                                : typeof err === 'string'
+                                                    ? err
+                                                    : JSON.stringify(err);
+                                            toast.error('Error al actualizar cliente: ' + message);
+                                        }
+                                    }}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200"
+                                >
+                                    Guardar Cambios
+                                </button>
                             </div>
                         )}
 
