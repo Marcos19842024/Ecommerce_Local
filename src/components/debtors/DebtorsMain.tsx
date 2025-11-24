@@ -1,18 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { apiService } from '../../services/api';
+import { coloresEtiquetas, columnPatterns, totalPatterns } from '../../utils/debtors';
+import { ClienteComparativa, ExcelRow, MetricasGlobales, ResumenEtiquetas } from '../../interfaces/debtors.interface';
 import readXlsxFile from 'read-excel-file';
 import toast from 'react-hot-toast';
 import Modal from '../shared/Modal';
-import coloresEtiquetas from '../../utils/debtors';
-import { ClienteComparativa, ExcelRow, MetricasGlobales, ResumenEtiquetas } from '../../interfaces/debtors.interface';
-
 
 export const DebtorsMain: React.FC = () => {
     const [clientes, setClientes] = useState<ClienteComparativa[]>([]);
     const [excelData, setExcelData] = useState<ExcelRow[]>([]);
     const [metricas, setMetricas] = useState<MetricasGlobales | null>(null);
+    const [tendencias, setTendencias] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
     const [showForm, setShowForm] = useState(false);
     const [selectedCliente, setSelectedCliente] = useState<ClienteComparativa | null>(null);
     const [isUploading, setIsUploading] = useState(false);
@@ -25,8 +24,6 @@ export const DebtorsMain: React.FC = () => {
     const [etiquetaSeleccionada, setEtiquetaSeleccionada] = useState('');
     const [filasCliente, setFilasCliente] = useState<ExcelRow[]>([]);
     const [modalDesdeExcel, setModalDesdeExcel] = useState(false);
-    
-    // Nuevos estados para comparativas
     const [showFiltros, setShowFiltros] = useState(false);
     const [filtroTendencia, setFiltroTendencia] = useState('');
     const [filtroEstado, setFiltroEstado] = useState('');
@@ -49,16 +46,36 @@ export const DebtorsMain: React.FC = () => {
     const loadInitialData = async () => {
         try {
             setLoading(true);
-            const [clientesData, metricasData] = await Promise.all([
+            console.log('🔄 Cargando datos iniciales...');
+            
+            const [clientesData, metricasData, tendenciasData] = await Promise.all([
                 apiService.getDebtorsClientes(),
-                apiService.getDebtorsMetricasGlobales(new Date().getFullYear(), new Date().getMonth() + 1)
+                apiService.getDebtorsMetricas(),
+                apiService.getDebtorsTendencias().catch(err => {
+                    console.log('Tendencias no disponibles:', err);
+                    return null;
+                }),
             ]);
+            
+            console.log('✅ Datos cargados exitosamente:', {
+                clientes: clientesData.length,
+                metricas: metricasData,
+                tendencias: tendenciasData,
+            });
             
             setClientes(clientesData);
             setMetricas(metricasData);
+            setTendencias(tendenciasData);
+            
         } catch (err) {
+            console.error('❌ Error al cargar los datos:', err);
             const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
-            setError('Error al cargar los datos: ' + errorMessage);
+            
+            if (errorMessage.includes('Unexpected token') || errorMessage.includes('<!doctype')) {
+                toast.error('El servidor está devolviendo HTML en lugar de JSON. Posiblemente se reinició o hay un error temporal.');
+            } else {
+                toast.error('Error al cargar los datos: ' + errorMessage);
+            }
         } finally {
             setLoading(false);
         }
@@ -69,7 +86,6 @@ export const DebtorsMain: React.FC = () => {
         try {
             setIsUploading(true);
             
-            // Filtrar solo los clientes que tienen datos válidos
             const clientesParaSubir = clientes.filter(cliente => 
                 cliente.nombre && cliente.nombre.trim() !== ''
             );
@@ -79,13 +95,11 @@ export const DebtorsMain: React.FC = () => {
                 return;
             }
 
-            // Subir cada cliente individualmente
             const resultados = [];
             for (const cliente of clientesParaSubir) {
                 try {
                     let resultado;
                     if (cliente.id && cliente.id.startsWith('temp-')) {
-                        // Es un cliente nuevo (sin ID real)
                         resultado = await apiService.createDebtorsCliente({
                             nombre: cliente.nombre,
                             tipoCliente: cliente.tipoCliente || 'regular',
@@ -95,7 +109,6 @@ export const DebtorsMain: React.FC = () => {
                             etiqueta: cliente.etiqueta || ''
                         });
                     } else {
-                        // Es un cliente existente
                         resultado = await apiService.updateDebtorsCliente(cliente.id, {
                             nombre: cliente.nombre,
                             tipoCliente: cliente.tipoCliente,
@@ -107,15 +120,11 @@ export const DebtorsMain: React.FC = () => {
                     }
                     resultados.push(resultado);
                 } catch (error) {
-                    console.error(`Error subiendo cliente ${cliente.nombre}:`, error);
-                    const mensajeError = error instanceof Error ? error.message : String(error);
-                    resultados.push({ error: `Error con ${cliente.nombre}: ${mensajeError}` });
+                    toast.error(`Error subiendo cliente ${cliente.nombre}: ${error instanceof Error ? error.message : String(error)}`);
                 }
             }
 
             toast.success(`Se subieron ${resultados.filter(r => !r.error).length} de ${clientesParaSubir.length} clientes correctamente`);
-            
-            // Recargar los datos desde el backend
             await loadInitialData();
             
         } catch (error) {
@@ -136,23 +145,109 @@ export const DebtorsMain: React.FC = () => {
                 return;
             }
 
-            // Procesar el Excel (esto ya lo tienes implementado)
+            const datosParaEnviar = excelData.map(row => ({
+                fechaAlbaran: row.fechaAlbaran || '',
+                clienteNombre: row.clienteNombre || '',
+                totalImporte: Number(row.totalImporte) || 0,
+                cobradoLinea: Number(row.cobradoLinea) || 0,
+                deuda: Number(row.deuda) || 0,
+                paciente: row.paciente || '',
+                etiqueta: row.etiqueta || ''
+            }));
+
             const periodo = obtenerPeriodoActual();
-            const resultado = await apiService.procesarExcelComparativa(excelData, periodo);
             
-            toast.success(resultado.message || 'Datos de Excel procesados correctamente');
+            console.log('🔄 Procesando Excel...');
+            const resultado = await apiService.procesarExcelComparativa(datosParaEnviar, periodo);
             
-            // Recargar los clientes para ver las comparativas actualizadas
-            await loadInitialData();
+            if (resultado.success) {
+                toast.success(`✅ ${resultado.message}\n📊 ${resultado.estadisticas.registrosExcelGuardados} registros procesados`);
+                
+                console.log('⏳ Esperando 2 segundos para que el servidor se estabilice...');
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                console.log('🔄 Cargando datos actualizados...');
+                await loadInitialDataWithRetry();
+                
+                setActiveTab('Clientes');
+            } else {
+                toast.error(`❌ ${resultado.error}`);
+            }
             
-            // Cambiar al tab Clientes para ver los resultados
-            setActiveTab('Clientes');
-            
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-            toast.error('Error al procesar y subir datos de Excel: ' + errorMessage);
+        } catch (error: any) {
+            console.error('Error:', error);
+            toast.error('Error al procesar Excel: ' + error.message);
         } finally {
             setIsUploading(false);
+        }
+    };
+
+    const loadInitialDataWithRetry = async (retries = 3, delay = 1000) => {
+        for (let attempt = 1; attempt <= retries; attempt++) {
+            try {
+                console.log(`🔄 Intento ${attempt} de cargar datos...`);
+                await loadInitialData();
+                console.log('✅ Datos cargados exitosamente en intento', attempt);
+                return;
+            } catch (error) {
+                console.error(`❌ Intento ${attempt} fallido:`, error);
+                
+                if (attempt === retries) {
+                    throw error;
+                }
+                
+                console.log(`⏳ Esperando ${delay}ms antes del siguiente intento...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                delay *= 2;
+            }
+        }
+    };
+
+    // Función para procesar comparativa
+    const handleProcesarComparativa = async () => {
+        try {
+            if (excelData.length === 0) {
+                toast.error('No hay datos de Excel para procesar');
+                return;
+            }
+
+            const datosParaEnviar = excelData.map(row => {
+                const parseNumber = (value: any): number => {
+                    if (typeof value === 'number') return value;
+                    if (typeof value === 'string') {
+                        const cleaned = value.toString().replace(/[^\d.,-]/g, '');
+                        const parsed = parseFloat(cleaned.replace(',', '.'));
+                        return isNaN(parsed) ? 0 : parsed;
+                    }
+                    return 0;
+                };
+
+                return {
+                    fechaAlbaran: row.fechaAlbaran || '',
+                    clienteNombre: row.clienteNombre?.toString() || '',
+                    totalImporte: parseNumber(row.totalImporte),
+                    cobradoLinea: parseNumber(row.cobradoLinea),
+                    deuda: parseNumber(row.deuda),
+                    paciente: row.paciente?.toString() || '',
+                    etiqueta: row.etiqueta?.toString() || ''
+                };
+            });
+
+            const periodo = obtenerPeriodoActual();
+            const resultado = await apiService.procesarExcelComparativa(datosParaEnviar, periodo);
+            
+            if (resultado.success) {
+                toast.success(`✅ ${resultado.message}`);
+            } else {
+                toast.error(`❌ ${resultado.error}`);
+            }
+            
+            await loadInitialData();
+            setActiveTab('Clientes');
+            
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+            toast.error('Error al procesar comparativa: ' + errorMessage);
         }
     };
 
@@ -161,7 +256,6 @@ export const DebtorsMain: React.FC = () => {
         try {
             setIsUploading(true);
             
-            // Obtener clientes que tienen etiquetas
             const clientesConEtiquetas = clientes.filter(cliente => 
                 cliente.etiqueta && cliente.etiqueta.trim() !== ''
             );
@@ -171,17 +265,15 @@ export const DebtorsMain: React.FC = () => {
                 return;
             }
 
-            // Actualizar cada cliente con su etiqueta
             const actualizaciones = [];
             for (const cliente of clientesConEtiquetas) {
                 try {
                     const resultado = await apiService.updateDebtorsCliente(cliente.id, {
                         etiqueta: cliente.etiqueta
-                        // Mantener los demás datos igual
                     });
                     actualizaciones.push(resultado);
                 } catch (error) {
-                    console.error(`Error sincronizando etiqueta de ${cliente.nombre}:`, error);
+                    toast.error(`Error sincronizando etiqueta de ${cliente.nombre}: ${error instanceof Error ? error.message : String(error)}`);
                 }
             }
 
@@ -195,20 +287,94 @@ export const DebtorsMain: React.FC = () => {
         }
     };
 
+    // Búsqueda de clientes - CORREGIDA
+    const handleSearchCliente = async (nombre: string) => {
+        if (!nombre.trim()) {
+            await loadInitialData();
+            return;
+        }
+
+        try {
+            // Intentar búsqueda en backend primero
+            const resultado = await apiService.searchDebtorsClientes(nombre);
+            
+            if (resultado && resultado.length > 0) {
+                setClientes(resultado);
+                toast.success(`Encontrados ${resultado.length} cliente(s)`);
+            } else {
+                // Si no hay resultados en backend, hacer búsqueda local
+                const clientesFiltrados = clientes.filter(cliente => 
+                    cliente.nombre.toLowerCase().includes(nombre.toLowerCase())
+                );
+                setClientes(clientesFiltrados);
+                
+                if (clientesFiltrados.length === 0) {
+                    toast.error('No se encontraron clientes con ese nombre');
+                } else {
+                    toast.success(`Encontrados ${clientesFiltrados.length} cliente(s) localmente`);
+                }
+            }
+        } catch (err) {
+            // Si falla la búsqueda backend, usar búsqueda local
+            console.log('Búsqueda backend falló, usando búsqueda local');
+            const clientesFiltrados = clientes.filter(cliente => 
+                cliente.nombre.toLowerCase().includes(nombre.toLowerCase())
+            );
+            setClientes(clientesFiltrados);
+            
+            if (clientesFiltrados.length === 0) {
+                toast.error('No se encontraron clientes con ese nombre');
+            }
+        }
+    };
+
+    // Función para descargar comparativa - MEJORADA
+    const handleDescargarComparativa = async () => {
+        try {
+            const loadingToast = toast.loading('Generando comparativa...');
+            
+            const comparativaData = {
+                clientes: clientes,
+                periodo: obtenerPeriodoActual(),
+                metricas: metricas,
+                tendencias: tendencias,
+                fechaGeneracion: new Date().toISOString(),
+                totalClientes: clientes.length,
+                totalDeuda: clientes.reduce((sum, c) => sum + c.saldoActual, 0),
+                clientesConDeuda: clientes.filter(c => c.saldoActual > 0).length
+            };
+            
+            // Crear y descargar archivo JSON
+            const dataStr = JSON.stringify(comparativaData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `comparativa-deudores-${obtenerPeriodoActual()}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            toast.dismiss(loadingToast);
+            toast.success('Comparativa exportada correctamente');
+        } catch (error) {
+            toast.error('Error al exportar comparativa: ' + error);
+        }
+    };
+
     // Calcular resumen de etiquetas con total de deuda
     const calcularResumenEtiquetas = (): { resumen: ResumenEtiquetas, deudaPorEtiqueta: { [etiqueta: string]: number } } => {
         const resumen: ResumenEtiquetas = {};
         const deudaPorEtiqueta: { [etiqueta: string]: number } = {};
         
         if (activeTab === 'Clientes') {
-            // Contar etiquetas de clientes y calcular deuda
             clientes.forEach(cliente => {
                 const etiqueta = cliente.etiqueta || 'Sin etiqueta';
                 resumen[etiqueta] = (resumen[etiqueta] || 0) + 1;
                 deudaPorEtiqueta[etiqueta] = (deudaPorEtiqueta[etiqueta] || 0) + cliente.saldoActual;
             });
         } else {
-            // Contar etiquetas de filas de Excel y calcular deuda
             excelData.forEach(fila => {
                 const etiqueta = fila.etiqueta || 'Sin etiqueta';
                 resumen[etiqueta] = (resumen[etiqueta] || 0) + 1;
@@ -227,30 +393,9 @@ export const DebtorsMain: React.FC = () => {
         return `${anio}-${mes}`;
     };
 
-    // Función para procesar comparativa
-    const handleProcesarComparativa = async () => {
-        try {
-            const periodo = obtenerPeriodoActual();
-            const resultado = await apiService.procesarExcelComparativa(excelData, periodo);
-            
-            toast.success(resultado.message);
-            
-            // Recargar los clientes para ver las comparativas actualizadas
-            await loadInitialData();
-            
-            // Cambiar al tab Clientes para ver los resultados
-            setActiveTab('Clientes');
-            
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
-            toast.error('Error al procesar comparativa: ' + errorMessage);
-        }
-    };
-
     // Función para descargar PDF
     const handleDescargarPDF = () => {
         toast.success('Funcionalidad de descarga PDF en desarrollo');
-        console.log('Descargando PDF...');
     };
 
     // Función para obtener todas las filas de Excel de un cliente
@@ -260,16 +405,24 @@ export const DebtorsMain: React.FC = () => {
         );
     };
 
-    // Función para cargar TODOS los datos de un cliente
+    // Función para cargar TODOS los datos de un cliente - MEJORADA
     const cargarDetallesCliente = async (cliente: ClienteComparativa) => {
         try {
-            // Obtener todas las filas de Excel de este cliente
             const filasDelCliente = obtenerFilasCliente(cliente.nombre);
+            
+            // Intentar cargar historial si está disponible
+            try {
+                const historial = await apiService.getDebtorsHistorial(cliente.id);
+                console.log('Historial del cliente:', historial);
+            } catch (historialError) {
+                console.log('Historial no disponible:', historialError);
+            }
+            
             setFilasCliente(filasDelCliente);
             setModalDesdeExcel(false);
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
-            setError('Error al cargar detalles del cliente: ' + errorMessage);
+            toast.error('Error al cargar detalles del cliente: ' + errorMessage);
             setFilasCliente([]);
         }
     };
@@ -278,14 +431,6 @@ export const DebtorsMain: React.FC = () => {
     const getColorEtiqueta = (etiqueta: string) => {
         return coloresEtiquetas[etiqueta] || { bg: 'bg-gray-100', text: 'text-gray-800' };
     };
-
-    // Obtener el resumen de etiquetas actual con deuda
-    const { resumen: resumenEtiquetas, deudaPorEtiqueta } = calcularResumenEtiquetas();
-
-    // Calcular variaciones totales para el resumen
-    const variacionTotal = clientes.reduce((sum, c) => sum + (c.variacion || 0), 0);
-    const deudaAnteriorTotal = clientes.reduce((sum, c) => sum + (c.deudaAnterior || 0), 0);
-    const porcentajeVariacion = deudaAnteriorTotal > 0 ? (variacionTotal / deudaAnteriorTotal) * 100 : 0;
 
     // Filtrar clientes
     const clientesFiltrados = clientes.filter(cliente => {
@@ -316,7 +461,7 @@ export const DebtorsMain: React.FC = () => {
         setShowDetalleCliente(true);
     };
 
-    // Manejar ver detalle del cliente (nueva función)
+    // Manejar ver detalle del cliente
     const handleVerDetalleCliente = async (cliente: ClienteComparativa) => {
         setClienteDetallado(cliente);
         await cargarDetallesCliente(cliente);
@@ -325,11 +470,9 @@ export const DebtorsMain: React.FC = () => {
 
     // Manejar doble click en fila de Excel (desde tab Excel)
     const handleDoubleClickExcel = (row: ExcelRow) => {
-        // Buscar todas las filas del mismo cliente
         const filasDelMismoCliente = obtenerFilasCliente(row.clienteNombre);
         setFilasCliente(filasDelMismoCliente);
         
-        // Crear un cliente temporal para el modal
         setClienteDetallado({
             id: `temp-${row.clienteNombre}`,
             nombre: row.clienteNombre,
@@ -352,20 +495,14 @@ export const DebtorsMain: React.FC = () => {
 
         try {
             if (modalDesdeExcel) {
-                // Si el modal se abrió desde Excel, etiquetar todas las filas del cliente
                 const filasIds = filasCliente.map(fila => fila.id);
                 setExcelData(prev => prev.map(row => 
-                    filasIds.includes(row.id) 
-                        ? { ...row, etiqueta: etiquetaSeleccionada }
-                        : row
+                    filasIds.includes(row.id) ? { ...row, etiqueta: etiquetaSeleccionada } : row
                 ));
                 toast.success(`${filasCliente.length} registro(s) etiquetado(s) como ${etiquetaSeleccionada}`);
             } else {
-                // Si el modal se abrió desde Clientes, etiquetar el cliente
                 setClientes(prev => prev.map(cliente => 
-                    cliente.id === clienteDetallado.id 
-                        ? { ...cliente, etiqueta: etiquetaSeleccionada }
-                        : cliente
+                    cliente.id === clienteDetallado.id ? { ...cliente, etiqueta: etiquetaSeleccionada } : cliente
                 ));
                 setClienteDetallado(prev => prev ? { ...prev, etiqueta: etiquetaSeleccionada } : null);
                 toast.success(`Cliente etiquetado como ${etiquetaSeleccionada}`);
@@ -374,7 +511,7 @@ export const DebtorsMain: React.FC = () => {
             setEtiquetaSeleccionada('');
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
-            setError('Error al etiquetar: ' + errorMessage);
+            toast.error('Error al etiquetar: ' + errorMessage);
         }
     };
 
@@ -416,17 +553,13 @@ export const DebtorsMain: React.FC = () => {
 
         if (activeTab === 'Clientes' && selectedClientes.length > 0) {
             setClientes(prev => prev.map(cliente => 
-                selectedClientes.includes(cliente.id) 
-                    ? { ...cliente, etiqueta: etiquetaSeleccionada }
-                    : cliente
+                selectedClientes.includes(cliente.id) ? { ...cliente, etiqueta: etiquetaSeleccionada } : cliente
             ));
             toast.success(`${selectedClientes.length} cliente(s) etiquetado(s) como ${etiquetaSeleccionada}`);
             setSelectedClientes([]);
         } else if (activeTab === 'Excel' && selectedExcelRows.length > 0) {
             setExcelData(prev => prev.map(row => 
-                selectedExcelRows.includes(row.id) 
-                    ? { ...row, etiqueta: etiquetaSeleccionada }
-                    : row
+                selectedExcelRows.includes(row.id) ? { ...row, etiqueta: etiquetaSeleccionada } : row
             ));
             toast.success(`${selectedExcelRows.length} registro(s) de Excel etiquetado(s) como ${etiquetaSeleccionada}`);
             setSelectedExcelRows([]);
@@ -441,11 +574,6 @@ export const DebtorsMain: React.FC = () => {
 
     // Función para detectar si una fila es de totales
     const isTotalRow = (row: any[]): boolean => {
-        const totalPatterns = [
-            'total', 'totales', 'suma', 'sumatoria', 'gran total', 'general total',
-            'subtotal', 'resumen', 'conclusión', 'final'
-        ];
-
         for (let i = 0; i < row.length; i++) {
             const cellValue = row[i]?.toString().toLowerCase();
             if (totalPatterns.some(pattern => cellValue?.includes(pattern))) {
@@ -506,18 +634,17 @@ export const DebtorsMain: React.FC = () => {
         if (!file) return;
 
         if (!file.name.match(/\.(xlsx|xls)$/)) {
-            setError('Por favor, sube un archivo Excel válido (.xlsx o .xls)');
+            toast.error('Por favor, sube un archivo Excel válido (.xlsx o .xls)');
             return;
         }
 
         setIsUploading(true);
-        setError(null);
 
         try {
             const rows = await readXlsxFile(file);
             
             if (rows.length === 0) {
-                setError('El archivo Excel está vacío');
+                toast.error('El archivo Excel está vacío');
                 return;
             }
 
@@ -566,16 +693,14 @@ export const DebtorsMain: React.FC = () => {
             setExcelData(processedData);
         
             if (processedData.length === 0) {
-                setError('No se encontraron datos válidos en el archivo Excel');
+                toast.error('No se encontraron datos válidos en el archivo Excel');
             } else {
-                setError(null);
                 setActiveTab('Excel');
             }
 
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
             toast.error(`Error al procesar el archivo Excel: ${errorMessage}`);
-            setError('Error al procesar el archivo Excel: ' + errorMessage);
         } finally {
             setIsUploading(false);
             event.target.value = '';
@@ -585,14 +710,6 @@ export const DebtorsMain: React.FC = () => {
     // Función para detectar automáticamente las columnas
     const autoDetectColumns = (headers: string[]): {[key: string]: string} => {
         const mapping: {[key: string]: string} = {};
-        const columnPatterns = {
-            fechaAlbaran: ['fecha', 'albaran', 'fecha_albaran', 'fecha albarán', 'date', 'fecha de albarán'],
-            clienteNombre: ['cliente', 'nombre', 'cliente_nombre', 'cliente nombre', 'empresa', 'client', 'name'],
-            totalImporte: ['total', 'importe', 'total_importe', 'monto', 'valor', 'precio', 'amount', 'total amount'],
-            cobradoLinea: ['cobrado', 'pagado', 'cobrado_linea', 'cobrado lineas', 'abonado', 'paid', 'collected'],
-            deuda: ['deuda', 'saldo', 'pendiente', 'adeudo', 'restante', 'debt', 'balance', 'pending'],
-            paciente: ['paciente', 'pacientes', 'cliente_final', 'beneficiario', 'patient', 'beneficiary']
-        };
 
         headers.forEach(header => {
             const headerLower = header.toLowerCase().trim();
@@ -634,7 +751,7 @@ export const DebtorsMain: React.FC = () => {
             });
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
-            setError('Error al crear cliente: ' + errorMessage);
+            toast.error('Error al crear cliente: ' + errorMessage);
         }
     };
 
@@ -657,7 +774,7 @@ export const DebtorsMain: React.FC = () => {
             });
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
-            setError('Error al actualizar cliente: ' + errorMessage);
+            toast.error('Error al actualizar cliente: ' + errorMessage);
         }
     };
 
@@ -672,22 +789,6 @@ export const DebtorsMain: React.FC = () => {
             estado: cliente.estado
         });
         setShowForm(true);
-    };
-
-    // Buscar cliente por nombre
-    const handleSearchCliente = async (nombre: string) => {
-        if (!nombre.trim()) {
-            await loadInitialData();
-            return;
-        }
-
-        try {
-            const resultado = await apiService.searchDebtorsCliente(nombre);
-            setClientes(Array.isArray(resultado) ? resultado : [resultado]);
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
-            setError('Error al buscar cliente: ' + errorMessage);
-        }
     };
 
     // Calcular totales del Excel
@@ -720,12 +821,6 @@ export const DebtorsMain: React.FC = () => {
         }
     };
 
-    // Función para descargar comparativa
-    const handleDescargarComparativa = () => {
-        toast.success('Funcionalidad de exportación en desarrollo');
-        console.log('Exportando comparativa...');
-    };
-
     if (loading) {
         return (
             <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
@@ -733,6 +828,14 @@ export const DebtorsMain: React.FC = () => {
             </div>
         );
     }
+
+    // Obtener el resumen de etiquetas actual con deuda
+    const { resumen: resumenEtiquetas, deudaPorEtiqueta } = calcularResumenEtiquetas();
+
+    // Calcular variaciones totales para el resumen
+    const variacionTotal = clientes.reduce((sum, c) => sum + (c.variacion || 0), 0);
+    const deudaAnteriorTotal = clientes.reduce((sum, c) => sum + (c.deudaAnterior || 0), 0);
+    const porcentajeVariacion = deudaAnteriorTotal > 0 ? (variacionTotal / deudaAnteriorTotal) * 100 : 0;
 
     const excelTotals = calculateExcelTotals();
     const elementosSeleccionados = getElementosSeleccionados();
@@ -803,18 +906,6 @@ export const DebtorsMain: React.FC = () => {
                         </button>
                     </div>
                 </header>
-
-                {error && (
-                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-1">
-                        {error}
-                        <button 
-                            onClick={() => setError(null)}
-                            className="float-right font-bold"
-                        >
-                            ×
-                        </button>
-                    </div>
-                )}
 
                 {/* Métricas Globales */}
                 {metricas && (
@@ -1252,13 +1343,13 @@ export const DebtorsMain: React.FC = () => {
                                         {/* Botón para subir Excel procesado */}
                                         <button
                                             onClick={handleSubirExcelProcesado}
-                                            disabled={isUploading}
+                                            disabled={isUploading || excelData.length === 0}
                                             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center"
                                         >
                                             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                             </svg>
-                                            Procesar y Subir Excel
+                                            {isUploading ? 'Procesando...' : `Procesar y Subir Excel (${excelData.length})`}
                                         </button>
 
                                         {/* Botón para sincronizar etiquetas */}

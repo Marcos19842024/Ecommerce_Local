@@ -13,7 +13,7 @@ class ApiService {
         await this.ensureConfigLoaded();
         
         const fullUrl = `${runtimeConfig.getApiUrl()}${url}`;
-        
+        console.log('🔍 URL generada:', fullUrl);
         const response = await fetch(fullUrl, {
             headers: {
                 'Content-Type': 'application/json',
@@ -379,50 +379,67 @@ class ApiService {
     // =============================================
 
     // 👥 CLIENTES
-    async getAdeudosByClienteId(clienteId: string): Promise<any> {
-        return this.get(`/debtors/adeudos/cliente/${clienteId}`);
-    }
-    
     async getDebtorsClientes(): Promise<any> {
-        return this.get('/debtors/clientes');
+        return this.get('/debtors/clientes');  // ✅ CORRECTO - ya está bien
     }
 
     async getDebtorsClienteById(id: string): Promise<any> {
-        return this.get(`/debtors/clientes/${id}`);
-    }
-
-    // 🔍 MÉTODO NUEVO: Búsqueda de cliente por nombre
-    async searchDebtorsCliente(nombre: string): Promise<any> {
-        return this.get(`/debtors/clientes/buscar?nombre=${encodeURIComponent(nombre)}`);
+        return this.get(`/debtors/clientes/${id}`);  // ✅ CORRECTO
     }
 
     async createDebtorsCliente(clienteData: any): Promise<any> {
-        return this.post('/debtors/clientes', clienteData);
+        return this.post('/debtors/clientes', clienteData);  // ✅ CORRECTO
     }
 
     async updateDebtorsCliente(id: string, clienteData: any): Promise<any> {
-        return this.put(`/debtors/clientes/${id}`, clienteData);
+        return this.put(`/debtors/clientes/${id}`, clienteData);  // ✅ CORRECTO
     }
 
     async deleteDebtorsCliente(id: string): Promise<any> {
-        return this.delete(`/debtors/clientes/${id}`);
+        return this.delete(`/debtors/clientes/${id}`);  // ✅ CORRECTO
     }
 
-    // 📊 REPORTES
-    async getDebtorsReporteTipoCliente(tipoCliente: string, año: number, mes: number): Promise<any> {
-        return this.get(`/debtors/reportes/tipo-cliente?tipo=${tipoCliente}&año=${año}&mes=${mes}`);
+    // 📊 MÉTRICAS
+    async getDebtorsMetricas(): Promise<any> {
+        return this.get('/debtors/metricas');  // ✅ NUEVO - para las métricas
     }
 
-    async getDebtorsMetricasGlobales(año: number, mes: number): Promise<any> {
-        return this.get(`/debtors/reportes/metricas-globales?año=${año}&mes=${mes}`);
-    }
-
-    // 🔄 MÉTODO NUEVO: Procesar comparativa de Excel
+    // 🔄 Procesar comparativa de Excel - CORREGIDO
     async procesarExcelComparativa(excelData: any[], periodo: string): Promise<any> {
-        return this.post('/debtors/procesar-comparativa', {
+        return this.post('/debtors/procesar-comparativa', {  // ✅ CORREGIDO
             excelData,
             periodo
         });
+    }
+
+    // 📊 MÉTRICAS Y TENDENCIAS
+    async getDebtorsTendencias(): Promise<any> {
+        return this.get('/debtors/tendencias');
+    }
+
+    async getDebtorsRegistrosExcel(params?: { 
+        periodo?: string; 
+        cliente?: string; 
+        page?: number; 
+        limit?: number; 
+    }): Promise<any> {
+        const queryParams = new URLSearchParams();
+        if (params?.periodo) queryParams.append('periodo', params.periodo);
+        if (params?.cliente) queryParams.append('cliente', params.cliente);
+        if (params?.page) queryParams.append('page', params.page.toString());
+        if (params?.limit) queryParams.append('limit', params.limit.toString());
+        
+        const queryString = queryParams.toString();
+        return this.get(`/debtors/registros-excel${queryString ? `?${queryString}` : ''}`);
+    }
+
+    async getDebtorsHistorial(clienteId: string): Promise<any> {
+        return this.get(`/debtors/historial/${clienteId}`);
+    }
+
+    // 🔍 BÚSQUEDA
+    async searchDebtorsClientes(query: string): Promise<any> {
+        return this.get(`/debtors/clientes/buscar?q=${encodeURIComponent(query)}`);
     }
 }
 

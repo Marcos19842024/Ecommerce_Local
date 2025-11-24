@@ -23,11 +23,7 @@ class RuntimeConfig {
         }
 
         try {
-            toast('🔄 Cargando configuración del backend...');
-            
-            // Intentar cargar desde el backend primero
             const backendUrl = this.getBackendBaseUrl();
-            toast(`🔗 Intentando conectar a: ${backendUrl}`);
             
             const response = await fetch(`${backendUrl}/api/config`, {
                 method: 'GET',
@@ -43,26 +39,24 @@ class RuntimeConfig {
             const configData: AppConfig = await response.json();
             this.config = configData;
             this.isLoaded = true;
-            toast(`✅ Configuración cargada desde backend: ${this.config}`);
             return configData;
 
         } catch (error) {
-            toast('⚠️ No se pudo cargar configuración del backend, usando configuración local');
+            toast.error('⚠️ No se pudo cargar configuración del backend, usando configuración local');
             toast.error(`Error details: ${error}`);
             
-            // Usar variable de entorno con fallback inteligente
             const envUrl = import.meta.env.VITE_URL_SERVER;
             let apiUrl = 'http://localhost:3001';
             
             if (envUrl) {
                 apiUrl = envUrl.endsWith('/') ? envUrl.slice(0, -1) : envUrl;
-                toast(`🔗 Usando VITE_URL_SERVER: ${apiUrl}`);
+                toast.success(`🔗 Usando VITE_URL_SERVER: ${apiUrl}`);
             } else if (window.location.hostname !== 'localhost' && !window.location.hostname.includes('127.0.0.1')) {
                 // Si estamos en ngrok, usar la misma URL del frontend para el backend
                 apiUrl = window.location.origin;
-                toast(`🔗 Usando window.origin (ngrok): ${apiUrl}`);
+                toast.success(`🔗 Usando window.origin (ngrok): ${apiUrl}`);
             } else {
-                toast('🔗 Usando localhost por defecto');
+                toast.success('🔗 Usando localhost por defecto');
             }
             
             const fallbackConfig: AppConfig = {
