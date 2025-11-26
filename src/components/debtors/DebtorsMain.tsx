@@ -12,8 +12,6 @@ export const DebtorsMain: React.FC = () => {
     const [metricas, setMetricas] = useState<MetricasGlobales | null>(null);
     const [tendencias, setTendencias] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const [showForm, setShowForm] = useState(false);
-    const [selectedCliente, setSelectedCliente] = useState<ClienteComparativa | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [activeTab, setActiveTab] = useState<'Clientes' | 'Excel'>('Clientes');
     const [selectedClientes, setSelectedClientes] = useState<string[]>([]);
@@ -28,47 +26,57 @@ export const DebtorsMain: React.FC = () => {
     const [filtroTendencia, setFiltroTendencia] = useState('');
     const [filtroEstado, setFiltroEstado] = useState('');
     const [filtroEtiqueta, setFiltroEtiqueta] = useState('');
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [clienteToDelete, setClienteToDelete] = useState<ClienteComparativa | null>(null);
 
-    // Estados para el formulario
-    const [formData, setFormData] = useState({
-        nombre: '',
-        tipoCliente: 'regular',
-        limiteCredito: 0,
-        saldoActual: 0,
-        estado: 'activo'
-    });
+    // Función helper para mapear cliente - NUEVA
+    const mapearCliente = (cliente: any): ClienteComparativa => {
+        return {
+            id: cliente._id || cliente.id || `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            nombre: cliente.nombre || '',
+            tipoCliente: cliente.tipoCliente || 'regular',
+            limiteCredito: cliente.limiteCredito || 0,
+            saldoActual: cliente.saldoActual || 0,
+            estado: cliente.estado || 'activo',
+            etiqueta: cliente.etiqueta || '',
+            variacion: cliente.variacion,
+            deudaAnterior: cliente.deudaAnterior,
+            porcentajeVariacion: cliente.porcentajeVariacion
+        };
+    };
 
     // Cargar datos iniciales
     useEffect(() => {
         loadInitialData();
     }, []);
 
+    // Limpiar selecciones cuando cambian los filtros
+    useEffect(() => {
+        // Cuando los filtros cambian, limpiar las selecciones para evitar inconsistencias
+        setSelectedClientes([]);
+    }, [filtroTendencia, filtroEstado, filtroEtiqueta]);
+
     const loadInitialData = async () => {
         try {
             setLoading(true);
-            console.log('🔄 Cargando datos iniciales...');
             
             const [clientesData, metricasData, tendenciasData] = await Promise.all([
                 apiService.getDebtorsClientes(),
                 apiService.getDebtorsMetricas(),
                 apiService.getDebtorsTendencias().catch(err => {
-                    console.log('Tendencias no disponibles:', err);
+                    toast.error('Tendencias no disponibles: ' + err.message);
                     return null;
                 }),
             ]);
             
-            console.log('✅ Datos cargados exitosamente:', {
-                clientes: clientesData.length,
-                metricas: metricasData,
-                tendencias: tendenciasData,
-            });
+            // Mapear _id a id y asegurar que todos los campos estén presentes
+            const clientesMapeados = clientesData.map(mapearCliente);
             
-            setClientes(clientesData);
+            setClientes(clientesMapeados);
             setMetricas(metricasData);
             setTendencias(tendenciasData);
             
         } catch (err) {
-            console.error('❌ Error al cargar los datos:', err);
             const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
             
             if (errorMessage.includes('Unexpected token') || errorMessage.includes('<!doctype')) {
@@ -100,6 +108,7 @@ export const DebtorsMain: React.FC = () => {
                 try {
                     let resultado;
                     if (cliente.id && cliente.id.startsWith('temp-')) {
+                        // Cliente nuevo
                         resultado = await apiService.createDebtorsCliente({
                             nombre: cliente.nombre,
                             tipoCliente: cliente.tipoCliente || 'regular',
@@ -109,6 +118,7 @@ export const DebtorsMain: React.FC = () => {
                             etiqueta: cliente.etiqueta || ''
                         });
                     } else {
+                        // Cliente existente - usar el id real (que viene de _id)
                         resultado = await apiService.updateDebtorsCliente(cliente.id, {
                             nombre: cliente.nombre,
                             tipoCliente: cliente.tipoCliente,
@@ -156,17 +166,14 @@ export const DebtorsMain: React.FC = () => {
             }));
 
             const periodo = obtenerPeriodoActual();
-            
-            console.log('🔄 Procesando Excel...');
+
             const resultado = await apiService.procesarExcelComparativa(datosParaEnviar, periodo);
             
             if (resultado.success) {
                 toast.success(`✅ ${resultado.message}\n📊 ${resultado.estadisticas.registrosExcelGuardados} registros procesados`);
                 
-                console.log('⏳ Esperando 2 segundos para que el servidor se estabilice...');
                 await new Promise(resolve => setTimeout(resolve, 2000));
                 
-                console.log('🔄 Cargando datos actualizados...');
                 await loadInitialDataWithRetry();
                 
                 setActiveTab('Clientes');
@@ -175,7 +182,6 @@ export const DebtorsMain: React.FC = () => {
             }
             
         } catch (error: any) {
-            console.error('Error:', error);
             toast.error('Error al procesar Excel: ' + error.message);
         } finally {
             setIsUploading(false);
@@ -185,18 +191,14 @@ export const DebtorsMain: React.FC = () => {
     const loadInitialDataWithRetry = async (retries = 3, delay = 1000) => {
         for (let attempt = 1; attempt <= retries; attempt++) {
             try {
-                console.log(`🔄 Intento ${attempt} de cargar datos...`);
                 await loadInitialData();
-                console.log('✅ Datos cargados exitosamente en intento', attempt);
                 return;
             } catch (error) {
-                console.error(`❌ Intento ${attempt} fallido:`, error);
                 
                 if (attempt === retries) {
                     throw error;
                 }
                 
-                console.log(`⏳ Esperando ${delay}ms antes del siguiente intento...`);
                 await new Promise(resolve => setTimeout(resolve, delay));
                 delay *= 2;
             }
@@ -287,7 +289,7 @@ export const DebtorsMain: React.FC = () => {
         }
     };
 
-    // Búsqueda de clientes - CORREGIDA
+    // Búsqueda de clientes
     const handleSearchCliente = async (nombre: string) => {
         if (!nombre.trim()) {
             await loadInitialData();
@@ -299,36 +301,86 @@ export const DebtorsMain: React.FC = () => {
             const resultado = await apiService.searchDebtorsClientes(nombre);
             
             if (resultado && resultado.length > 0) {
-                setClientes(resultado);
-                toast.success(`Encontrados ${resultado.length} cliente(s)`);
+                // Mapear _id a id en los resultados de búsqueda
+                const clientesMapeados = resultado.map(mapearCliente);
+                setClientes(clientesMapeados);
             } else {
                 // Si no hay resultados en backend, hacer búsqueda local
                 const clientesFiltrados = clientes.filter(cliente => 
                     cliente.nombre.toLowerCase().includes(nombre.toLowerCase())
                 );
-                setClientes(clientesFiltrados);
-                
+
                 if (clientesFiltrados.length === 0) {
-                    toast.error('No se encontraron clientes con ese nombre');
+                    // Si tampoco hay resultados locales, mostrar la lista completa
+                    setClientes(clientes);
                 } else {
-                    toast.success(`Encontrados ${clientesFiltrados.length} cliente(s) localmente`);
+                    setClientes(clientesFiltrados);
                 }
             }
         } catch (err) {
             // Si falla la búsqueda backend, usar búsqueda local
-            console.log('Búsqueda backend falló, usando búsqueda local');
             const clientesFiltrados = clientes.filter(cliente => 
                 cliente.nombre.toLowerCase().includes(nombre.toLowerCase())
             );
-            setClientes(clientesFiltrados);
             
             if (clientesFiltrados.length === 0) {
-                toast.error('No se encontraron clientes con ese nombre');
+                setClientes(clientes);
+            } else {
+                setClientes(clientesFiltrados);
             }
         }
     };
 
-    // Función para descargar comparativa - MEJORADA
+    // Función para eliminar cliente
+    const handleDeleteCliente = async (cliente: ClienteComparativa) => {
+        try {
+            // Si es un cliente temporal (no guardado en backend), eliminarlo localmente
+            if (cliente.id.startsWith('temp-')) {
+                setClientes(prev => prev.filter(c => c.id !== cliente.id));
+                toast.success('Cliente eliminado localmente');
+                return;
+            }
+
+            // Usar _id para la eliminación (es lo que espera el backend)
+            const idParaEliminar = cliente.id;
+            
+            if (!idParaEliminar || idParaEliminar.startsWith('temp-')) {
+                // Fallback: eliminar localmente si no hay _id válido
+                setClientes(prev => prev.filter(c => c.id !== cliente.id));
+                toast.success('Cliente eliminado localmente');
+                return;
+            }
+            
+            await apiService.deleteDebtorsCliente(idParaEliminar);
+            
+            // Si llegamos aquí, la eliminación fue exitosa
+            setClientes(prev => prev.filter(c => c.id !== cliente.id));
+            
+            toast.success(`Cliente "${cliente.nombre}" eliminado correctamente`);
+            
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+            
+            // Si hay error 404, el cliente no existe en el backend - eliminarlo localmente
+            if (errorMessage.includes('404') || errorMessage.includes('not found') || errorMessage.includes('no encontrado')) {
+                setClientes(prev => prev.filter(c => c.id !== cliente.id));
+                toast.success('Cliente eliminado localmente (no encontrado en servidor)');
+            } else {
+                toast.error(`Error al eliminar cliente: ${errorMessage}`);
+            }
+        } finally {
+            setShowDeleteModal(false);
+            setClienteToDelete(null);
+        }
+    };
+
+    // Función para abrir el modal de confirmación
+    const handleConfirmDelete = (cliente: ClienteComparativa) => {
+        setClienteToDelete(cliente);
+        setShowDeleteModal(true);
+    };
+
+    // Función para descargar comparativa
     const handleDescargarComparativa = async () => {
         try {
             const loadingToast = toast.loading('Generando comparativa...');
@@ -413,9 +465,9 @@ export const DebtorsMain: React.FC = () => {
             // Intentar cargar historial si está disponible
             try {
                 const historial = await apiService.getDebtorsHistorial(cliente.id);
-                console.log('Historial del cliente:', historial);
+                toast.success('Historial del cliente:' + historial);
             } catch (historialError) {
-                console.log('Historial no disponible:', historialError);
+                toast.error('Historial no disponible: ' + historialError);
             }
             
             setFilasCliente(filasDelCliente);
@@ -461,13 +513,6 @@ export const DebtorsMain: React.FC = () => {
         setShowDetalleCliente(true);
     };
 
-    // Manejar ver detalle del cliente
-    const handleVerDetalleCliente = async (cliente: ClienteComparativa) => {
-        setClienteDetallado(cliente);
-        await cargarDetallesCliente(cliente);
-        setShowDetalleCliente(true);
-    };
-
     // Manejar doble click en fila de Excel (desde tab Excel)
     const handleDoubleClickExcel = (row: ExcelRow) => {
         const filasDelMismoCliente = obtenerFilasCliente(row.clienteNombre);
@@ -495,12 +540,14 @@ export const DebtorsMain: React.FC = () => {
 
         try {
             if (modalDesdeExcel) {
+                // Para Excel: etiquetar todas las filas del cliente
                 const filasIds = filasCliente.map(fila => fila.id);
                 setExcelData(prev => prev.map(row => 
                     filasIds.includes(row.id) ? { ...row, etiqueta: etiquetaSeleccionada } : row
                 ));
                 toast.success(`${filasCliente.length} registro(s) etiquetado(s) como ${etiquetaSeleccionada}`);
             } else {
+                // Para Clientes: etiquetar solo el cliente actual
                 setClientes(prev => prev.map(cliente => 
                     cliente.id === clienteDetallado.id ? { ...cliente, etiqueta: etiquetaSeleccionada } : cliente
                 ));
@@ -509,6 +556,65 @@ export const DebtorsMain: React.FC = () => {
             }
             
             setEtiquetaSeleccionada('');
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+            toast.error('Error al etiquetar: ' + errorMessage);
+        }
+    };
+
+    // Etiquetar elementos seleccionados
+    const handleEtiquetarElementos = async () => {
+        if (!etiquetaSeleccionada) {
+            toast.error('Selecciona una etiqueta');
+            return;
+        }
+
+        try {
+            switch (activeTab) {
+                case 'Clientes':
+                    if (selectedClientes.length > 0) {
+                        // Filtrar solo los clientes que existen en la lista actual
+                        const clientesAEtiquetar = selectedClientes.filter(id => 
+                            clientes.some(cliente => cliente.id === id)
+                        );
+                        
+                        setClientes(prev => prev.map(cliente =>
+                            clientesAEtiquetar.includes(cliente.id) 
+                                ? { ...cliente, etiqueta: etiquetaSeleccionada } 
+                                : cliente
+                        ));
+                        
+                        toast.success(`${clientesAEtiquetar.length} cliente(s) etiquetado(s) como ${etiquetaSeleccionada}`);
+                        setSelectedClientes([]);
+                    } else {
+                        toast.error('Selecciona al menos un cliente');
+                        return;
+                    }
+                    break;
+
+                case 'Excel':
+                    if (selectedExcelRows.length > 0) {
+                        setExcelData(prev => prev.map(row =>
+                            selectedExcelRows.includes(row.id) 
+                                ? { ...row, etiqueta: etiquetaSeleccionada } 
+                                : row
+                        ));
+                        toast.success(`${selectedExcelRows.length} registro(s) de Excel etiquetado(s) como ${etiquetaSeleccionada}`);
+                        setSelectedExcelRows([]);
+                    } else {
+                        toast.error('Selecciona al menos un registro de Excel');
+                        return;
+                    }
+                    break;
+
+                default:
+                    toast.error('Selecciona al menos un elemento');
+                    return;
+            }
+
+            setShowEtiquetarModal(false);
+            setEtiquetaSeleccionada('');
+            
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
             toast.error('Error al etiquetar: ' + errorMessage);
@@ -542,34 +648,6 @@ export const DebtorsMain: React.FC = () => {
         } else {
             setSelectedExcelRows(excelData.map(row => row.id));
         }
-    };
-
-    // Etiquetar elementos seleccionados
-    const handleEtiquetarElementos = async () => {
-        if (!etiquetaSeleccionada) {
-            toast.error('Selecciona una etiqueta');
-            return;
-        }
-
-        if (activeTab === 'Clientes' && selectedClientes.length > 0) {
-            setClientes(prev => prev.map(cliente => 
-                selectedClientes.includes(cliente.id) ? { ...cliente, etiqueta: etiquetaSeleccionada } : cliente
-            ));
-            toast.success(`${selectedClientes.length} cliente(s) etiquetado(s) como ${etiquetaSeleccionada}`);
-            setSelectedClientes([]);
-        } else if (activeTab === 'Excel' && selectedExcelRows.length > 0) {
-            setExcelData(prev => prev.map(row => 
-                selectedExcelRows.includes(row.id) ? { ...row, etiqueta: etiquetaSeleccionada } : row
-            ));
-            toast.success(`${selectedExcelRows.length} registro(s) de Excel etiquetado(s) como ${etiquetaSeleccionada}`);
-            setSelectedExcelRows([]);
-        } else {
-            toast.error('Selecciona al menos un elemento');
-            return;
-        }
-
-        setShowEtiquetarModal(false);
-        setEtiquetaSeleccionada('');
     };
 
     // Función para detectar si una fila es de totales
@@ -726,71 +804,6 @@ export const DebtorsMain: React.FC = () => {
         return mapping;
     };
 
-    // Manejar cambios en el formulario
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: name === 'limiteCredito' || name === 'saldoActual' ? parseFloat(value) || 0 : value
-        }));
-    };
-
-    // Crear nuevo cliente
-    const handleCreateCliente = async (e: React.FormEvent) => {
-        e.preventDefault();
-        try {
-            await apiService.createDebtorsCliente(formData);
-            await loadInitialData();
-            setShowForm(false);
-            setFormData({
-                nombre: '',
-                tipoCliente: 'regular',
-                limiteCredito: 0,
-                saldoActual: 0,
-                estado: 'activo'
-            });
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
-            toast.error('Error al crear cliente: ' + errorMessage);
-        }
-    };
-
-    // Actualizar cliente
-    const handleUpdateCliente = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!selectedCliente) return;
-        
-        try {
-            await apiService.updateDebtorsCliente(selectedCliente.id, formData);
-            await loadInitialData();
-            setShowForm(false);
-            setSelectedCliente(null);
-            setFormData({
-                nombre: '',
-                tipoCliente: 'regular',
-                limiteCredito: 0,
-                saldoActual: 0,
-                estado: 'activo'
-            });
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
-            toast.error('Error al actualizar cliente: ' + errorMessage);
-        }
-    };
-
-    // Editar cliente
-    const handleEditCliente = (cliente: ClienteComparativa) => {
-        setSelectedCliente(cliente);
-        setFormData({
-            nombre: cliente.nombre,
-            tipoCliente: cliente.tipoCliente,
-            limiteCredito: cliente.limiteCredito,
-            saldoActual: cliente.saldoActual,
-            estado: cliente.estado
-        });
-        setShowForm(true);
-    };
-
     // Calcular totales del Excel
     const calculateExcelTotals = () => {
         const totalImporte = excelData.reduce((sum, row) => sum + row.totalImporte, 0);
@@ -845,32 +858,32 @@ export const DebtorsMain: React.FC = () => {
         <div className="min-h-screen bg-white p-2 rounded-md">
             {/* Sección completamente fija superior */}
             <div className='bg-white sticky top-0 z-50 mb-2'>
-                {/* Header principal */}
-                <header className="bg-white p-1 mb-1 rounded-md shadow">
-                    <div className="flex justify-between items-center">
-                        <h2 className="text-xl font-bold">{`Cargar Datos desde ${activeTab}`}</h2>
-                        {activeTab === 'Clientes' ? (
-                            <button
-                                onClick={() => {
-                                    setSelectedCliente(null);
-                                    setFormData({
-                                        nombre: '',
-                                        tipoCliente: 'regular',
-                                        limiteCredito: 0,
-                                        saldoActual: 0,
-                                        estado: 'activo'
-                                    });
-                                    setShowForm(true);
-                                }}
-                                className="bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-500 transition duration-200 flex items-center hover:scale-105"
-                            >
-                                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                </svg>
-                                Nuevo Cliente
-                            </button>
-                        ) : (
-                            <div className="flex items-center space-x-4">
+                <div className="border-b border-gray-200">
+                    <nav className="flex -mb-px">
+                        <button
+                            onClick={() => setActiveTab('Clientes')}
+                            className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
+                                activeTab === 'Clientes'
+                                    ? 'border-blue-500 text-blue-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                }`
+                            }
+                        >
+                            Gestión de Clientes ({clientes.length})
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('Excel')}
+                            className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
+                                activeTab === 'Excel'
+                                    ? 'border-blue-500 text-blue-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                }`
+                            }
+                        >
+                            Datos de Excel ({excelData.length})
+                        </button>
+                        {activeTab === 'Excel' &&
+                            <div className="flex items-center ml-4 space-x-4">
                                 <label
                                     className="cursor-pointer text-white flex items-center px-3 py-2 rounded-md gap-2 transition-all hover:scale-105 bg-cyan-600 hover:bg-yellow-500"
                                     htmlFor='inputfile'>Seleccionar archivo Excel
@@ -894,37 +907,47 @@ export const DebtorsMain: React.FC = () => {
                                     </div>
                                 )}
                             </div>
-                        )}
-                        <button
-                            onClick={handleDescargarPDF}
-                            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition duration-200 flex items-center hover:scale-105"
-                        >
-                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            Descargar PDF
-                        </button>
+                        }
+                    </nav>
+                </div>
+            
+                {/* Totales del Excel - Solo se muestra cuando hay datos */}
+                {excelData.length > 0 && activeTab === 'Excel' && (
+                    <div className="bg-green-50 p-1 mt-1 mb-1 rounded-md shadow">
+                        <div className="flex justify-between items-center">
+                            <h3 className="text-lg font-semibold text-green-800">
+                                Resumen del Excel ({excelData.length} registros)
+                            </h3>
+                            <div className="text-sm text-green-700 space-x-4">
+                                <span>Total Importe: <span className="font-bold">${excelTotals.totalImporte.toLocaleString()}</span></span>
+                                <span>Total Cobrado: <span className="font-bold text-green-600">${excelTotals.totalCobrado.toLocaleString()}</span></span>
+                                <span>Total Deuda: <span className="font-bold text-red-600">${excelTotals.totalDeuda.toLocaleString()}</span></span>
+                            </div>
+                        </div>
                     </div>
-                </header>
+                )}
 
                 {/* Métricas Globales */}
-                {metricas && (
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white p-1 mb-1 rounded-md shadow">
-                        <div className="bg-white p-4 rounded-lg shadow">
-                            <h3 className="text-sm font-medium text-gray-500">Total Clientes</h3>
-                            <p className="text-2xl font-bold text-gray-800">{metricas.totalClientes}</p>
-                        </div>
-                        <div className="bg-white p-4 rounded-lg shadow">
-                            <h3 className="text-sm font-medium text-gray-500">Clientes Activos</h3>
-                            <p className="text-2xl font-bold text-green-600">{metricas.clientesActivos}</p>
-                        </div>
-                        <div className="bg-white p-4 rounded-lg shadow">
-                            <h3 className="text-sm font-medium text-gray-500">Clientes Morosos</h3>
-                            <p className="text-2xl font-bold text-red-600">{metricas.clientesMorosos}</p>
-                        </div>
-                        <div className="bg-white p-4 rounded-lg shadow">
-                            <h3 className="text-sm font-medium text-gray-500">Cartera Total</h3>
-                            <p className="text-2xl font-bold text-blue-600">${metricas.carteraTotal.toLocaleString()}</p>
+                {metricas && activeTab === 'Clientes' && (
+                    <div className="bg-white rounded-lg shadow p-1 mb-1">
+                        <h2 className="text-xl font-bold mb-1">Métricas Globales</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-1">
+                            <div className="bg-gray-50 p-4 rounded-lg flex justify-between items-center">
+                                <h3 className="text-sm font-bold text-gray-600">Total Clientes</h3>
+                                <p className="text-sm text-gray-800">{metricas.totalClientes}</p>
+                            </div>
+                            <div className="bg-green-50 p-4 rounded-lg flex justify-between items-center">
+                                <h3 className="text-sm font-bold text-green-600">Clientes Activos</h3>
+                                <p className="text-sm text-green-600">{metricas.clientesActivos}</p>
+                            </div>
+                            <div className="bg-red-50 p-4 rounded-lg flex justify-between items-center">
+                                <h3 className="text-sm font-bold text-red-600">Clientes Morosos</h3>
+                                <p className="text-sm text-red-600">{metricas.clientesMorosos}</p>
+                            </div>
+                            <div className="bg-blue-50 p-4 rounded-lg flex justify-between items-center">
+                                <h3 className="text-sm font-bold text-blue-600">Cartera Total</h3>
+                                <p className="text-sm text-blue-600">${metricas.carteraTotal.toLocaleString()}</p>
+                            </div>
                         </div>
                     </div>
                 )}
@@ -995,309 +1018,245 @@ export const DebtorsMain: React.FC = () => {
                     </div>
                 )}
 
-                {/* Sección de pestañas y herramientas */}
-                <div className="bg-white rounded-lg shadow p-1 mb-1">
-                    <div className="border-b border-gray-200">
-                        <nav className="flex -mb-px">
-                            <button
-                                onClick={() => setActiveTab('Clientes')}
-                                className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
-                                    activeTab === 'Clientes'
-                                        ? 'border-blue-500 text-blue-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                    }`
-                                }
-                            >
-                                Gestión de Clientes ({clientes.length})
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('Excel')}
-                                className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
-                                    activeTab === 'Excel'
-                                        ? 'border-blue-500 text-blue-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                    }`
-                                }
-                            >
-                                Datos de Excel ({excelData.length})
-                            </button>
-                        </nav>
+                {/* Barra de herramientas para selección múltiple */}
+                {(selectedClientes.length > 0 || selectedExcelRows.length > 0) && activeTab === 'Excel' && (
+                    <div className="bg-blue-50 p-1 mb-1 rounded-md shadow">
+                        <div className="flex justify-between items-center">
+                            <span className="text-blue-700 font-medium">
+                                {elementosSeleccionados.count} {elementosSeleccionados.type} seleccionado(s)
+                            </span>
+                            <div className="flex space-x-2">
+                                <button
+                                    onClick={() => setShowEtiquetarModal(true)}
+                                    className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-yellow-500 transition duration-200"
+                                >
+                                    Etiquetar Seleccionados
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        if (activeTab === 'Excel') {
+                                            setSelectedExcelRows([]);
+                                        } else {
+                                            setSelectedClientes([]);
+                                        }
+                                    }}
+                                    className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-red-600 transition duration-200"
+                                >
+                                    Cancelar
+                                </button>
+                            </div>
+                        </div>
                     </div>
-
-                    {/* Totales del Excel - Solo se muestra cuando hay datos */}
-                    {excelData.length > 0 && activeTab === 'Excel' && (
-                        <div className="bg-green-50 p-1 mt-1 mb-1 rounded-md shadow">
-                            <div className="flex justify-between items-center">
-                                <h3 className="text-lg font-semibold text-green-800">
-                                    Resumen del Excel ({excelData.length} registros)
-                                </h3>
-                                <div className="text-sm text-green-700 space-x-4">
-                                    <span>Total Importe: <span className="font-bold">${excelTotals.totalImporte.toLocaleString()}</span></span>
-                                    <span>Total Cobrado: <span className="font-bold text-green-600">${excelTotals.totalCobrado.toLocaleString()}</span></span>
-                                    <span>Total Deuda: <span className="font-bold text-red-600">${excelTotals.totalDeuda.toLocaleString()}</span></span>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Barra de herramientas para selección múltiple */}
-                    {(selectedClientes.length > 0 || selectedExcelRows.length > 0) && (
-                        <div className="bg-blue-50 p-1 mb-1 rounded-md shadow">
-                            <div className="flex justify-between items-center">
-                                <span className="text-blue-700 font-medium">
-                                    {elementosSeleccionados.count} {elementosSeleccionados.type} seleccionado(s)
-                                </span>
-                                <div className="flex space-x-2">
-                                    <button
-                                        onClick={() => setShowEtiquetarModal(true)}
-                                        className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-yellow-500 transition duration-200"
-                                    >
-                                        Etiquetar Seleccionados
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            if (activeTab === 'Clientes') {
-                                                setSelectedClientes([]);
-                                            } else {
-                                                setSelectedExcelRows([]);
-                                            }
-                                        }}
-                                        className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-red-600 transition duration-200"
-                                    >
-                                        Cancelar
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
+                )}
             </div>
 
             {/* Contenido desplazable - TABLAS */}
             <div className="bg-white p-1 mb-1 rounded-md shadow">
                 {activeTab === 'Clientes' && (
                     <div>
-                        {/* Barra de búsqueda y filtros - STICKY */}
-                        <div className="sticky top-0 z-40 bg-white py-2 mb-2 border-b">
-                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                                <div className="flex-1 max-w-md">
-                                    <input
-                                        type="text"
-                                        placeholder="Buscar cliente por nombre..."
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                        onChange={(e) => handleSearchCliente(e.target.value)}
-                                    />
-                                </div>
-                                <div className="flex space-x-2">
-                                    <button
-                                        onClick={() => setShowFiltros(!showFiltros)}
-                                        className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-200"
-                                    >
-                                        Filtros
-                                    </button>
-                                    <button
-                                        onClick={handleDescargarComparativa}
-                                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-200"
-                                    >
-                                        Exportar Comparativa
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Filtros */}
-                            {showFiltros && (
-                                <div className="bg-gray-50 p-4 rounded-lg mt-2">
-                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                        <select
-                                            value={filtroTendencia}
-                                            onChange={(e) => setFiltroTendencia(e.target.value)}
-                                            className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        >
-                                            <option value="">Todas las tendencias</option>
-                                            <option value="aumento">En aumento</option>
-                                            <option value="disminucion">En disminución</option>
-                                            <option value="estable">Estables</option>
-                                        </select>
-                                        <select
-                                            value={filtroEstado}
-                                            onChange={(e) => setFiltroEstado(e.target.value)}
-                                            className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        >
-                                            <option value="">Todos los estados</option>
-                                            <option value="activo">Activos</option>
-                                            <option value="moroso">Morosos</option>
-                                            <option value="inactivo">Inactivos</option>
-                                        </select>
-                                        <select
-                                            value={filtroEtiqueta}
-                                            onChange={(e) => setFiltroEtiqueta(e.target.value)}
-                                            className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        >
-                                            <option value="">Todas las etiquetas</option>
-                                            {Object.keys(coloresEtiquetas).map(etiqueta => (
-                                                <option key={etiqueta} value={etiqueta}>{etiqueta}</option>
-                                            ))}
-                                        </select>
-                                        <button
-                                            onClick={limpiarFiltros}
-                                            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition duration-200"
-                                        >
-                                            Limpiar Filtros
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
                         {/* Tabla de Clientes con Comparativa */}
                         {clientes.length === 0 ? (
                             <div className="text-center py-8 text-gray-500">
                                 No se encontraron clientes
                             </div>
                         ) : (
-                            <div className="border border-gray-200 rounded-lg overflow-hidden">
-                                {/* Encabezado de tabla STICKY */}
-                                <div className="sticky top-12 z-30 bg-gray-50">
-                                    <table className="min-w-full">
-                                        <thead>
-                                            <tr>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Cliente
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Tipo
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Deuda Actual
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Deuda Anterior
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Variación
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Tendencia
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Estado
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Etiqueta
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Acciones
-                                                </th>
-                                            </tr>
-                                        </thead>
-                                    </table>
-                                </div>
-                                
-                                {/* Cuerpo de la tabla con scroll */}
-                                <div className="overflow-y-auto max-h-[calc(100vh-400px)]">
-                                    <table className="min-w-full divide-y divide-gray-200">
-                                        <tbody className="bg-white divide-y divide-gray-200">
-                                            {clientesFiltrados.map((cliente) => (
-                                                <tr 
-                                                    key={cliente.id} 
-                                                    className="hover:bg-gray-50 transition duration-150 cursor-pointer"
-                                                    onDoubleClick={() => handleDoubleClickCliente(cliente)}
+                            <>
+                                {/* Barra de búsqueda y filtros - STICKY */}
+                                <div className="sticky top-10 z-20 bg-white p-1 mb-1 rounded-md shadow">
+                                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                        <div className="flex-1 max-w-md">
+                                            <input
+                                                type="text"
+                                                placeholder="Buscar cliente por nombre..."
+                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                onChange={(e) => handleSearchCliente(e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="flex space-x-2">
+                                            {showFiltros &&
+                                                <button
+                                                    onClick={limpiarFiltros}
+                                                    className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-red-600 transition duration-200"
                                                 >
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <div className="text-sm font-medium text-gray-900">{cliente.nombre}</div>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                                                            {cliente.tipoCliente}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                        ${cliente.saldoActual.toLocaleString()}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                        ${(cliente.deudaAnterior || 0).toLocaleString()}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <div className="flex items-center">
-                                                            <span className={`text-sm font-medium ${
-                                                                cliente.variacion && cliente.variacion > 0 ? 'text-red-600' : 
-                                                                cliente.variacion && cliente.variacion < 0 ? 'text-green-600' : 'text-gray-600'
-                                                            }`}>
-                                                                {cliente.variacion && cliente.variacion > 0 ? '+' : ''}${cliente.variacion?.toLocaleString()}
-                                                            </span>
-                                                            {cliente.porcentajeVariacion !== undefined && (
-                                                                <span className={`ml-2 text-xs ${
-                                                                    cliente.porcentajeVariacion > 0 ? 'text-red-500' : 
-                                                                    cliente.porcentajeVariacion < 0 ? 'text-green-500' : 'text-gray-500'
+                                                    Limpiar Filtros
+                                                </button>
+                                            }
+                                            <button
+                                                onClick={() => setShowFiltros(!showFiltros)}
+                                                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-200"
+                                            >
+                                                {showFiltros ? 'Ocultar Filtros' : 'Mostrar Filtros'}
+                                            </button>
+                                            <button
+                                                onClick={handleDescargarComparativa}
+                                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-200"
+                                            >
+                                                Exportar Comparativa
+                                            </button>
+                                            <button
+                                                onClick={handleDescargarPDF}
+                                                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition duration-200 flex items-center hover:scale-105"
+                                            >
+                                                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                </svg>
+                                                Descargar PDF
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Filtros */}
+                                    {showFiltros && (
+                                        <div className="bg-gray-50 p-4 rounded-lg mt-2">
+                                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                                <select
+                                                    value={filtroTendencia}
+                                                    onChange={(e) => setFiltroTendencia(e.target.value)}
+                                                    className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                >
+                                                    <option value="">Todas las tendencias</option>
+                                                    <option value="aumento">En aumento</option>
+                                                    <option value="disminucion">En disminución</option>
+                                                    <option value="estable">Estables</option>
+                                                </select>
+                                                <select
+                                                    value={filtroEstado}
+                                                    onChange={(e) => setFiltroEstado(e.target.value)}
+                                                    className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                >
+                                                    <option value="">Todos los estados</option>
+                                                    <option value="activo">Activos</option>
+                                                    <option value="moroso">Morosos</option>
+                                                    <option value="inactivo">Inactivos</option>
+                                                </select>
+                                                <select
+                                                    value={filtroEtiqueta}
+                                                    onChange={(e) => setFiltroEtiqueta(e.target.value)}
+                                                    className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                >
+                                                    <option value="">Todas las etiquetas</option>
+                                                    {Object.keys(coloresEtiquetas).map(etiqueta => (
+                                                        <option key={etiqueta} value={etiqueta}>{etiqueta}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="border border-gray-200 rounded-lg">
+                                    {/* Encabezado de tabla STICKY */}
+                                    <div className="sticky top-10 z-20 bg-gray-50 overflow-hidden">
+                                        <table className="min-w-full bg-gray-200">
+                                            <thead>
+                                                <tr>
+                                                    <th className="px-6 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Cliente
+                                                    </th>
+                                                    <th className="px-6 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Deuda Actual
+                                                    </th>
+                                                    <th className="px-6 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Deuda Anterior
+                                                    </th>
+                                                    <th className="px-6 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Variación
+                                                    </th>
+                                                    <th className="px-6 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Tendencia
+                                                    </th>
+                                                    <th className="px-6 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Estado
+                                                    </th>
+                                                    <th className="px-6 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Etiqueta
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                        </table>
+                                    </div>
+                                    
+                                    {/* Cuerpo de la tabla con scroll */}
+                                    <div className="overflow-y-auto max-h-[calc(100vh-400px)]">
+                                        <table className="min-w-full bg-white">
+                                            <tbody className="divide-y divide-gray-200">
+                                                {clientesFiltrados.map((cliente) => (
+                                                    <tr 
+                                                        key={cliente.id} 
+                                                        className="hover:bg-gray-50 transition duration-150 cursor-pointer"
+                                                        onDoubleClick={() => handleDoubleClickCliente(cliente)}
+                                                    >
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="text-sm font-medium text-gray-900">{cliente.nombre}</div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                            ${cliente.saldoActual.toLocaleString()}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                            ${(cliente.deudaAnterior || 0).toLocaleString()}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="flex items-center">
+                                                                <span className={`text-sm font-medium ${
+                                                                    cliente.variacion && cliente.variacion > 0 ? 'text-red-600' : 
+                                                                    cliente.variacion && cliente.variacion < 0 ? 'text-green-600' : 'text-gray-600'
                                                                 }`}>
-                                                                    ({cliente.porcentajeVariacion > 0 ? '+' : ''}{cliente.porcentajeVariacion.toFixed(1)}%)
+                                                                    {cliente.variacion && cliente.variacion > 0 ? '+' : ''}${cliente.variacion?.toLocaleString()}
+                                                                </span>
+                                                                {cliente.porcentajeVariacion !== undefined && (
+                                                                    <span className={`ml-2 text-xs ${
+                                                                        cliente.porcentajeVariacion > 0 ? 'text-red-500' : 
+                                                                        cliente.porcentajeVariacion < 0 ? 'text-green-500' : 'text-gray-500'
+                                                                    }`}>
+                                                                        ({cliente.porcentajeVariacion > 0 ? '+' : ''}{cliente.porcentajeVariacion.toFixed(1)}%)
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="flex items-center">
+                                                                {cliente.variacion && cliente.variacion > 0 ? (
+                                                                    <svg className="w-4 h-4 text-red-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                                                                    </svg>
+                                                                ) : cliente.variacion && cliente.variacion < 0 ? (
+                                                                    <svg className="w-4 h-4 text-green-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                                                                    </svg>
+                                                                ) : (
+                                                                    <svg className="w-4 h-4 text-gray-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14" />
+                                                                    </svg>
+                                                                )}
+                                                                <span className="text-sm text-gray-600">
+                                                                    {cliente.variacion && cliente.variacion > 0 ? 'Aumentando' : 
+                                                                    cliente.variacion && cliente.variacion < 0 ? 'Disminuyendo' : 'Estable'}
+                                                                </span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                                                cliente.estado === 'activo' ? 'bg-green-100 text-green-800' :
+                                                                cliente.estado === 'moroso' ? 'bg-red-100 text-red-800' :
+                                                                'bg-gray-100 text-gray-800'
+                                                            }`}>
+                                                                {cliente.estado}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            {cliente.etiqueta && (
+                                                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getColorEtiqueta(cliente.etiqueta).bg} ${getColorEtiqueta(cliente.etiqueta).text}`}>
+                                                                    {cliente.etiqueta}
                                                                 </span>
                                                             )}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <div className="flex items-center">
-                                                            {cliente.variacion && cliente.variacion > 0 ? (
-                                                                <svg className="w-4 h-4 text-red-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                                                                </svg>
-                                                            ) : cliente.variacion && cliente.variacion < 0 ? (
-                                                                <svg className="w-4 h-4 text-green-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                                                                </svg>
-                                                            ) : (
-                                                                <svg className="w-4 h-4 text-gray-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14" />
-                                                                </svg>
-                                                            )}
-                                                            <span className="text-sm text-gray-600">
-                                                                {cliente.variacion && cliente.variacion > 0 ? 'Aumentando' : 
-                                                                cliente.variacion && cliente.variacion < 0 ? 'Disminuyendo' : 'Estable'}
-                                                            </span>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                                            cliente.estado === 'activo' ? 'bg-green-100 text-green-800' :
-                                                            cliente.estado === 'moroso' ? 'bg-red-100 text-red-800' :
-                                                            'bg-gray-100 text-gray-800'
-                                                        }`}>
-                                                            {cliente.estado}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        {cliente.etiqueta && (
-                                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getColorEtiqueta(cliente.etiqueta).bg} ${getColorEtiqueta(cliente.etiqueta).text}`}>
-                                                                {cliente.etiqueta}
-                                                            </span>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleEditCliente(cliente);
-                                                            }}
-                                                            className="text-blue-600 hover:text-blue-900 transition duration-150"
-                                                        >
-                                                            Editar
-                                                        </button>
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleVerDetalleCliente(cliente);
-                                                            }}
-                                                            className="text-green-600 hover:text-green-900 transition duration-150"
-                                                        >
-                                                            Detalle
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
-                            </div>
+                            </>
                         )}
                     </div>
                 )}
@@ -1382,7 +1341,7 @@ export const DebtorsMain: React.FC = () => {
                                 <div className="border border-gray-200 rounded-lg ">
                                     {/* Encabezado de tabla STICKY */}
                                     <div className="sticky top-10 z-20 bg-gray-50 overflow-hidden">
-                                        <table className="min-w-full bg-white">
+                                        <table className="min-w-full bg-gray-200">
                                             <thead>
                                                 <tr>
                                                     <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10">
@@ -1561,6 +1520,15 @@ export const DebtorsMain: React.FC = () => {
                                     </div>
                                 </div>
                                 <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleConfirmDelete(clienteDetallado);
+                                    }}
+                                    className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-red-600 transition duration-200"
+                                >
+                                    Eliminar Cliente
+                                </button>
+                                <button
                                     onClick={async () => {
                                         try {
                                             await apiService.updateDebtorsCliente(clienteDetallado.id, {
@@ -1570,7 +1538,6 @@ export const DebtorsMain: React.FC = () => {
                                             });
                                             toast.success('Cliente actualizado en el backend');
                                         } catch (err) {
-                                            console.error('Error al actualizar cliente:', err);
                                             const message = err instanceof Error
                                                 ? err.message
                                                 : typeof err === 'string'
@@ -1579,7 +1546,7 @@ export const DebtorsMain: React.FC = () => {
                                             toast.error('Error al actualizar cliente: ' + message);
                                         }
                                     }}
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200"
+                                    className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-yellow-500 transition duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed"
                                 >
                                     Guardar Cambios
                                 </button>
@@ -1709,16 +1676,6 @@ export const DebtorsMain: React.FC = () => {
                                     ))}
                                 </select>
                             </div>
-                            
-                            {/* Vista previa del color de la etiqueta */}
-                            {etiquetaSeleccionada && (
-                                <div className="p-2 bg-gray-50 rounded-lg">
-                                    <p className="text-sm text-gray-600 mb-2">Vista previa:</p>
-                                    <span className={`inline-flex px-3 py-2 text-sm font-semibold rounded-full ${getColorEtiqueta(etiquetaSeleccionada).bg} ${getColorEtiqueta(etiquetaSeleccionada).text}`}>
-                                        {etiquetaSeleccionada}
-                                    </span>
-                                </div>
-                            )}
                         </div>
 
                         <div className="flex justify-center space-x-2 mt-4">
@@ -1733,91 +1690,43 @@ export const DebtorsMain: React.FC = () => {
                 </Modal>
             )}
 
-            {/* Formulario de cliente (modal) */}
-            {showForm && (
+            {/* Modal de Confirmación para Eliminar */}
+            {showDeleteModal && clienteToDelete && (
                 <Modal
                     className1="fixed inset-0 flex items-center justify-center bg-black/70 z-50"
                     className2="relative bg-white rounded-lg shadow-lg max-w-md w-full p-6"
-                    closeModal={() => setShowForm(false)}
+                    closeModal={() => {
+                        setShowDeleteModal(false);
+                        setClienteToDelete(null);
+                    }}
                 >
-                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
-                        <h2 className="text-xl font-bold mb-4">
-                            {selectedCliente ? 'Editar Cliente' : 'Nuevo Cliente'}
-                        </h2>
-                        <form onSubmit={selectedCliente ? handleUpdateCliente : handleCreateCliente}>
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Nombre *</label>
-                                    <input
-                                        type="text"
-                                        name="nombre"
-                                        value={formData.nombre}
-                                        onChange={handleInputChange}
-                                        required
-                                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Tipo de Cliente *</label>
-                                    <select
-                                        name="tipoCliente"
-                                        value={formData.tipoCliente}
-                                        onChange={handleInputChange}
-                                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                    >
-                                        <option value="regular">Regular</option>
-                                        <option value="preferencial">Preferencial</option>
-                                        <option value="corporativo">Corporativo</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Límite de Crédito *</label>
-                                    <input
-                                        type="number"
-                                        name="limiteCredito"
-                                        value={formData.limiteCredito}
-                                        onChange={handleInputChange}
-                                        required
-                                        min="0"
-                                        step="0.01"
-                                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Saldo Actual</label>
-                                    <input
-                                        type="number"
-                                        name="saldoActual"
-                                        value={formData.saldoActual}
-                                        onChange={handleInputChange}
-                                        min="0"
-                                        step="0.01"
-                                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Estado</label>
-                                    <select
-                                        name="estado"
-                                        value={formData.estado}
-                                        onChange={handleInputChange}
-                                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                    >
-                                        <option value="activo">Activo</option>
-                                        <option value="inactivo">Inactivo</option>
-                                        <option value="moroso">Moroso</option>
-                                    </select>
-                                </div>
+                    <div className="bg-white rounded-lg p-6">
+                        <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full">
+                            <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </div>
+                        
+                        <div className="mt-4 text-center">
+                            <h3 className="text-lg font-medium text-gray-900">
+                                ¿Eliminar cliente?
+                            </h3>
+                            <div className="mt-2">
+                                <p className="text-sm text-gray-500">
+                                    ¿Estás seguro de que quieres eliminar al cliente{" "}
+                                    <span className="font-semibold text-gray-900">"{clienteToDelete.nombre}"</span>?
+                                    Esta acción no se puede deshacer.
+                                </p>
                             </div>
-                            <div className="flex justify-end space-x-3 mt-6">
-                                <button
-                                    type="submit"
-                                    className="px-4 py-2 bg-cyan-600 text-white rounded-md hover:bg-yellow-500 transition duration-200"
-                                >
-                                    {selectedCliente ? 'Actualizar' : 'Crear'}
-                                </button>
-                            </div>
-                        </form>
+                        </div>
+                        <div className="mt-6 flex justify-center space-x-4">
+                            <button
+                                onClick={() => handleDeleteCliente(clienteToDelete)}
+                                className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-yellow-500 transition duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            >
+                                Sí, eliminar
+                            </button>
+                        </div>
                     </div>
                 </Modal>
             )}

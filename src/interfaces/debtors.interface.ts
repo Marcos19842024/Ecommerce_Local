@@ -33,8 +33,8 @@ export interface ResumenEtiquetas {
 }
 
 export interface ClienteComparativa extends Cliente {
-    deudaAnterior?: number;
-    variacion?: number;
-    porcentajeVariacion?: number;
-    periodoActual?: string;
+  deudaAnterior?: number;
+  variacion?: number;
+  porcentajeVariacion?: number;
+  periodoActual?: string;
 }

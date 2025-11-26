@@ -380,33 +380,33 @@ class ApiService {
 
     // 👥 CLIENTES
     async getDebtorsClientes(): Promise<any> {
-        return this.get('/debtors/clientes');  // ✅ CORRECTO - ya está bien
+        return this.get('/debtors/clientes');
     }
 
     async getDebtorsClienteById(id: string): Promise<any> {
-        return this.get(`/debtors/clientes/${id}`);  // ✅ CORRECTO
+        return this.get(`/debtors/clientes/${id}`);
     }
 
     async createDebtorsCliente(clienteData: any): Promise<any> {
-        return this.post('/debtors/clientes', clienteData);  // ✅ CORRECTO
+        return this.post('/debtors/clientes', clienteData);
     }
 
     async updateDebtorsCliente(id: string, clienteData: any): Promise<any> {
-        return this.put(`/debtors/clientes/${id}`, clienteData);  // ✅ CORRECTO
+        return this.put(`/debtors/clientes/${id}`, clienteData);
     }
 
     async deleteDebtorsCliente(id: string): Promise<any> {
-        return this.delete(`/debtors/clientes/${id}`);  // ✅ CORRECTO
+        return this.delete(`/debtors/clientes/${id}`);
     }
 
     // 📊 MÉTRICAS
     async getDebtorsMetricas(): Promise<any> {
-        return this.get('/debtors/metricas');  // ✅ NUEVO - para las métricas
+        return this.get('/debtors/metricas');
     }
 
-    // 🔄 Procesar comparativa de Excel - CORREGIDO
+    // 🔄 Procesar comparativa de Excel
     async procesarExcelComparativa(excelData: any[], periodo: string): Promise<any> {
-        return this.post('/debtors/procesar-comparativa', {  // ✅ CORREGIDO
+        return this.post('/debtors/procesar-comparativa', {
             excelData,
             periodo
         });
