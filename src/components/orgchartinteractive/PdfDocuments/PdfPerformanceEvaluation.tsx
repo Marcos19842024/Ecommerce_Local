@@ -1,5 +1,5 @@
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Image, Svg, Path } from '@react-pdf/renderer';
 import { EvaluationData } from '../../../interfaces/orgchartinteractive.interface';
 
 // Estilos mejorados
@@ -180,12 +180,14 @@ interface PdfPerformanceEvaluationProps {
 const PdfPerformanceEvaluation: React.FC<PdfPerformanceEvaluationProps> = ({ data }) => {
     // Función para renderizar palomita
     const Checkmark = () => 
-    <Text style={styles.checkmark}>
-        <Image
-            src="https://img.icons8.com/ios-filled/20/000000/checkmark--v1.png"
-            style={styles.checkmarkImage}
+    <Svg width="8" height="8" viewBox="0 0 24 24">
+        <Path 
+            d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" 
+            fill="#000000"
+            stroke="#000000"
+            strokeWidth="1.2"
         />
-    </Text>;
+    </Svg>
 
     const renderEvaluationSection = (
         title: string,
@@ -361,34 +363,19 @@ const PdfPerformanceEvaluation: React.FC<PdfPerformanceEvaluationProps> = ({ dat
                             <View style={{marginTop: 10}}>
                                 <View style={styles.checkboxRow}>
                                     <View style={styles.checkbox}>
-                                        {data.decisionContrato === 'prorroga' && 
-                                            <Image
-                                                src="https://img.icons8.com/ios-filled/20/000000/checkmark--v1.png"
-                                                style={styles.checkmarkImage}
-                                            />
-                                        }
+                                        {data.decisionContrato === 'prorroga' && <Checkmark />}
                                     </View>
                                     <Text style={styles.checkboxText}>Se prorroga por un mes</Text>
                                 </View>
                                 <View style={styles.checkboxRow}>
                                     <View style={styles.checkbox}>
-                                        {data.decisionContrato === 'indefinido' && 
-                                            <Image
-                                                src="https://img.icons8.com/ios-filled/20/000000/checkmark--v1.png"
-                                                style={styles.checkmarkImage}
-                                            />
-                                        }
+                                        {data.decisionContrato === 'indefinido' && <Checkmark />}
                                     </View>
                                     <Text style={styles.checkboxText}>Se otorga por tiempo indefinido</Text>
                                 </View>
                                 <View style={styles.checkboxRow}>
                                     <View style={styles.checkbox}>
-                                        {data.decisionContrato === 'termina' && 
-                                            <Image
-                                                src="https://img.icons8.com/ios-filled/20/000000/checkmark--v1.png"
-                                                style={styles.checkmarkImage}
-                                            />
-                                        }
+                                        {data.decisionContrato === 'termina' && <Checkmark />}
                                     </View>
                                     <Text style={styles.checkboxText}>Se termina</Text>
                                 </View>
