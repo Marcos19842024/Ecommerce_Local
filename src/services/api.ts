@@ -405,11 +405,20 @@ class ApiService {
     }
 
     // 🔄 Procesar comparativa de Excel
-    async procesarExcelComparativa(excelData: any[], periodo: string): Promise<any> {
+    async procesarExcelComparativa(excelData: any[], periodo: string, tipoPeriodo: string): Promise<any> {
         return this.post('/debtors/procesar-comparativa', {
             excelData,
-            periodo
+            periodo,
+            tipoPeriodo
         });
+    }
+
+    async getComparativaPorPeriodo(periodo: string, tipoPeriodo: string): Promise<any> {
+        const queryParams = new URLSearchParams();
+        queryParams.append('periodo', periodo);
+        queryParams.append('tipoPeriodo', tipoPeriodo);
+        
+        return this.get(`/debtors/comparativa-periodo?${queryParams.toString()}`);
     }
 
     // 📊 MÉTRICAS Y TENDENCIAS

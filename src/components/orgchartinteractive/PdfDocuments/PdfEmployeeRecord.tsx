@@ -1,4 +1,4 @@
-import { Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer';
+import { Document, Page, Text, View, Image, StyleSheet, Path, Svg } from '@react-pdf/renderer';
 import { Employee } from '../../../interfaces/orgchartinteractive.interface';
 
 const styles = StyleSheet.create({
@@ -73,7 +73,17 @@ const styles = StyleSheet.create({
     },
 });
 
-// Componente para el documento PDF
+const PdfCheckmark = () => (
+    <Svg width="8" height="8" viewBox="0 0 24 24">
+        <Path 
+            d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" 
+            fill="#000000"
+            stroke="#000000"
+            strokeWidth="1.2"
+        />
+    </Svg>
+);
+
 export const PdfEmployeeRecord = ({ employeeData, isChecked }: { employeeData: Employee, isChecked: Record<string, boolean> }) => (
     <Document>
         <Page size="LETTER" style={styles.page}>
@@ -100,27 +110,21 @@ export const PdfEmployeeRecord = ({ employeeData, isChecked }: { employeeData: E
                 {employeeData.area}
                 </Text>
             </View>
-        
+
             <Text style={styles.sectionTitle}>Documentos en el Expediente</Text>
             <View style={styles.documentsSection}>
                 <View style={styles.checkboxRow}>
                     <View style={styles.checkboxContainer}>
                         {
                             isChecked['Acta de nacimiento.pdf'] &&
-                            <Image
-                                src="https://img.icons8.com/ios-filled/20/000000/checkmark--v1.png"
-                                style={styles.checkmarkImage}
-                            />
+                            <PdfCheckmark />
                         }
                     </View>
                     <Text style={styles.documentText}>Acta de nacimiento</Text>
                     <View style={styles.checkboxContainer}>
                         {
                             isChecked['Alta del personal.pdf'] &&
-                            <Image
-                                src="https://img.icons8.com/ios-filled/20/000000/checkmark--v1.png"
-                                style={styles.checkmarkImage}
-                            />
+                            <PdfCheckmark />
                         }
                     </View>
                     <Text style={styles.documentText}>Alta del personal</Text>
@@ -130,20 +134,14 @@ export const PdfEmployeeRecord = ({ employeeData, isChecked }: { employeeData: E
                     <View style={styles.checkboxContainer}>
                         {
                             isChecked['Identificacion oficial.pdf'] &&
-                            <Image
-                                src="https://img.icons8.com/ios-filled/20/000000/checkmark--v1.png"
-                                style={styles.checkmarkImage}
-                            />
+                            <PdfCheckmark />
                         }
                     </View>
                     <Text style={styles.documentText}>Identificación oficial</Text>
                     <View style={styles.checkboxContainer}>
                         {
                             isChecked['Contrato laboral.pdf'] &&
-                            <Image
-                                src="https://img.icons8.com/ios-filled/20/000000/checkmark--v1.png"
-                                style={styles.checkmarkImage}
-                            />
+                            <PdfCheckmark />
                         }
                     </View>
                     <Text style={styles.documentText}>Contrato laboral</Text>
@@ -153,20 +151,14 @@ export const PdfEmployeeRecord = ({ employeeData, isChecked }: { employeeData: E
                     <View style={styles.checkboxContainer}>
                         {
                             isChecked['Comprobante de domicilio.pdf'] &&
-                            <Image
-                                src="https://img.icons8.com/ios-filled/20/000000/checkmark--v1.png"
-                                style={styles.checkmarkImage}
-                            />
+                            <PdfCheckmark />
                         }
                     </View>
                     <Text style={styles.documentText}>Comprobante de domicilio</Text>
                     <View style={styles.checkboxContainer}>
                         {
                             isChecked['APDN.pdf'] &&
-                            <Image
-                                src="https://img.icons8.com/ios-filled/20/000000/checkmark--v1.png"
-                                style={styles.checkmarkImage}
-                            />
+                            <PdfCheckmark />
                         }
                     </View>
                     <Text style={styles.documentText}>Autorización para la dispersión de nómina (APDN)</Text>
@@ -176,20 +168,14 @@ export const PdfEmployeeRecord = ({ employeeData, isChecked }: { employeeData: E
                     <View style={styles.checkboxContainer}>
                         {
                             isChecked['CURP.pdf'] &&
-                            <Image
-                                src="https://img.icons8.com/ios-filled/20/000000/checkmark--v1.png"
-                                style={styles.checkmarkImage}
-                            />
+                            <PdfCheckmark />
                         }
                     </View>
                     <Text style={styles.documentText}>CURP</Text>
                     <View style={styles.checkboxContainer}>
                         {
                             isChecked['Acuerdo de confidencialidad.pdf'] &&
-                            <Image
-                                src="https://img.icons8.com/ios-filled/20/000000/checkmark--v1.png"
-                                style={styles.checkmarkImage}
-                            />
+                            <PdfCheckmark />
                         }
                     </View>
                     <Text style={styles.documentText}>Acuerdo de confidencialidad</Text>
@@ -199,20 +185,14 @@ export const PdfEmployeeRecord = ({ employeeData, isChecked }: { employeeData: E
                     <View style={styles.checkboxContainer}>
                         {
                             isChecked['RFC.pdf'] &&
-                            <Image
-                                src="https://img.icons8.com/ios-filled/20/000000/checkmark--v1.png"
-                                style={styles.checkmarkImage}
-                            />
+                            <PdfCheckmark />
                         }
                     </View>
                     <Text style={styles.documentText}>RFC</Text>
                     <View style={styles.checkboxContainer}>
                         {
                             isChecked['Codigo de etica.pdf'] &&
-                            <Image
-                                src="https://img.icons8.com/ios-filled/20/000000/checkmark--v1.png"
-                                style={styles.checkmarkImage}
-                            />
+                            <PdfCheckmark />
                         }
                     </View>
                     <Text style={styles.documentText}>Código de ética</Text>
@@ -222,20 +202,14 @@ export const PdfEmployeeRecord = ({ employeeData, isChecked }: { employeeData: E
                     <View style={styles.checkboxContainer}>
                         {
                             isChecked['NSS.pdf'] &&
-                            <Image
-                                src="https://img.icons8.com/ios-filled/20/000000/checkmark--v1.png"
-                                style={styles.checkmarkImage}
-                            />
+                            <PdfCheckmark />
                         }
                     </View>
                     <Text style={styles.documentText}>Número de seguro social</Text>
                     <View style={styles.checkboxContainer}>
                         {
                             isChecked['RIBA.pdf'] &&
-                            <Image
-                                src="https://img.icons8.com/ios-filled/20/000000/checkmark--v1.png"
-                                style={styles.checkmarkImage}
-                            />
+                            <PdfCheckmark />
                         }
                     </View>
                     <Text style={styles.documentText}>Reglamento interno de bienestar animal (RIBA)</Text>
@@ -245,20 +219,14 @@ export const PdfEmployeeRecord = ({ employeeData, isChecked }: { employeeData: E
                     <View style={styles.checkboxContainer}>
                         {
                             isChecked['Solicitud de empleo.pdf'] &&
-                            <Image
-                                src="https://img.icons8.com/ios-filled/20/000000/checkmark--v1.png"
-                                style={styles.checkmarkImage}
-                            />
+                            <PdfCheckmark />
                         }
                     </View>
                     <Text style={styles.documentText}>Solicitud de Empleo</Text>
                     <View style={styles.checkboxContainer}>
                         {
                             isChecked['RIT.pdf'] &&
-                            <Image
-                                src="https://img.icons8.com/ios-filled/20/000000/checkmark--v1.png"
-                                style={styles.checkmarkImage}
-                            />
+                            <PdfCheckmark />
                         }
                     </View>
                     <Text style={styles.documentText}>Reglamento interior de trabajo (RIT)</Text>
@@ -268,20 +236,14 @@ export const PdfEmployeeRecord = ({ employeeData, isChecked }: { employeeData: E
                     <View style={styles.checkboxContainer}>
                         {
                             (isChecked['Certificado de estudios.pdf'] || isChecked['Cedula profesional.pdf']) &&
-                            <Image
-                                src="https://img.icons8.com/ios-filled/20/000000/checkmark--v1.png"
-                                style={styles.checkmarkImage}
-                            />
+                            <PdfCheckmark />
                         }
                     </View>
                     <Text style={styles.documentText}>Certificado de estudios / Cédula profesional</Text>
                     <View style={styles.checkboxContainer}>
                         {
                             isChecked['Perfil de puesto.pdf'] &&
-                            <Image
-                                src="https://img.icons8.com/ios-filled/20/000000/checkmark--v1.png"
-                                style={styles.checkmarkImage}
-                            />
+                            <PdfCheckmark />
                         }
                     </View>
                     <Text style={styles.documentText}>Perfil de puesto</Text>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { apiService } from '../../services/api';
 import { coloresEtiquetas, columnPatterns, totalPatterns } from '../../utils/debtors';
 import { ClienteComparativa, ExcelRow, MetricasGlobales, ResumenEtiquetas } from '../../interfaces/debtors.interface';
@@ -28,9 +28,13 @@ export const DebtorsMain: React.FC = () => {
     const [filtroEtiqueta, setFiltroEtiqueta] = useState('');
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [clienteToDelete, setClienteToDelete] = useState<ClienteComparativa | null>(null);
+    const [tipoPeriodo, setTipoPeriodo] = useState<'dia' | 'semana' | 'mes'>('mes');
+    const [comparativaPorPeriodo, setComparativaPorPeriodo] = useState<any[]>([]);
+    const [resumenComparativa, setResumenComparativa] = useState<any>(null);
+    const [fechaSeleccionada, setFechaSeleccionada] = useState<string>('');
 
-    // Función helper para mapear cliente - NUEVA
-    const mapearCliente = (cliente: any): ClienteComparativa => {
+    // Función helper para mapear clientes
+    const mapearCliente = useCallback((cliente: any): ClienteComparativa => {
         return {
             id: cliente._id || cliente.id || `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             nombre: cliente.nombre || '',
@@ -43,16 +47,22 @@ export const DebtorsMain: React.FC = () => {
             deudaAnterior: cliente.deudaAnterior,
             porcentajeVariacion: cliente.porcentajeVariacion
         };
-    };
+    }, []);
 
     // Cargar datos iniciales
     useEffect(() => {
         loadInitialData();
     }, []);
 
+    // Cargar comparativa cuando cambia el tipo de período - CORREGIDO
+    useEffect(() => {
+        if (!loading) {
+            cargarComparativaPorPeriodo(tipoPeriodo);
+        }
+    }, [tipoPeriodo]); // Solo dependencia de tipoPeriodo
+
     // Limpiar selecciones cuando cambian los filtros
     useEffect(() => {
-        // Cuando los filtros cambian, limpiar las selecciones para evitar inconsistencias
         setSelectedClientes([]);
     }, [filtroTendencia, filtroEstado, filtroEtiqueta]);
 
@@ -64,12 +74,11 @@ export const DebtorsMain: React.FC = () => {
                 apiService.getDebtorsClientes(),
                 apiService.getDebtorsMetricas(),
                 apiService.getDebtorsTendencias().catch(err => {
-                    toast.error('Tendencias no disponibles: ' + err.message);
+                    console.warn('Tendencias no disponibles:', err.message);
                     return null;
                 }),
             ]);
             
-            // Mapear _id a id y asegurar que todos los campos estén presentes
             const clientesMapeados = clientesData.map(mapearCliente);
             
             setClientes(clientesMapeados);
@@ -81,6 +90,8 @@ export const DebtorsMain: React.FC = () => {
             
             if (errorMessage.includes('Unexpected token') || errorMessage.includes('<!doctype')) {
                 toast.error('El servidor está devolviendo HTML en lugar de JSON. Posiblemente se reinició o hay un error temporal.');
+            } else if (errorMessage.includes('Network Error') || errorMessage.includes('Failed to fetch')) {
+                toast.error('Error de conexión. Verifica tu internet e intenta nuevamente.');
             } else {
                 toast.error('Error al cargar los datos: ' + errorMessage);
             }
@@ -89,100 +100,225 @@ export const DebtorsMain: React.FC = () => {
         }
     };
 
-    // Función para subir clientes al backend
+    // Función para cargar comparativa por período - CORREGIDA
+    const cargarComparativaPorPeriodo = async (tipo: 'dia' | 'semana' | 'mes') => {
+        try {
+            setLoading(true);
+            const fecha = obtenerPeriodo(tipo);
+            setFechaSeleccionada(fecha);
+            
+            // Actualizar el estado del tipo de período
+            setTipoPeriodo(tipo);
+            
+            const resultado = await apiService.getComparativaPorPeriodo(fecha, tipo);
+            
+            if (resultado.success) {
+                setComparativaPorPeriodo(resultado.comparativa);
+                setResumenComparativa(resultado.resumen);
+                
+                // Actualizar clientes con los datos de comparativa
+                const clientesActualizados = clientes.map(cliente => {
+                    const datosComparativa = resultado.comparativa.find((c: any) => 
+                        c.clienteNombre.toLowerCase() === cliente.nombre.toLowerCase()
+                    );
+                    
+                    return datosComparativa ? {
+                        ...cliente,
+                        saldoActual: datosComparativa.deudaActual,
+                        deudaAnterior: datosComparativa.deudaAnterior,
+                        variacion: datosComparativa.variacion,
+                        porcentajeVariacion: datosComparativa.porcentajeVariacion
+                    } : {
+                        ...cliente,
+                        saldoActual: cliente.saldoActual,
+                        deudaAnterior: cliente.deudaAnterior || 0,
+                        variacion: cliente.variacion || 0,
+                        porcentajeVariacion: cliente.porcentajeVariacion || 0
+                    };
+                });
+                
+                setClientes(clientesActualizados);
+            }
+        } catch (error) {
+            console.error('Error cargando comparativa:', error);
+            toast.error('Error al cargar comparativa por período');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Función para obtener el período - CORREGIDA (Semana ISO)
+    const obtenerPeriodo = (tipo: 'dia' | 'semana' | 'mes', fechaEspecifica?: Date): string => {
+        const fecha = fechaEspecifica || new Date();
+        
+        switch (tipo) {
+            case 'dia':
+                const dia = fecha.getDate().toString().padStart(2, '0');
+                const mesDia = (fecha.getMonth() + 1).toString().padStart(2, '0');
+                const anioDia = fecha.getFullYear();
+                return `${anioDia}-${mesDia}-${dia}`;
+                
+            case 'semana':
+                // Cálculo CORREGIDO de semana ISO
+                const getISOWeek = (date: Date): string => {
+                    const target = new Date(date.valueOf());
+                    const dayNr = (date.getDay() + 6) % 7;
+                    target.setDate(target.getDate() - dayNr + 3);
+                    const firstThursday = target.valueOf();
+                    target.setMonth(0, 1);
+                    if (target.getDay() !== 4) {
+                        target.setMonth(0, 1 + ((4 - target.getDay()) + 7) % 7);
+                    }
+                    const weekNum = 1 + Math.ceil((firstThursday - target.valueOf()) / 604800000);
+                    return `${date.getFullYear()}-W${weekNum.toString().padStart(2, '0')}`;
+                };
+                return getISOWeek(fecha);
+                
+            case 'mes':
+            default:
+                const mes = (fecha.getMonth() + 1).toString().padStart(2, '0');
+                const anio = fecha.getFullYear();
+                return `${anio}-${mes}`;
+        }
+    };
+    
+    // Función para manejar la subida de archivos Excel
+    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        if (!file.name.match(/\.(xlsx|xls)$/)) {
+            toast.error('Por favor, sube un archivo Excel válido (.xlsx o .xls)');
+            return;
+        }
+
+        setIsUploading(true);
+
+        try {
+            const rows = await readXlsxFile(file);
+
+            if (rows.length === 0) {
+                toast.error('El archivo Excel está vacío');
+                return;
+            }
+
+            const headers = rows[0] as string[];
+            const autoMapping = autoDetectColumns(headers);
+            const processedData: ExcelRow[] = [];
+
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+            
+                if (isTotalRow(row)) {
+                    continue;
+                }
+
+                const rowData: ExcelRow = {
+                    id: `excel-${i}-${Date.now()}`,
+                    fechaAlbaran: '',
+                    clienteNombre: '',
+                    totalImporte: 0,
+                    cobradoLinea: 0,
+                    deuda: 0,
+                    paciente: '',
+                    etiqueta: ''
+                };
+
+                Object.entries(autoMapping).forEach(([targetCol, sourceCol]) => {
+                    const sourceIndex = headers.indexOf(sourceCol);
+                    if (sourceIndex !== -1 && row[sourceIndex] !== undefined) {
+                        const value = row[sourceIndex];
+                
+                        if (targetCol === 'totalImporte' || targetCol === 'cobradoLinea' || targetCol === 'deuda') {
+                            rowData[targetCol] = typeof value === 'number' ? value : 
+                            typeof value === 'string' ? parseFloat(value.toString().replace(',', '.')) || 0 : 0;
+                        } else if (targetCol === 'fechaAlbaran') {
+                            rowData[targetCol] = formatDate(value?.toString() || '');
+                        } else {
+                            rowData[targetCol] = value?.toString() || '';
+                        }
+                    }
+                });
+
+                if (rowData.clienteNombre || rowData.totalImporte > 0) {
+                    processedData.push(rowData);
+                }
+            }
+
+            // Sincronizar etiquetas del cliente al Excel
+            const excelDataConEtiquetas = sincronizarEtiquetasAlExcel(processedData);
+            setExcelData(excelDataConEtiquetas);
+
+            if (processedData.length === 0) {
+                toast.error('No se encontraron datos válidos en el archivo Excel');
+            } else {
+                setActiveTab('Excel');
+                toast.success(`Excel cargado - ${excelDataConEtiquetas.length} registros procesados`);
+            }
+
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+            toast.error(`Error al procesar el archivo Excel: ${errorMessage}`);
+        } finally {
+            setIsUploading(false);
+            event.target.value = '';
+        }
+    };
+
+    // Función para subir solo clientes nuevos
     const handleSubirClientes = async () => {
         try {
             setIsUploading(true);
             
-            const clientesParaSubir = clientes.filter(cliente => 
-                cliente.nombre && cliente.nombre.trim() !== ''
-            );
+            const nombresClientesExistentes = new Set(clientes.map(cliente => 
+                cliente.nombre.toLowerCase().trim()
+            ));
+            
+            const clientesNuevos = excelData
+            .filter(row => {
+                const nombreCliente = row.clienteNombre?.toLowerCase().trim();
+                return nombreCliente && 
+                    nombreCliente !== '' && 
+                    !nombresClientesExistentes.has(nombreCliente);
+            })
+            .map(row => ({
+                id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                nombre: row.clienteNombre || '',
+                tipoCliente: 'regular',
+                limiteCredito: 0,
+                saldoActual: row.deuda || 0,
+                estado: row.deuda > 0 ? 'moroso' : 'activo',
+                etiqueta: row.etiqueta || ''
+            }));
 
-            if (clientesParaSubir.length === 0) {
-                toast.error('No hay clientes válidos para subir');
+            if (clientesNuevos.length === 0) {
+                toast.error('No hay clientes nuevos para subir (todos los clientes del Excel ya existen)');
                 return;
             }
 
             const resultados = [];
-            for (const cliente of clientesParaSubir) {
+            for (const cliente of clientesNuevos) {
                 try {
-                    let resultado;
-                    if (cliente.id && cliente.id.startsWith('temp-')) {
-                        // Cliente nuevo
-                        resultado = await apiService.createDebtorsCliente({
-                            nombre: cliente.nombre,
-                            tipoCliente: cliente.tipoCliente || 'regular',
-                            limiteCredito: cliente.limiteCredito || 0,
-                            saldoActual: cliente.saldoActual || 0,
-                            estado: cliente.estado || 'activo',
-                            etiqueta: cliente.etiqueta || ''
-                        });
-                    } else {
-                        // Cliente existente - usar el id real (que viene de _id)
-                        resultado = await apiService.updateDebtorsCliente(cliente.id, {
-                            nombre: cliente.nombre,
-                            tipoCliente: cliente.tipoCliente,
-                            limiteCredito: cliente.limiteCredito,
-                            saldoActual: cliente.saldoActual,
-                            estado: cliente.estado,
-                            etiqueta: cliente.etiqueta || ''
-                        });
-                    }
+                    const resultado = await apiService.createDebtorsCliente({
+                        nombre: cliente.nombre,
+                        tipoCliente: cliente.tipoCliente,
+                        limiteCredito: cliente.limiteCredito,
+                        saldoActual: cliente.saldoActual,
+                        estado: cliente.estado,
+                        etiqueta: cliente.etiqueta
+                    });
                     resultados.push(resultado);
                 } catch (error) {
                     toast.error(`Error subiendo cliente ${cliente.nombre}: ${error instanceof Error ? error.message : String(error)}`);
                 }
             }
 
-            toast.success(`Se subieron ${resultados.filter(r => !r.error).length} de ${clientesParaSubir.length} clientes correctamente`);
+            toast.success(`Se subieron ${resultados.filter(r => !r.error).length} de ${clientesNuevos.length} clientes nuevos correctamente`);
             await loadInitialData();
             
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
             toast.error(`Error al subir clientes: ${errorMessage}`);
-        } finally {
-            setIsUploading(false);
-        }
-    };
-
-    // Función para subir datos de Excel procesados al backend
-    const handleSubirExcelProcesado = async () => {
-        try {
-            setIsUploading(true);
-            
-            if (excelData.length === 0) {
-                toast.error('No hay datos de Excel para subir');
-                return;
-            }
-
-            const datosParaEnviar = excelData.map(row => ({
-                fechaAlbaran: row.fechaAlbaran || '',
-                clienteNombre: row.clienteNombre || '',
-                totalImporte: Number(row.totalImporte) || 0,
-                cobradoLinea: Number(row.cobradoLinea) || 0,
-                deuda: Number(row.deuda) || 0,
-                paciente: row.paciente || '',
-                etiqueta: row.etiqueta || ''
-            }));
-
-            const periodo = obtenerPeriodoActual();
-
-            const resultado = await apiService.procesarExcelComparativa(datosParaEnviar, periodo);
-            
-            if (resultado.success) {
-                toast.success(`✅ ${resultado.message}\n📊 ${resultado.estadisticas.registrosExcelGuardados} registros procesados`);
-                
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                
-                await loadInitialDataWithRetry();
-                
-                setActiveTab('Clientes');
-            } else {
-                toast.error(`❌ ${resultado.error}`);
-            }
-            
-        } catch (error: any) {
-            toast.error('Error al procesar Excel: ' + error.message);
         } finally {
             setIsUploading(false);
         }
@@ -194,24 +330,24 @@ export const DebtorsMain: React.FC = () => {
                 await loadInitialData();
                 return;
             } catch (error) {
-                
                 if (attempt === retries) {
                     throw error;
                 }
-                
                 await new Promise(resolve => setTimeout(resolve, delay));
                 delay *= 2;
             }
         }
     };
 
-    // Función para procesar comparativa
-    const handleProcesarComparativa = async () => {
+    // Función unificada para procesar Excel y comparativa
+    const handleProcesarExcelYComparativa = async () => {
         try {
             if (excelData.length === 0) {
                 toast.error('No hay datos de Excel para procesar');
                 return;
             }
+
+            setIsUploading(true);
 
             const datosParaEnviar = excelData.map(row => {
                 const parseNumber = (value: any): number => {
@@ -234,22 +370,42 @@ export const DebtorsMain: React.FC = () => {
                     etiqueta: row.etiqueta?.toString() || ''
                 };
             });
-
-            const periodo = obtenerPeriodoActual();
-            const resultado = await apiService.procesarExcelComparativa(datosParaEnviar, periodo);
+            
+            const periodo = obtenerPeriodo(tipoPeriodo);
+            
+            const resultado = await apiService.procesarExcelComparativa(datosParaEnviar, periodo, tipoPeriodo);
             
             if (resultado.success) {
-                toast.success(`✅ ${resultado.message}`);
+                let mensajeExito = `✅ ${resultado.message}`;
+                
+                if (resultado.estadisticas) {
+                    mensajeExito += `\n📊 ${resultado.estadisticas.registrosExcelGuardados} registros procesados`;
+                    
+                    if (resultado.estadisticas.clientesNuevos) {
+                        mensajeExito += `\n👥 ${resultado.estadisticas.clientesNuevos} clientes nuevos agregados`;
+                    }
+                    
+                    if (resultado.estadisticas.clientesActualizados) {
+                        mensajeExito += `\n🔄 ${resultado.estadisticas.clientesActualizados} clientes actualizados`;
+                    }
+                }
+                
+                toast.success(mensajeExito);
+                
+                await loadInitialDataWithRetry();
+                await cargarComparativaPorPeriodo(tipoPeriodo);
+                
+                setActiveTab('Clientes');
+                
             } else {
                 toast.error(`❌ ${resultado.error}`);
             }
             
-            await loadInitialData();
-            setActiveTab('Clientes');
-            
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
-            toast.error('Error al procesar comparativa: ' + errorMessage);
+            toast.error('Error al procesar Excel: ' + errorMessage);
+        } finally {
+            setIsUploading(false);
         }
     };
 
@@ -297,28 +453,23 @@ export const DebtorsMain: React.FC = () => {
         }
 
         try {
-            // Intentar búsqueda en backend primero
             const resultado = await apiService.searchDebtorsClientes(nombre);
             
             if (resultado && resultado.length > 0) {
-                // Mapear _id a id en los resultados de búsqueda
                 const clientesMapeados = resultado.map(mapearCliente);
                 setClientes(clientesMapeados);
             } else {
-                // Si no hay resultados en backend, hacer búsqueda local
                 const clientesFiltrados = clientes.filter(cliente => 
                     cliente.nombre.toLowerCase().includes(nombre.toLowerCase())
                 );
 
                 if (clientesFiltrados.length === 0) {
-                    // Si tampoco hay resultados locales, mostrar la lista completa
                     setClientes(clientes);
                 } else {
                     setClientes(clientesFiltrados);
                 }
             }
         } catch (err) {
-            // Si falla la búsqueda backend, usar búsqueda local
             const clientesFiltrados = clientes.filter(cliente => 
                 cliente.nombre.toLowerCase().includes(nombre.toLowerCase())
             );
@@ -334,18 +485,15 @@ export const DebtorsMain: React.FC = () => {
     // Función para eliminar cliente
     const handleDeleteCliente = async (cliente: ClienteComparativa) => {
         try {
-            // Si es un cliente temporal (no guardado en backend), eliminarlo localmente
             if (cliente.id.startsWith('temp-')) {
                 setClientes(prev => prev.filter(c => c.id !== cliente.id));
                 toast.success('Cliente eliminado localmente');
                 return;
             }
 
-            // Usar _id para la eliminación (es lo que espera el backend)
             const idParaEliminar = cliente.id;
             
             if (!idParaEliminar || idParaEliminar.startsWith('temp-')) {
-                // Fallback: eliminar localmente si no hay _id válido
                 setClientes(prev => prev.filter(c => c.id !== cliente.id));
                 toast.success('Cliente eliminado localmente');
                 return;
@@ -353,7 +501,6 @@ export const DebtorsMain: React.FC = () => {
             
             await apiService.deleteDebtorsCliente(idParaEliminar);
             
-            // Si llegamos aquí, la eliminación fue exitosa
             setClientes(prev => prev.filter(c => c.id !== cliente.id));
             
             toast.success(`Cliente "${cliente.nombre}" eliminado correctamente`);
@@ -361,7 +508,6 @@ export const DebtorsMain: React.FC = () => {
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
             
-            // Si hay error 404, el cliente no existe en el backend - eliminarlo localmente
             if (errorMessage.includes('404') || errorMessage.includes('not found') || errorMessage.includes('no encontrado')) {
                 setClientes(prev => prev.filter(c => c.id !== cliente.id));
                 toast.success('Cliente eliminado localmente (no encontrado en servidor)');
@@ -387,7 +533,7 @@ export const DebtorsMain: React.FC = () => {
             
             const comparativaData = {
                 clientes: clientes,
-                periodo: obtenerPeriodoActual(),
+                periodo: obtenerPeriodo(tipoPeriodo),
                 metricas: metricas,
                 tendencias: tendencias,
                 fechaGeneracion: new Date().toISOString(),
@@ -396,13 +542,12 @@ export const DebtorsMain: React.FC = () => {
                 clientesConDeuda: clientes.filter(c => c.saldoActual > 0).length
             };
             
-            // Crear y descargar archivo JSON
             const dataStr = JSON.stringify(comparativaData, null, 2);
             const dataBlob = new Blob([dataStr], { type: 'application/json' });
             const url = URL.createObjectURL(dataBlob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `comparativa-deudores-${obtenerPeriodoActual()}.json`;
+            link.download = `comparativa-deudores-${obtenerPeriodo(tipoPeriodo)}.json`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -413,6 +558,38 @@ export const DebtorsMain: React.FC = () => {
         } catch (error) {
             toast.error('Error al exportar comparativa: ' + error);
         }
+    };
+
+    // Función para sincronizar etiquetas de clientes al Excel
+    const sincronizarEtiquetasAlExcel = (excelData: ExcelRow[]): ExcelRow[] => {
+        const mapaClientes = new Map(
+            clientes.map(cliente => [cliente.nombre.toLowerCase().trim(), cliente])
+        );
+
+        let etiquetasSincronizadas = 0;
+
+        const excelDataActualizado = excelData.map(row => {
+            const nombreCliente = row.clienteNombre?.toLowerCase().trim();
+            if (!nombreCliente || nombreCliente === '') return row;
+
+            const clienteExistente = mapaClientes.get(nombreCliente);
+            
+            if (clienteExistente && clienteExistente.etiqueta) {
+                etiquetasSincronizadas++;
+                return {
+                    ...row,
+                    etiqueta: clienteExistente.etiqueta
+                };
+            }
+            
+            return row;
+        });
+
+        if (etiquetasSincronizadas > 0) {
+            toast.success(`${etiquetasSincronizadas} etiqueta(s) sincronizada(s) desde clientes existentes`);
+        }
+
+        return excelDataActualizado;
     };
 
     // Calcular resumen de etiquetas con total de deuda
@@ -437,12 +614,28 @@ export const DebtorsMain: React.FC = () => {
         return { resumen, deudaPorEtiqueta };
     };
 
-    // Función para obtener el período actual
-    const obtenerPeriodoActual = (): string => {
-        const ahora = new Date();
-        const anio = ahora.getFullYear();
-        const mes = (ahora.getMonth() + 1).toString().padStart(2, '0');
-        return `${anio}-${mes}`;
+    // Calcular clientes nuevos
+    const calcularClientesNuevos = () => {
+        if (excelData.length === 0) return 0;
+        
+        const nombresClientesExistentes = new Set(clientes.map(cliente => 
+            cliente.nombre.toLowerCase().trim()
+        ));
+        
+        const nombresExcel = new Set(
+            excelData
+            .map(row => row.clienteNombre?.toLowerCase().trim())
+            .filter(nombre => nombre && nombre !== '')
+        );
+        
+        let clientesNuevos = 0;
+        nombresExcel.forEach(nombre => {
+            if (!nombresClientesExistentes.has(nombre)) {
+            clientesNuevos++;
+            }
+        });
+        
+        return clientesNuevos;
     };
 
     // Función para descargar PDF
@@ -457,17 +650,16 @@ export const DebtorsMain: React.FC = () => {
         );
     };
 
-    // Función para cargar TODOS los datos de un cliente - MEJORADA
+    // Función para cargar TODOS los datos de un cliente
     const cargarDetallesCliente = async (cliente: ClienteComparativa) => {
         try {
             const filasDelCliente = obtenerFilasCliente(cliente.nombre);
             
-            // Intentar cargar historial si está disponible
             try {
                 const historial = await apiService.getDebtorsHistorial(cliente.id);
-                toast.success('Historial del cliente:' + historial);
+                console.log('Historial del cliente:', historial);
             } catch (historialError) {
-                toast.error('Historial no disponible: ' + historialError);
+                console.warn('Historial no disponible:', historialError);
             }
             
             setFilasCliente(filasDelCliente);
@@ -540,14 +732,12 @@ export const DebtorsMain: React.FC = () => {
 
         try {
             if (modalDesdeExcel) {
-                // Para Excel: etiquetar todas las filas del cliente
                 const filasIds = filasCliente.map(fila => fila.id);
                 setExcelData(prev => prev.map(row => 
                     filasIds.includes(row.id) ? { ...row, etiqueta: etiquetaSeleccionada } : row
                 ));
                 toast.success(`${filasCliente.length} registro(s) etiquetado(s) como ${etiquetaSeleccionada}`);
             } else {
-                // Para Clientes: etiquetar solo el cliente actual
                 setClientes(prev => prev.map(cliente => 
                     cliente.id === clienteDetallado.id ? { ...cliente, etiqueta: etiquetaSeleccionada } : cliente
                 ));
@@ -573,7 +763,6 @@ export const DebtorsMain: React.FC = () => {
             switch (activeTab) {
                 case 'Clientes':
                     if (selectedClientes.length > 0) {
-                        // Filtrar solo los clientes que existen en la lista actual
                         const clientesAEtiquetar = selectedClientes.filter(id => 
                             clientes.some(cliente => cliente.id === id)
                         );
@@ -677,6 +866,7 @@ export const DebtorsMain: React.FC = () => {
         return hasVeryHighValues;
     };
 
+    // Función para formatear fechas (Excel serial o ISO)
     const formatDate = (dateString: string): string => {
         if (!dateString || dateString.trim() === '') return '-';
         
@@ -703,85 +893,6 @@ export const DebtorsMain: React.FC = () => {
             }
         } catch (error) {
             return dateString;
-        }
-    };
-
-    // Manejar carga de archivo Excel
-    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-
-        if (!file.name.match(/\.(xlsx|xls)$/)) {
-            toast.error('Por favor, sube un archivo Excel válido (.xlsx o .xls)');
-            return;
-        }
-
-        setIsUploading(true);
-
-        try {
-            const rows = await readXlsxFile(file);
-            
-            if (rows.length === 0) {
-                toast.error('El archivo Excel está vacío');
-                return;
-            }
-
-            const headers = rows[0] as string[];
-            const autoMapping = autoDetectColumns(headers);
-            const processedData: ExcelRow[] = [];
-        
-            for (let i = 1; i < rows.length; i++) {
-                const row = rows[i];
-            
-                if (isTotalRow(row)) {
-                    continue;
-                }
-
-                const rowData: ExcelRow = {
-                    id: `excel-${i}-${Date.now()}`,
-                    fechaAlbaran: '',
-                    clienteNombre: '',
-                    totalImporte: 0,
-                    cobradoLinea: 0,
-                    deuda: 0,
-                    paciente: ''
-                };
-
-                Object.entries(autoMapping).forEach(([targetCol, sourceCol]) => {
-                    const sourceIndex = headers.indexOf(sourceCol);
-                    if (sourceIndex !== -1 && row[sourceIndex] !== undefined) {
-                        const value = row[sourceIndex];
-                        
-                        if (targetCol === 'totalImporte' || targetCol === 'cobradoLinea' || targetCol === 'deuda') {
-                            rowData[targetCol] = typeof value === 'number' ? value : 
-                            typeof value === 'string' ? parseFloat(value.toString().replace(',', '.')) || 0 : 0;
-                        } else if (targetCol === 'fechaAlbaran') {
-                            rowData[targetCol] = formatDate(value?.toString() || '');
-                        } else {
-                            rowData[targetCol] = value?.toString() || '';
-                        }
-                    }
-                });
-
-                if (rowData.clienteNombre || rowData.totalImporte > 0) {
-                    processedData.push(rowData);
-                }
-            }
-
-            setExcelData(processedData);
-        
-            if (processedData.length === 0) {
-                toast.error('No se encontraron datos válidos en el archivo Excel');
-            } else {
-                setActiveTab('Excel');
-            }
-
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
-            toast.error(`Error al procesar el archivo Excel: ${errorMessage}`);
-        } finally {
-            setIsUploading(false);
-            event.target.value = '';
         }
     };
 
@@ -844,11 +955,6 @@ export const DebtorsMain: React.FC = () => {
 
     // Obtener el resumen de etiquetas actual con deuda
     const { resumen: resumenEtiquetas, deudaPorEtiqueta } = calcularResumenEtiquetas();
-
-    // Calcular variaciones totales para el resumen
-    const variacionTotal = clientes.reduce((sum, c) => sum + (c.variacion || 0), 0);
-    const deudaAnteriorTotal = clientes.reduce((sum, c) => sum + (c.deudaAnterior || 0), 0);
-    const porcentajeVariacion = deudaAnteriorTotal > 0 ? (variacionTotal / deudaAnteriorTotal) * 100 : 0;
 
     const excelTotals = calculateExcelTotals();
     const elementosSeleccionados = getElementosSeleccionados();
@@ -955,30 +1061,73 @@ export const DebtorsMain: React.FC = () => {
                 {/* Resumen de Etiquetas / Resumen Comparativo*/}
                 {activeTab === 'Clientes' ? (
                     <div className="bg-white rounded-lg shadow p-1 mb-1">
-                        <h2 className="text-xl font-bold mb-1">Resumen Comparativo</h2>
+                        <div className="flex justify-between items-center mb-2">
+                            <div>
+                                <h2 className="text-xl font-bold">Resumen Comparativo por Fecha</h2>
+                                <p className="text-sm text-gray-600">
+                                    {resumenComparativa ? (
+                                        <>
+                                            📅 {fechaSeleccionada} vs {resumenComparativa.periodoAnterior} • 
+                                            {tipoPeriodo === 'dia' ? ' Comparando día vs día anterior' : 
+                                            tipoPeriodo === 'semana' ? ' Comparando semana vs semana anterior' : 
+                                            ' Comparando mes vs mes anterior'}
+                                        </>
+                                    ) : 'Cargando comparativa...'}
+                                </p>
+                            </div>
+                            
+                            {/* Selector de Tipo de Período */}
+                            <div className="flex items-center space-x-2">
+                                <span className="text-sm font-medium text-gray-700">Período:</span>
+                                <select
+                                    value={tipoPeriodo}
+                                    onChange={(e) => {
+                                        cargarComparativaPorPeriodo(e.target.value as 'dia' | 'semana' | 'mes');
+                                    }}
+                                    className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="dia">Por Día</option>
+                                    <option value="semana">Por Semana</option>
+                                    <option value="mes">Por Mes</option>
+                                </select>
+                            </div>
+                        </div>
+                        
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-1">
                             <div className="bg-blue-50 p-4 rounded-lg flex justify-between items-center">
-                                <h3 className="text-xs font-bold text-blue-600">Deuda Actual</h3>
+                                <h3 className="text-xs font-bold text-blue-600">
+                                    Comparativa por periodo
+                                </h3>
                                 <p className="text-xs text-blue-700">
-                                    ${clientes.reduce((sum, c) => sum + c.saldoActual, 0).toLocaleString()}
+                                    ${comparativaPorPeriodo?.toLocaleString() || '0'}
+                                </p>
+                            </div>
+                            <div className="bg-blue-50 p-4 rounded-lg flex justify-between items-center">
+                                <h3 className="text-xs font-bold text-blue-600">
+                                    Deuda {tipoPeriodo === 'dia' ? 'Hoy' : tipoPeriodo === 'semana' ? 'Esta Semana' : 'Este Mes'}
+                                </h3>
+                                <p className="text-xs text-blue-700">
+                                    ${resumenComparativa?.totalDeudaActual.toLocaleString() || '0'}
                                 </p>
                             </div>
                             <div className="bg-green-50 p-4 rounded-lg flex justify-between items-center">
-                                <h3 className="text-xs font-bold text-green-600">Deuda Anterior</h3>
+                                <h3 className="text-xs font-bold text-green-600">
+                                    Deuda {tipoPeriodo === 'dia' ? 'Ayer' : tipoPeriodo === 'semana' ? 'Semana Pasada' : 'Mes Pasado'}
+                                </h3>
                                 <p className="text-xs text-green-700">
-                                    ${clientes.reduce((sum, c) => sum + (c.deudaAnterior || 0), 0).toLocaleString()}
+                                    ${resumenComparativa?.totalDeudaAnterior.toLocaleString() || '0'}
                                 </p>
                             </div>
                             <div className="bg-purple-50 p-4 rounded-lg flex justify-between items-center">
                                 <h3 className="text-xs font-bold text-purple-600">Variación</h3>
-                                <p className={`text-xs ${variacionTotal >= 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                    {variacionTotal >= 0 ? '+' : ''}${variacionTotal.toLocaleString()}
+                                <p className={`text-xs ${resumenComparativa?.totalVariacion >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                    {resumenComparativa?.totalVariacion >= 0 ? '+' : ''}${resumenComparativa?.totalVariacion.toLocaleString() || '0'}
                                 </p>
                             </div>
                             <div className="bg-orange-50 p-4 rounded-lg flex justify-between items-center">
                                 <h3 className="text-xs font-bold text-orange-600">% Cambio</h3>
-                                <p className={`text-xs ${porcentajeVariacion >= 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                    {porcentajeVariacion >= 0 ? '+' : ''}{porcentajeVariacion.toFixed(1)}%
+                                <p className={`text-xs ${resumenComparativa?.totalPorcentajeVariacion >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                    {resumenComparativa?.totalPorcentajeVariacion >= 0 ? '+' : ''}{resumenComparativa?.totalPorcentajeVariacion?.toFixed(1) || '0'}%
                                 </p>
                             </div>
                         </div>
@@ -1144,117 +1293,101 @@ export const DebtorsMain: React.FC = () => {
                                     )}
                                 </div>
 
-                                <div className="border border-gray-200 rounded-lg">
-                                    {/* Encabezado de tabla STICKY */}
-                                    <div className="sticky top-10 z-20 bg-gray-50 overflow-hidden">
-                                        <table className="min-w-full bg-gray-200">
-                                            <thead>
-                                                <tr>
-                                                    <th className="px-6 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Cliente
-                                                    </th>
-                                                    <th className="px-6 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Deuda Actual
-                                                    </th>
-                                                    <th className="px-6 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Deuda Anterior
-                                                    </th>
-                                                    <th className="px-6 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Variación
-                                                    </th>
-                                                    <th className="px-6 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Tendencia
-                                                    </th>
-                                                    <th className="px-6 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Estado
-                                                    </th>
-                                                    <th className="px-6 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Etiqueta
-                                                    </th>
-                                                </tr>
-                                            </thead>
-                                        </table>
-                                    </div>
+                                <div className="overflow-y-auto max-h-[calc(100vh-400px)]">
+                                    <table className="min-w-full">
+                                    {/* Encabezado STICKY */}
+                                        <thead className="sticky top-0 z-20 bg-gray-200">
+                                            <tr>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+                                                    Etiqueta
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">
+                                                    Cliente
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+                                                    Deuda {tipoPeriodo === 'dia' ? 'Hoy' : tipoPeriodo === 'semana' ? 'Esta Semana' : 'Este Mes'}
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+                                                    Deuda {tipoPeriodo === 'dia' ? 'Ayer' : tipoPeriodo === 'semana' ? 'Semana Pasada' : 'Mes Pasado'}
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+                                                    Variación
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+                                                    Tendencia
+                                                </th>
+                                            </tr>
+                                        </thead>
                                     
-                                    {/* Cuerpo de la tabla con scroll */}
-                                    <div className="overflow-y-auto max-h-[calc(100vh-400px)]">
-                                        <table className="min-w-full bg-white">
-                                            <tbody className="divide-y divide-gray-200">
-                                                {clientesFiltrados.map((cliente) => (
-                                                    <tr 
-                                                        key={cliente.id} 
-                                                        className="hover:bg-gray-50 transition duration-150 cursor-pointer"
-                                                        onDoubleClick={() => handleDoubleClickCliente(cliente)}
-                                                    >
-                                                        <td className="px-6 py-4 whitespace-nowrap">
-                                                            <div className="text-sm font-medium text-gray-900">{cliente.nombre}</div>
-                                                        </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                            ${cliente.saldoActual.toLocaleString()}
-                                                        </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                            ${(cliente.deudaAnterior || 0).toLocaleString()}
-                                                        </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap">
-                                                            <div className="flex items-center">
-                                                                <span className={`text-sm font-medium ${
+                                        {/* Cuerpo de la tabla */}
+                                        <tbody className="bg-white divide-y divide-gray-200">
+                                            {clientesFiltrados.map((cliente) => (
+                                                <tr 
+                                                    key={cliente.id} 
+                                                    className="hover:bg-gray-50 transition duration-150 cursor-pointer"
+                                                    onDoubleClick={() => handleDoubleClickCliente(cliente)}
+                                                >
+                                                    <td className="px-6 py-4 whitespace-nowrap w-1/6">
+                                                        {cliente.etiqueta && (
+                                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getColorEtiqueta(cliente.etiqueta).bg} ${getColorEtiqueta(cliente.etiqueta).text}`}>
+                                                                {cliente.etiqueta}
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap w-1/4">
+                                                        <div className="text-sm font-medium text-gray-900">{cliente.nombre}</div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 w-1/6">
+                                                        ${cliente.saldoActual.toLocaleString()}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 w-1/6">
+                                                        ${(cliente.deudaAnterior || 0).toLocaleString()}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap w-1/6">
+                                                        <div className="flex items-center">
+                                                            <span
+                                                                className={`text-sm font-medium ${
                                                                     cliente.variacion && cliente.variacion > 0 ? 'text-red-600' : 
                                                                     cliente.variacion && cliente.variacion < 0 ? 'text-green-600' : 'text-gray-600'
                                                                 }`}>
-                                                                    {cliente.variacion && cliente.variacion > 0 ? '+' : ''}${cliente.variacion?.toLocaleString()}
-                                                                </span>
-                                                                {cliente.porcentajeVariacion !== undefined && (
-                                                                    <span className={`ml-2 text-xs ${
+                                                                {cliente.variacion && cliente.variacion > 0 ? '+' : ''}${cliente.variacion?.toLocaleString()}
+                                                            </span>
+                                                            {cliente.porcentajeVariacion !== undefined && (
+                                                                <span
+                                                                    className={`ml-2 text-xs ${
                                                                         cliente.porcentajeVariacion > 0 ? 'text-red-500' : 
                                                                         cliente.porcentajeVariacion < 0 ? 'text-green-500' : 'text-gray-500'
                                                                     }`}>
-                                                                        ({cliente.porcentajeVariacion > 0 ? '+' : ''}{cliente.porcentajeVariacion.toFixed(1)}%)
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap">
-                                                            <div className="flex items-center">
-                                                                {cliente.variacion && cliente.variacion > 0 ? (
-                                                                    <svg className="w-4 h-4 text-red-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                                                                    </svg>
-                                                                ) : cliente.variacion && cliente.variacion < 0 ? (
-                                                                    <svg className="w-4 h-4 text-green-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                                                                    </svg>
-                                                                ) : (
-                                                                    <svg className="w-4 h-4 text-gray-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14" />
-                                                                    </svg>
-                                                                )}
-                                                                <span className="text-sm text-gray-600">
-                                                                    {cliente.variacion && cliente.variacion > 0 ? 'Aumentando' : 
-                                                                    cliente.variacion && cliente.variacion < 0 ? 'Disminuyendo' : 'Estable'}
-                                                                </span>
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap">
-                                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                                                cliente.estado === 'activo' ? 'bg-green-100 text-green-800' :
-                                                                cliente.estado === 'moroso' ? 'bg-red-100 text-red-800' :
-                                                                'bg-gray-100 text-gray-800'
-                                                            }`}>
-                                                                {cliente.estado}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap">
-                                                            {cliente.etiqueta && (
-                                                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getColorEtiqueta(cliente.etiqueta).bg} ${getColorEtiqueta(cliente.etiqueta).text}`}>
-                                                                    {cliente.etiqueta}
+                                                                    ({cliente.porcentajeVariacion > 0 ? '+' : ''}{cliente.porcentajeVariacion.toFixed(1)}%)
                                                                 </span>
                                                             )}
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap w-1/6">
+                                                        <div className="flex items-center">
+                                                            {cliente.variacion && cliente.variacion > 0 ? (
+                                                                <svg className="w-4 h-4 text-red-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                                                                </svg>
+                                                            ) : cliente.variacion && cliente.variacion < 0 ? (
+                                                                <svg className="w-4 h-4 text-green-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                                                                </svg>
+                                                            ) : (
+                                                                <svg className="w-4 h-4 text-gray-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14" />
+                                                                </svg>
+                                                            )}
+                                                            <span className="text-sm text-gray-600">
+                                                                {cliente.variacion && cliente.variacion > 0 ? 'Aumentando' : 
+                                                                cliente.variacion && cliente.variacion < 0 ? 'Disminuyendo' : 'Estable'}
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
                                 </div>
                             </>
                         )}
@@ -1278,14 +1411,14 @@ export const DebtorsMain: React.FC = () => {
                                     <div className="flex flex-row space-x-2">
                                         <button
                                             onClick={handleSubirClientes}
-                                            disabled={isUploading || clientes.length === 0}
-                                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center"
+                                            disabled={isUploading || calcularClientesNuevos() === 0}
+                                            className=" text-sm px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center"
                                         >
                                             {isUploading ? (
                                                 <>
                                                     <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                                                     </svg>
                                                     Subiendo...
                                                 </>
@@ -1294,21 +1427,21 @@ export const DebtorsMain: React.FC = () => {
                                                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                                                     </svg>
-                                                    Subir Clientes ({clientes.length})
+                                                    {`Subir ${calcularClientesNuevos()} Clientes nuevos`}
                                                 </>
                                             )}
                                         </button>
 
-                                        {/* Botón para subir Excel procesado */}
+                                        {/* Botón procesar Excel y comparativa */}
                                         <button
-                                            onClick={handleSubirExcelProcesado}
+                                            onClick={handleProcesarExcelYComparativa}
                                             disabled={isUploading || excelData.length === 0}
                                             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center"
                                         >
                                             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                             </svg>
-                                            {isUploading ? 'Procesando...' : `Procesar y Subir Excel (${excelData.length})`}
+                                            {isUploading ? 'Procesando...' : `Procesar Excel y Comparativa (${excelData.length})`}
                                         </button>
 
                                         {/* Botón para sincronizar etiquetas */}
@@ -1322,13 +1455,7 @@ export const DebtorsMain: React.FC = () => {
                                             </svg>
                                             Sincronizar Etiquetas
                                         </button>
-
-                                        <button
-                                            onClick={handleProcesarComparativa}
-                                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-200"
-                                        >
-                                            Procesar Comparativa
-                                        </button>
+                                        
                                         <button
                                             onClick={clearExcelData}
                                             className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-red-600 transition duration-200"
@@ -1338,95 +1465,89 @@ export const DebtorsMain: React.FC = () => {
                                     </div>
                                 </div>
 
-                                <div className="border border-gray-200 rounded-lg ">
-                                    {/* Encabezado de tabla STICKY */}
-                                    <div className="sticky top-10 z-20 bg-gray-50 overflow-hidden">
-                                        <table className="min-w-full bg-gray-200">
-                                            <thead>
-                                                <tr>
-                                                    <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10">
+                                <div className="overflow-y-auto max-h-[calc(100vh-400px)]">
+                                    <table className="min-w-full">
+                                    {/* Encabezado STICKY */}
+                                        <thead className="sticky top-0 z-20 bg-gray-200">
+                                            <tr>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedExcelRows.length === excelData.length && excelData.length > 0}
+                                                        onChange={handleSelectAllExcelRows}
+                                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                    />
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+                                                    Etiqueta
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+                                                    Fecha Albarán
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">
+                                                    Cliente
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+                                                    Paciente
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+                                                    Total Importe
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+                                                    Cobrado
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+                                                    Deuda
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                    
+                                        {/* Cuerpo de la tabla */}
+                                        <tbody className="bg-white divide-y divide-gray-200">
+                                            {excelData.map((row) => (
+                                                <tr 
+                                                    key={row.id} 
+                                                    className="hover:bg-gray-50 transition duration-150 cursor-pointer"
+                                                    onDoubleClick={() => handleDoubleClickExcel(row)}
+                                                >
+                                                    <td className="px-4 py-3 whitespace-nowrap w-12">
                                                         <input
                                                             type="checkbox"
-                                                            checked={selectedExcelRows.length === excelData.length && excelData.length > 0}
-                                                            onChange={handleSelectAllExcelRows}
+                                                            checked={selectedExcelRows.includes(row.id)}
+                                                            onChange={() => handleSelectExcelRow(row.id)}
+                                                            onClick={(e) => e.stopPropagation()}
                                                             className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                                         />
-                                                    </th>
-                                                    <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Fecha Albarán
-                                                    </th>
-                                                    <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Cliente
-                                                    </th>
-                                                    <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Total Importe
-                                                    </th>
-                                                    <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Cobrado
-                                                    </th>
-                                                    <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Deuda
-                                                    </th>
-                                                    <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Paciente
-                                                    </th>
-                                                    <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Etiqueta
-                                                    </th>
+                                                    </td>
+                                                    <td className="px-4 py-3 whitespace-nowrap w-1/6">
+                                                        {row.etiqueta && (
+                                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getColorEtiqueta(row.etiqueta).bg} ${getColorEtiqueta(row.etiqueta).text}`}>
+                                                                {row.etiqueta}
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-gray-900 w-1/6">
+                                                        {row.fechaAlbaran || '-'}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm font-medium text-gray-900 w-1/4">
+                                                        {row.clienteNombre || 'Sin nombre'}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-gray-900 w-1/6">
+                                                        {row.paciente || '-'}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-gray-900 w-1/6">
+                                                        ${row.totalImporte.toLocaleString()}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-green-600 font-medium w-1/6">
+                                                        ${row.cobradoLinea.toLocaleString()}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-red-600 font-medium w-1/6">
+                                                        ${row.deuda.toLocaleString()}
+                                                    </td>
                                                 </tr>
-                                            </thead>
-                                        </table>
-                                    </div>
-
-                                    {/* Cuerpo de la tabla con scroll */}
-                                    <div className="overflow-y-auto max-h-[calc(100vh-400px)]">
-                                        <table className="min-w-full bg-white">
-                                            <tbody className="divide-y divide-gray-200">
-                                                {excelData.map((row) => (
-                                                    <tr 
-                                                        key={row.id} 
-                                                        className="hover:bg-gray-50 transition duration-150 cursor-pointer"
-                                                        onDoubleClick={() => handleDoubleClickExcel(row)}
-                                                    >
-                                                        <td className="px-4 py-3 whitespace-nowrap">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={selectedExcelRows.includes(row.id)}
-                                                                onChange={() => handleSelectExcelRow(row.id)}
-                                                                onClick={(e) => e.stopPropagation()}
-                                                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                                            />
-                                                        </td>
-                                                        <td className="px-4 py-3 text-sm text-gray-900">
-                                                            {row.fechaAlbaran || '-'}
-                                                        </td>
-                                                        <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                                                            {row.clienteNombre || 'Sin nombre'}
-                                                        </td>
-                                                        <td className="px-4 py-3 text-sm text-gray-900">
-                                                            ${row.totalImporte.toLocaleString()}
-                                                        </td>
-                                                        <td className="px-4 py-3 text-sm text-green-600 font-medium">
-                                                            ${row.cobradoLinea.toLocaleString()}
-                                                        </td>
-                                                        <td className="px-4 py-3 text-sm text-red-600 font-medium">
-                                                            ${row.deuda.toLocaleString()}
-                                                        </td>
-                                                        <td className="px-4 py-3 text-sm text-gray-900">
-                                                            {row.paciente || '-'}
-                                                        </td>
-                                                        <td className="px-4 py-3 whitespace-nowrap">
-                                                            {row.etiqueta && (
-                                                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getColorEtiqueta(row.etiqueta).bg} ${getColorEtiqueta(row.etiqueta).text}`}>
-                                                                    {row.etiqueta}
-                                                                </span>
-                                                            )}
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
+                                            ))}
+                                        </tbody>
+                                    </table>
                                 </div>
                             </>
                         )}
@@ -1586,58 +1707,60 @@ export const DebtorsMain: React.FC = () => {
                                 </div>
                             ) : (
                                 <div className="overflow-hidden border border-gray-200 rounded-lg">
-                                    <table className="min-w-full divide-y divide-gray-200">
-                                        <thead className="bg-gray-50">
-                                            <tr>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Fecha Albarán
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Total Importe
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Cobrado
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Deuda
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Paciente
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Etiqueta
-                                                </th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="bg-white divide-y divide-gray-200">
-                                            {filasCliente.map((fila) => (
-                                                <tr key={fila.id} className="hover:bg-gray-50 transition duration-150">
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                        {fila.fechaAlbaran || '-'}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                        ${fila.totalImporte.toLocaleString()}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-medium">
-                                                        ${fila.cobradoLinea.toLocaleString()}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-medium">
-                                                        ${fila.deuda.toLocaleString()}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-sm text-gray-900">
-                                                        {fila.paciente || '-'}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        {fila.etiqueta && (
-                                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getColorEtiqueta(fila.etiqueta).bg} ${getColorEtiqueta(fila.etiqueta).text}`}>
-                                                                {fila.etiqueta}
-                                                            </span>
-                                                        )}
-                                                    </td>
+                                    <div className="overflow-y-auto max-h-96">
+                                        <table className="min-w-full divide-y divide-gray-200">
+                                            <thead className="bg-gray-50 sticky top-0">
+                                                <tr>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+                                                        Etiqueta
+                                                    </th>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+                                                        Fecha Albarán
+                                                    </th>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+                                                        Paciente
+                                                    </th>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+                                                        Total Importe
+                                                    </th>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+                                                        Cobrado
+                                                    </th>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+                                                        Deuda
+                                                    </th>
                                                 </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                                            </thead>
+                                            <tbody className="bg-white divide-y divide-gray-200">
+                                                {filasCliente.map((fila) => (
+                                                    <tr key={fila.id} className="hover:bg-gray-50 transition duration-150">
+                                                        <td className="px-6 py-4 whitespace-nowrap w-1/6">
+                                                            {fila.etiqueta && (
+                                                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getColorEtiqueta(fila.etiqueta).bg} ${getColorEtiqueta(fila.etiqueta).text}`}>
+                                                                    {fila.etiqueta}
+                                                                </span>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 w-1/6">
+                                                            {fila.fechaAlbaran || '-'}
+                                                        </td>
+                                                        <td className="px-6 py-4 text-sm text-gray-900 w-1/6">
+                                                            {fila.paciente || '-'}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 w-1/6">
+                                                            ${fila.totalImporte.toLocaleString()}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-medium w-1/6">
+                                                            ${fila.cobradoLinea.toLocaleString()}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-medium w-1/6">
+                                                            ${fila.deuda.toLocaleString()}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             )}
                         </div>

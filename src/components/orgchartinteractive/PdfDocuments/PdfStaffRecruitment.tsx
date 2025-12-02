@@ -285,7 +285,7 @@ export const PdfStaffRecruitment = ({ data }: { data: PersonalFormData }) => {
           <View style={styles.table}>
             <View style={styles.tableRow}>
               <View style={styles.twoColHeader}><Text>Cónyuge</Text></View>
-              <View style={styles.twoColLast}><Text>Estado</Text></View>
+              <View style={styles.twoColHeader}><Text>Estado</Text></View>
             </View>
             <View style={styles.tableRow}>
               <View style={styles.twoCol}><Text>{data.datosFamiliares.nombreConyuge || '-'}</Text></View>
