@@ -55,10 +55,14 @@ export const DebtorsMain: React.FC = () => {
 
     // Cargar comparativa cuando cambia el tipo de período
     useEffect(() => {
-        if (!loading) {
-            cargarComparativaPorPeriodo(tipoPeriodo);
-        }
-    }, [tipoPeriodo, loading]);
+        const loadComparativa = async () => {
+            if (!loading) {
+                await cargarComparativaPorPeriodo(tipoPeriodo);
+            }
+        };
+        
+        loadComparativa();
+    }, [tipoPeriodo]);
 
     // Limpiar selecciones cuando cambian los filtros
     useEffect(() => {
@@ -69,6 +73,7 @@ export const DebtorsMain: React.FC = () => {
         try {
             setLoading(true);
             
+            // Solo cargar datos básicos, no la comparativa
             const [clientesData, metricasData] = await Promise.all([
                 apiService.getDebtorsClientes(),
                 apiService.getDebtorsMetricas()
@@ -78,6 +83,9 @@ export const DebtorsMain: React.FC = () => {
             
             setClientes(clientesMapeados);
             setMetricas(metricasData);
+            
+            // Cargar comparativa después de tener los datos básicos
+            await cargarComparativaPorPeriodo(tipoPeriodo);
             
         } catch (err: unknown) {
             const errorMessage = err instanceof Error ? err.message : String(err);
@@ -97,6 +105,9 @@ export const DebtorsMain: React.FC = () => {
     // Función para cargar comparativa por período
     const cargarComparativaPorPeriodo = async (tipo: 'dia' | 'semana' | 'mes') => {
         try {
+            // Verificar si ya está cargando para evitar duplicados
+            if (loading) return;
+            
             setLoading(true);
             
             // Obtener el período actual y anterior
@@ -121,15 +132,23 @@ export const DebtorsMain: React.FC = () => {
             setFechaSeleccionada(periodoActual);
             setTipoPeriodo(tipo);
             
-            // Obtener datos de ambos períodos
-            const [comparativaActual, comparativaAnterior] = await Promise.all([
-                apiService.getDeudasPorPeriodo(periodoActual, tipo),
-                apiService.getDeudasPorPeriodo(periodoAnterior, tipo)
-            ]);
+            // Obtener datos de ambos períodos con manejo de errores
+            let comparativaActual: any[] = [];
+            let comparativaAnterior: any[] = [];
+            
+            try {
+                [comparativaActual, comparativaAnterior] = await Promise.all([
+                    apiService.getDeudasPorPeriodo(periodoActual, tipo),
+                    apiService.getDeudasPorPeriodo(periodoAnterior, tipo)
+                ]);
+            } catch (error) {
+                console.error('Error al obtener comparativa:', error);
+                // Continuar con arrays vacíos si falla
+            }
             
             // Crear resumen comparativo
-            const totalDeudaActual = comparativaActual.reduce((sum: number, item: any) => sum + item.deudaTotal, 0);
-            const totalDeudaAnterior = comparativaAnterior.reduce((sum: number, item: any) => sum + item.deudaTotal, 0);
+            const totalDeudaActual = comparativaActual.reduce((sum: number, item: any) => sum + (item.deudaTotal || 0), 0);
+            const totalDeudaAnterior = comparativaAnterior.reduce((sum: number, item: any) => sum + (item.deudaTotal || 0), 0);
             const totalVariacion = totalDeudaActual - totalDeudaAnterior;
             const totalPorcentajeVariacion = totalDeudaAnterior > 0 
                 ? (totalVariacion / totalDeudaAnterior) * 100 
@@ -153,7 +172,7 @@ export const DebtorsMain: React.FC = () => {
             const comparativaDetallada = comparativaActual.map((actual: any) => {
                 const anterior = mapaAnterior.get(actual.clienteId);
                 const deudaAnterior = anterior ? anterior.deudaTotal : 0;
-                const variacion = actual.deudaTotal - deudaAnterior;
+                const variacion = (actual.deudaTotal || 0) - deudaAnterior;
                 const porcentajeVariacion = deudaAnterior > 0 
                     ? (variacion / deudaAnterior) * 100 
                     : (variacion > 0 ? 100 : 0);
@@ -161,7 +180,7 @@ export const DebtorsMain: React.FC = () => {
                 return {
                     clienteId: actual.clienteId,
                     clienteNombre: actual.clienteNombre,
-                    deudaActual: actual.deudaTotal,
+                    deudaActual: actual.deudaTotal || 0,
                     deudaAnterior,
                     variacion,
                     porcentajeVariacion,
@@ -172,44 +191,52 @@ export const DebtorsMain: React.FC = () => {
             setComparativaPorPeriodo(comparativaDetallada);
             setResumenComparativa(resumen);
             
-            // Actualizar clientes con los datos de comparativa
-            const clientesActualizados = clientes.map(cliente => {
-                const datosComparativa = comparativaDetallada.find((c: any) => 
-                    c.clienteNombre.toLowerCase() === cliente.nombre.toLowerCase()
-                );
-                
-                if (datosComparativa) {
+            // Actualizar clientes con los datos de comparativa (si existen clientes)
+            if (clientes.length > 0) {
+                const clientesActualizados = clientes.map(cliente => {
+                    const datosComparativa = comparativaDetallada.find((c: any) => 
+                        c.clienteNombre.toLowerCase() === cliente.nombre.toLowerCase()
+                    );
+                    
+                    if (datosComparativa) {
+                        return {
+                            ...cliente,
+                            saldoActual: datosComparativa.deudaActual,
+                            deudaAnterior: datosComparativa.deudaAnterior,
+                            variacion: datosComparativa.variacion,
+                            porcentajeVariacion: datosComparativa.porcentajeVariacion
+                        };
+                    }
+                    
+                    // Si no está en la comparativa actual, buscar en la anterior
+                    const datosAnterior = comparativaAnterior.find((c: any) => 
+                        c.clienteNombre.toLowerCase() === cliente.nombre.toLowerCase()
+                    );
+                    
                     return {
                         ...cliente,
-                        saldoActual: datosComparativa.deudaActual,
-                        deudaAnterior: datosComparativa.deudaAnterior,
-                        variacion: datosComparativa.variacion,
-                        porcentajeVariacion: datosComparativa.porcentajeVariacion
+                        saldoActual: datosAnterior ? 0 : cliente.saldoActual,
+                        deudaAnterior: datosAnterior ? datosAnterior.deudaTotal : cliente.deudaAnterior || 0,
+                        variacion: datosAnterior ? -datosAnterior.deudaTotal : cliente.variacion || 0,
+                        porcentajeVariacion: datosAnterior ? -100 : cliente.porcentajeVariacion || 0
                     };
-                }
+                });
                 
-                // Si no está en la comparativa actual, buscar en la anterior
-                const datosAnterior = comparativaAnterior.find((c: any) => 
-                    c.clienteNombre.toLowerCase() === cliente.nombre.toLowerCase()
-                );
-                
-                return {
-                    ...cliente,
-                    saldoActual: datosAnterior ? 0 : cliente.saldoActual,
-                    deudaAnterior: datosAnterior ? datosAnterior.deudaTotal : cliente.deudaAnterior || 0,
-                    variacion: datosAnterior ? -datosAnterior.deudaTotal : cliente.variacion || 0,
-                    porcentajeVariacion: datosAnterior ? -100 : cliente.porcentajeVariacion || 0
-                };
-            });
-            
-            setClientes(clientesActualizados);
+                setClientes(clientesActualizados);
+            }
             
         } catch (error: unknown) {
+            console.error('Error en cargarComparativaPorPeriodo:', error);
             toast.error('Error al cargar comparativa por período');
         } finally {
             setLoading(false);
         }
     };
+
+    // Limpiar selecciones cuando cambian los filtros
+    useEffect(() => {
+        setSelectedClientes([]);
+    }, [filtroTendencia, filtroEstado, filtroEtiqueta]);
 
     // Función para obtener el período
     const obtenerPeriodo = (tipo: 'dia' | 'semana' | 'mes', fechaEspecifica?: Date): string => {
