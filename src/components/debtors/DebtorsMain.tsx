@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiService } from '../../services/api';
 import { coloresEtiquetas, columnPatterns, totalPatterns } from '../../utils/debtors';
-import { ClienteComparativa, ExcelRow, MetricasGlobales, ResumenEtiquetas } from '../../interfaces/debtors.interface';
+import { ClienteComparativa, ExcelRow, MetricasGlobales } from '../../interfaces/debtors.interface';
 import readXlsxFile from 'read-excel-file';
 import toast from 'react-hot-toast';
 import Modal from '../shared/Modal';
@@ -10,14 +10,13 @@ export const DebtorsMain: React.FC = () => {
     const [clientes, setClientes] = useState<ClienteComparativa[]>([]);
     const [excelData, setExcelData] = useState<ExcelRow[]>([]);
     const [metricas, setMetricas] = useState<MetricasGlobales | null>(null);
-    const [tendencias, setTendencias] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [isUploading, setIsUploading] = useState(false);
     const [activeTab, setActiveTab] = useState<'Clientes' | 'Excel'>('Clientes');
     const [selectedClientes, setSelectedClientes] = useState<string[]>([]);
     const [selectedExcelRows, setSelectedExcelRows] = useState<string[]>([]);
     const [showDetalleCliente, setShowDetalleCliente] = useState(false);
-    const [clienteDetallado, setClienteDetallado] = useState<ClienteComparativa | null>(null);
+    const [clienteDetallado, setClienteDetallado] = useState<any>(null);
     const [showEtiquetarModal, setShowEtiquetarModal] = useState(false);
     const [etiquetaSeleccionada, setEtiquetaSeleccionada] = useState('');
     const [filasCliente, setFilasCliente] = useState<ExcelRow[]>([]);
@@ -43,9 +42,9 @@ export const DebtorsMain: React.FC = () => {
             saldoActual: cliente.saldoActual || 0,
             estado: cliente.estado || 'activo',
             etiqueta: cliente.etiqueta || '',
-            variacion: cliente.variacion,
-            deudaAnterior: cliente.deudaAnterior,
-            porcentajeVariacion: cliente.porcentajeVariacion
+            variacion: cliente.variacion || 0,
+            deudaAnterior: cliente.deudaAnterior || 0,
+            porcentajeVariacion: cliente.porcentajeVariacion || 0
         };
     }, []);
 
@@ -54,12 +53,12 @@ export const DebtorsMain: React.FC = () => {
         loadInitialData();
     }, []);
 
-    // Cargar comparativa cuando cambia el tipo de período - CORREGIDO
+    // Cargar comparativa cuando cambia el tipo de período
     useEffect(() => {
         if (!loading) {
             cargarComparativaPorPeriodo(tipoPeriodo);
         }
-    }, [tipoPeriodo]); // Solo dependencia de tipoPeriodo
+    }, [tipoPeriodo, loading]);
 
     // Limpiar selecciones cuando cambian los filtros
     useEffect(() => {
@@ -70,23 +69,18 @@ export const DebtorsMain: React.FC = () => {
         try {
             setLoading(true);
             
-            const [clientesData, metricasData, tendenciasData] = await Promise.all([
+            const [clientesData, metricasData] = await Promise.all([
                 apiService.getDebtorsClientes(),
-                apiService.getDebtorsMetricas(),
-                apiService.getDebtorsTendencias().catch(err => {
-                    console.warn('Tendencias no disponibles:', err.message);
-                    return null;
-                }),
+                apiService.getDebtorsMetricas()
             ]);
             
             const clientesMapeados = clientesData.map(mapearCliente);
             
             setClientes(clientesMapeados);
             setMetricas(metricasData);
-            setTendencias(tendenciasData);
             
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : String(err);
             
             if (errorMessage.includes('Unexpected token') || errorMessage.includes('<!doctype')) {
                 toast.error('El servidor está devolviendo HTML en lugar de JSON. Posiblemente se reinició o hay un error temporal.');
@@ -100,54 +94,124 @@ export const DebtorsMain: React.FC = () => {
         }
     };
 
-    // Función para cargar comparativa por período - CORREGIDA
+    // Función para cargar comparativa por período
     const cargarComparativaPorPeriodo = async (tipo: 'dia' | 'semana' | 'mes') => {
         try {
             setLoading(true);
-            const fecha = obtenerPeriodo(tipo);
-            setFechaSeleccionada(fecha);
             
-            // Actualizar el estado del tipo de período
+            // Obtener el período actual y anterior
+            const fechaActual = new Date();
+            const fechaAnterior = new Date();
+            
+            switch (tipo) {
+                case 'dia':
+                    fechaAnterior.setDate(fechaAnterior.getDate() - 1);
+                    break;
+                case 'semana':
+                    fechaAnterior.setDate(fechaAnterior.getDate() - 7);
+                    break;
+                case 'mes':
+                    fechaAnterior.setMonth(fechaAnterior.getMonth() - 1);
+                    break;
+            }
+            
+            const periodoActual = obtenerPeriodo(tipo, fechaActual);
+            const periodoAnterior = obtenerPeriodo(tipo, fechaAnterior);
+            
+            setFechaSeleccionada(periodoActual);
             setTipoPeriodo(tipo);
             
-            const resultado = await apiService.getComparativaPorPeriodo(fecha, tipo);
+            // Obtener datos de ambos períodos
+            const [comparativaActual, comparativaAnterior] = await Promise.all([
+                apiService.getDeudasPorPeriodo(periodoActual, tipo),
+                apiService.getDeudasPorPeriodo(periodoAnterior, tipo)
+            ]);
             
-            if (resultado.success) {
-                setComparativaPorPeriodo(resultado.comparativa);
-                setResumenComparativa(resultado.resumen);
+            // Crear resumen comparativo
+            const totalDeudaActual = comparativaActual.reduce((sum: number, item: any) => sum + item.deudaTotal, 0);
+            const totalDeudaAnterior = comparativaAnterior.reduce((sum: number, item: any) => sum + item.deudaTotal, 0);
+            const totalVariacion = totalDeudaActual - totalDeudaAnterior;
+            const totalPorcentajeVariacion = totalDeudaAnterior > 0 
+                ? (totalVariacion / totalDeudaAnterior) * 100 
+                : (totalVariacion > 0 ? 100 : 0);
+            
+            const resumen = {
+                periodoActual,
+                periodoAnterior,
+                totalDeudaActual,
+                totalDeudaAnterior,
+                totalVariacion,
+                totalPorcentajeVariacion,
+                comparativa: []
+            };
+            
+            // Crear comparativa detallada por cliente
+            const mapaAnterior = new Map(
+                comparativaAnterior.map((item: any) => [item.clienteId, item])
+            );
+            
+            const comparativaDetallada = comparativaActual.map((actual: any) => {
+                const anterior = mapaAnterior.get(actual.clienteId);
+                const deudaAnterior = anterior ? anterior.deudaTotal : 0;
+                const variacion = actual.deudaTotal - deudaAnterior;
+                const porcentajeVariacion = deudaAnterior > 0 
+                    ? (variacion / deudaAnterior) * 100 
+                    : (variacion > 0 ? 100 : 0);
                 
-                // Actualizar clientes con los datos de comparativa
-                const clientesActualizados = clientes.map(cliente => {
-                    const datosComparativa = resultado.comparativa.find((c: any) => 
-                        c.clienteNombre.toLowerCase() === cliente.nombre.toLowerCase()
-                    );
-                    
-                    return datosComparativa ? {
+                return {
+                    clienteId: actual.clienteId,
+                    clienteNombre: actual.clienteNombre,
+                    deudaActual: actual.deudaTotal,
+                    deudaAnterior,
+                    variacion,
+                    porcentajeVariacion,
+                    registros: actual.registros || []
+                };
+            });
+            
+            setComparativaPorPeriodo(comparativaDetallada);
+            setResumenComparativa(resumen);
+            
+            // Actualizar clientes con los datos de comparativa
+            const clientesActualizados = clientes.map(cliente => {
+                const datosComparativa = comparativaDetallada.find((c: any) => 
+                    c.clienteNombre.toLowerCase() === cliente.nombre.toLowerCase()
+                );
+                
+                if (datosComparativa) {
+                    return {
                         ...cliente,
                         saldoActual: datosComparativa.deudaActual,
                         deudaAnterior: datosComparativa.deudaAnterior,
                         variacion: datosComparativa.variacion,
                         porcentajeVariacion: datosComparativa.porcentajeVariacion
-                    } : {
-                        ...cliente,
-                        saldoActual: cliente.saldoActual,
-                        deudaAnterior: cliente.deudaAnterior || 0,
-                        variacion: cliente.variacion || 0,
-                        porcentajeVariacion: cliente.porcentajeVariacion || 0
                     };
-                });
+                }
                 
-                setClientes(clientesActualizados);
-            }
-        } catch (error) {
-            console.error('Error cargando comparativa:', error);
+                // Si no está en la comparativa actual, buscar en la anterior
+                const datosAnterior = comparativaAnterior.find((c: any) => 
+                    c.clienteNombre.toLowerCase() === cliente.nombre.toLowerCase()
+                );
+                
+                return {
+                    ...cliente,
+                    saldoActual: datosAnterior ? 0 : cliente.saldoActual,
+                    deudaAnterior: datosAnterior ? datosAnterior.deudaTotal : cliente.deudaAnterior || 0,
+                    variacion: datosAnterior ? -datosAnterior.deudaTotal : cliente.variacion || 0,
+                    porcentajeVariacion: datosAnterior ? -100 : cliente.porcentajeVariacion || 0
+                };
+            });
+            
+            setClientes(clientesActualizados);
+            
+        } catch (error: unknown) {
             toast.error('Error al cargar comparativa por período');
         } finally {
             setLoading(false);
         }
     };
 
-    // Función para obtener el período - CORREGIDA (Semana ISO)
+    // Función para obtener el período
     const obtenerPeriodo = (tipo: 'dia' | 'semana' | 'mes', fechaEspecifica?: Date): string => {
         const fecha = fechaEspecifica || new Date();
         
@@ -159,7 +223,7 @@ export const DebtorsMain: React.FC = () => {
                 return `${anioDia}-${mesDia}-${dia}`;
                 
             case 'semana':
-                // Cálculo CORREGIDO de semana ISO
+                // Cálculo de semana ISO
                 const getISOWeek = (date: Date): string => {
                     const target = new Date(date.valueOf());
                     const dayNr = (date.getDay() + 6) % 7;
@@ -233,7 +297,7 @@ export const DebtorsMain: React.FC = () => {
                             rowData[targetCol] = typeof value === 'number' ? value : 
                             typeof value === 'string' ? parseFloat(value.toString().replace(',', '.')) || 0 : 0;
                         } else if (targetCol === 'fechaAlbaran') {
-                            rowData[targetCol] = formatDate(value?.toString() || '');
+                            rowData[targetCol] = formatDateExcel(value?.toString() || '');
                         } else {
                             rowData[targetCol] = value?.toString() || '';
                         }
@@ -256,12 +320,14 @@ export const DebtorsMain: React.FC = () => {
                 toast.success(`Excel cargado - ${excelDataConEtiquetas.length} registros procesados`);
             }
 
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : String(err);
             toast.error(`Error al procesar el archivo Excel: ${errorMessage}`);
         } finally {
             setIsUploading(false);
-            event.target.value = '';
+            if (event.target) {
+                event.target.value = '';
+            }
         }
     };
 
@@ -275,21 +341,21 @@ export const DebtorsMain: React.FC = () => {
             ));
             
             const clientesNuevos = excelData
-            .filter(row => {
-                const nombreCliente = row.clienteNombre?.toLowerCase().trim();
-                return nombreCliente && 
-                    nombreCliente !== '' && 
-                    !nombresClientesExistentes.has(nombreCliente);
-            })
-            .map(row => ({
-                id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                nombre: row.clienteNombre || '',
-                tipoCliente: 'regular',
-                limiteCredito: 0,
-                saldoActual: row.deuda || 0,
-                estado: row.deuda > 0 ? 'moroso' : 'activo',
-                etiqueta: row.etiqueta || ''
-            }));
+                .filter(row => {
+                    const nombreCliente = row.clienteNombre?.toLowerCase().trim();
+                    return nombreCliente && 
+                        nombreCliente !== '' && 
+                        !nombresClientesExistentes.has(nombreCliente);
+                })
+                .map(row => ({
+                    id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    nombre: row.clienteNombre || '',
+                    tipoCliente: 'regular',
+                    limiteCredito: 0,
+                    saldoActual: row.deuda || 0,
+                    estado: row.deuda > 0 ? 'moroso' : 'activo',
+                    etiqueta: row.etiqueta || ''
+                }));
 
             if (clientesNuevos.length === 0) {
                 toast.error('No hay clientes nuevos para subir (todos los clientes del Excel ya existen)');
@@ -308,7 +374,7 @@ export const DebtorsMain: React.FC = () => {
                         etiqueta: cliente.etiqueta
                     });
                     resultados.push(resultado);
-                } catch (error) {
+                } catch (error: unknown) {
                     toast.error(`Error subiendo cliente ${cliente.nombre}: ${error instanceof Error ? error.message : String(error)}`);
                 }
             }
@@ -316,8 +382,8 @@ export const DebtorsMain: React.FC = () => {
             toast.success(`Se subieron ${resultados.filter(r => !r.error).length} de ${clientesNuevos.length} clientes nuevos correctamente`);
             await loadInitialData();
             
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
             toast.error(`Error al subir clientes: ${errorMessage}`);
         } finally {
             setIsUploading(false);
@@ -329,7 +395,7 @@ export const DebtorsMain: React.FC = () => {
             try {
                 await loadInitialData();
                 return;
-            } catch (error) {
+            } catch (error: unknown) {
                 if (attempt === retries) {
                     throw error;
                 }
@@ -401,45 +467,9 @@ export const DebtorsMain: React.FC = () => {
                 toast.error(`❌ ${resultado.error}`);
             }
             
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : String(err);
             toast.error('Error al procesar Excel: ' + errorMessage);
-        } finally {
-            setIsUploading(false);
-        }
-    };
-
-    // Función para sincronizar etiquetas con el backend
-    const handleSincronizarEtiquetas = async () => {
-        try {
-            setIsUploading(true);
-            
-            const clientesConEtiquetas = clientes.filter(cliente => 
-                cliente.etiqueta && cliente.etiqueta.trim() !== ''
-            );
-
-            if (clientesConEtiquetas.length === 0) {
-                toast.error('No hay clientes con etiquetas para sincronizar');
-                return;
-            }
-
-            const actualizaciones = [];
-            for (const cliente of clientesConEtiquetas) {
-                try {
-                    const resultado = await apiService.updateDebtorsCliente(cliente.id, {
-                        etiqueta: cliente.etiqueta
-                    });
-                    actualizaciones.push(resultado);
-                } catch (error) {
-                    toast.error(`Error sincronizando etiqueta de ${cliente.nombre}: ${error instanceof Error ? error.message : String(error)}`);
-                }
-            }
-
-            toast.success(`Etiquetas de ${actualizaciones.length} clientes sincronizadas correctamente`);
-            
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-            toast.error('Error al sincronizar etiquetas: ' + errorMessage);
         } finally {
             setIsUploading(false);
         }
@@ -469,7 +499,7 @@ export const DebtorsMain: React.FC = () => {
                     setClientes(clientesFiltrados);
                 }
             }
-        } catch (err) {
+        } catch (err: unknown) {
             const clientesFiltrados = clientes.filter(cliente => 
                 cliente.nombre.toLowerCase().includes(nombre.toLowerCase())
             );
@@ -505,8 +535,8 @@ export const DebtorsMain: React.FC = () => {
             
             toast.success(`Cliente "${cliente.nombre}" eliminado correctamente`);
             
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : String(err);
             
             if (errorMessage.includes('404') || errorMessage.includes('not found') || errorMessage.includes('no encontrado')) {
                 setClientes(prev => prev.filter(c => c.id !== cliente.id));
@@ -535,11 +565,12 @@ export const DebtorsMain: React.FC = () => {
                 clientes: clientes,
                 periodo: obtenerPeriodo(tipoPeriodo),
                 metricas: metricas,
-                tendencias: tendencias,
                 fechaGeneracion: new Date().toISOString(),
                 totalClientes: clientes.length,
                 totalDeuda: clientes.reduce((sum, c) => sum + c.saldoActual, 0),
-                clientesConDeuda: clientes.filter(c => c.saldoActual > 0).length
+                clientesConDeuda: clientes.filter(c => c.saldoActual > 0).length,
+                resumenComparativa: resumenComparativa,
+                comparativaPorPeriodo: comparativaPorPeriodo
             };
             
             const dataStr = JSON.stringify(comparativaData, null, 2);
@@ -555,47 +586,15 @@ export const DebtorsMain: React.FC = () => {
             
             toast.dismiss(loadingToast);
             toast.success('Comparativa exportada correctamente');
-        } catch (error) {
+        } catch (error: unknown) {
             toast.error('Error al exportar comparativa: ' + error);
         }
     };
 
-    // Función para sincronizar etiquetas de clientes al Excel
-    const sincronizarEtiquetasAlExcel = (excelData: ExcelRow[]): ExcelRow[] => {
-        const mapaClientes = new Map(
-            clientes.map(cliente => [cliente.nombre.toLowerCase().trim(), cliente])
-        );
-
-        let etiquetasSincronizadas = 0;
-
-        const excelDataActualizado = excelData.map(row => {
-            const nombreCliente = row.clienteNombre?.toLowerCase().trim();
-            if (!nombreCliente || nombreCliente === '') return row;
-
-            const clienteExistente = mapaClientes.get(nombreCliente);
-            
-            if (clienteExistente && clienteExistente.etiqueta) {
-                etiquetasSincronizadas++;
-                return {
-                    ...row,
-                    etiqueta: clienteExistente.etiqueta
-                };
-            }
-            
-            return row;
-        });
-
-        if (etiquetasSincronizadas > 0) {
-            toast.success(`${etiquetasSincronizadas} etiqueta(s) sincronizada(s) desde clientes existentes`);
-        }
-
-        return excelDataActualizado;
-    };
-
     // Calcular resumen de etiquetas con total de deuda
-    const calcularResumenEtiquetas = (): { resumen: ResumenEtiquetas, deudaPorEtiqueta: { [etiqueta: string]: number } } => {
-        const resumen: ResumenEtiquetas = {};
-        const deudaPorEtiqueta: { [etiqueta: string]: number } = {};
+    const calcularResumenEtiquetas = (): { resumen: Record<string, number>, deudaPorEtiqueta: Record<string, number> } => {
+        const resumen: Record<string, number> = {};
+        const deudaPorEtiqueta: Record<string, number> = {};
         
         if (activeTab === 'Clientes') {
             clientes.forEach(cliente => {
@@ -624,14 +623,14 @@ export const DebtorsMain: React.FC = () => {
         
         const nombresExcel = new Set(
             excelData
-            .map(row => row.clienteNombre?.toLowerCase().trim())
-            .filter(nombre => nombre && nombre !== '')
+                .map(row => row.clienteNombre?.toLowerCase().trim())
+                .filter(nombre => nombre && nombre !== '')
         );
         
         let clientesNuevos = 0;
         nombresExcel.forEach(nombre => {
             if (!nombresClientesExistentes.has(nombre)) {
-            clientesNuevos++;
+                clientesNuevos++;
             }
         });
         
@@ -653,27 +652,304 @@ export const DebtorsMain: React.FC = () => {
     // Función para cargar TODOS los datos de un cliente
     const cargarDetallesCliente = async (cliente: ClienteComparativa) => {
         try {
+            // Obtener el historial completo del cliente
+            const historial = await apiService.getHistorialCliente(
+                cliente.id, 
+                '2025-01-01', // Fecha inicial
+                new Date().toISOString().split('T')[0] // Fecha actual
+            ).catch(() => []); // Si falla, usar array vacío
+            
+            // También obtener las filas del Excel actual
             const filasDelCliente = obtenerFilasCliente(cliente.nombre);
             
-            try {
-                const historial = await apiService.getDebtorsHistorial(cliente.id);
-                console.log('Historial del cliente:', historial);
-            } catch (historialError) {
-                console.warn('Historial no disponible:', historialError);
+            // Si hay filas en Excel, sincronizar etiquetas
+            if (filasDelCliente.length > 0) {
+                const filasActualizadas = sincronizarEtiquetasIndividuales(filasDelCliente, cliente);
+                if (filasActualizadas.length > 0) {
+                    // Actualizar las filas en el estado global de Excel
+                    setExcelData(prev => 
+                        prev.map(row => {
+                            const filaActualizada = filasActualizadas.find(f => f.id === row.id);
+                            return filaActualizada || row;
+                        })
+                    );
+                }
             }
             
+            // Calcular totales de las filas del cliente
+            const totalesFilasCliente = {
+                totalImporte: filasDelCliente.reduce((sum, row) => sum + row.totalImporte, 0),
+                totalCobrado: filasDelCliente.reduce((sum, row) => sum + row.cobradoLinea, 0),
+                totalDeuda: filasDelCliente.reduce((sum, row) => sum + row.deuda, 0)
+            };
+            
+            // Calcular deudas por fecha
+            const deudasPorFecha = historial.reduce((acc: any, deuda: any) => {
+                const fechaStr = new Date(deuda.fecha).toISOString().split('T')[0];
+                if (!acc[fechaStr]) {
+                    acc[fechaStr] = {
+                        fecha: fechaStr,
+                        deudaDia: 0,
+                        registros: []
+                    };
+                }
+                
+                acc[fechaStr].deudaDia += deuda.monto;
+                acc[fechaStr].registros.push({
+                    monto: deuda.monto,
+                    descripcion: deuda.descripcion || 'Sin descripción',
+                    tipo: deuda.tipo || 'deuda'
+                });
+                
+                return acc;
+            }, {});
+            
+            // Convertir a array y ordenar por fecha
+            const deudasPorFechaArray = Object.values(deudasPorFecha)
+                .sort((a: any, b: any) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+            
+            // Calcular acumulado
+            let acumulado = 0;
+            const deudasConAcumulado = deudasPorFechaArray.map((item: any) => {
+                acumulado += item.deudaDia;
+                return {
+                    ...item,
+                    acumulado
+                };
+            });
+            
             setFilasCliente(filasDelCliente);
+            
+            // Configurar el cliente detallado con etiqueta sincronizada
+            setClienteDetallado({
+                ...cliente,
+                historial: deudasConAcumulado,
+                totalDeuda: acumulado,
+                filasExcel: filasDelCliente,
+                totalesFilas: totalesFilasCliente,
+                etiqueta: cliente.etiqueta || obtenerEtiquetaDesdeExcel(filasDelCliente)
+            });
+            
             setModalDesdeExcel(false);
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
-            toast.error('Error al cargar detalles del cliente: ' + errorMessage);
-            setFilasCliente([]);
+            setShowDetalleCliente(true);
+            
+        } catch (err: unknown) {
+            console.warn('No se pudieron cargar detalles completos:', err);
+            
+            // Fallback: usar solo las filas del Excel
+            const filasDelCliente = obtenerFilasCliente(cliente.nombre);
+            
+            // Calcular totales de las filas del cliente
+            const totalesFilasCliente = {
+                totalImporte: filasDelCliente.reduce((sum, row) => sum + row.totalImporte, 0),
+                totalCobrado: filasDelCliente.reduce((sum, row) => sum + row.cobradoLinea, 0),
+                totalDeuda: filasDelCliente.reduce((sum, row) => sum + row.deuda, 0)
+            };
+            
+            setFilasCliente(filasDelCliente);
+            
+            setClienteDetallado({
+                ...cliente,
+                historial: [],
+                totalDeuda: cliente.saldoActual,
+                filasExcel: filasDelCliente,
+                totalesFilas: totalesFilasCliente,
+                etiqueta: cliente.etiqueta || obtenerEtiquetaDesdeExcel(filasDelCliente)
+            });
+            
+            setModalDesdeExcel(false);
+            setShowDetalleCliente(true);
         }
+    };
+
+    // Sincronizar etiquetas de filas individuales
+    const sincronizarEtiquetasIndividuales = (filas: ExcelRow[], cliente: ClienteComparativa): ExcelRow[] => {
+        return filas.map(fila => {
+            // Si el cliente tiene etiqueta y la fila no, aplicar la etiqueta del cliente
+            if (cliente.etiqueta && (!fila.etiqueta || fila.etiqueta === '')) {
+                return {
+                    ...fila,
+                    etiqueta: cliente.etiqueta
+                };
+            }
+            return fila;
+        });
+    };
+
+    // Función para sincronizar etiquetas de clientes al Excel
+    const sincronizarEtiquetasAlExcel = (excelDataParam: ExcelRow[] = excelData): ExcelRow[] => {
+        const mapaClientes = new Map(
+            clientes.map(cliente => [cliente.nombre.toLowerCase().trim(), cliente])
+        );
+
+        let etiquetasSincronizadas = 0;
+
+        const excelDataActualizado = excelDataParam.map(row => {
+            const nombreCliente = row.clienteNombre?.toLowerCase().trim();
+            if (!nombreCliente || nombreCliente === '') return row;
+
+            const clienteExistente = mapaClientes.get(nombreCliente);
+            
+            if (clienteExistente && clienteExistente.etiqueta) {
+                // Solo actualizar si la fila no tiene etiqueta o si es diferente
+                if (!row.etiqueta || row.etiqueta !== clienteExistente.etiqueta) {
+                    etiquetasSincronizadas++;
+                    return {
+                        ...row,
+                        etiqueta: clienteExistente.etiqueta
+                    };
+                }
+            }
+            
+            return row;
+        });
+
+        if (etiquetasSincronizadas > 0) {
+            toast.success(`${etiquetasSincronizadas} etiqueta(s) sincronizada(s) desde clientes existentes`);
+            
+            // Actualizar el estado global si estamos procesando el Excel actual
+            if (excelDataParam === excelData) {
+                setExcelData(excelDataActualizado);
+            }
+        }
+
+        return excelDataActualizado;
+    };
+
+    // Nueva función para sincronizar todas las etiquetas
+    const handleSincronizarTodasEtiquetas = async () => {
+        try {
+            setIsUploading(true);
+            
+            // Sincronizar etiquetas del Excel con clientes
+            const excelActualizado = sincronizarEtiquetasAlExcel();
+            
+            if (excelActualizado !== excelData) {
+                setExcelData(excelActualizado);
+            }
+            
+            // También sincronizar clientes que no tengan etiqueta pero sus filas en Excel sí
+            const clientesActualizados = clientes.map(cliente => {
+                const filasDelCliente = excelActualizado.filter(row => 
+                    row.clienteNombre?.toLowerCase().trim() === cliente.nombre.toLowerCase().trim()
+                );
+                
+                const etiquetasEnFilas = filasDelCliente
+                    .map(f => f.etiqueta)
+                    .filter((etiqueta): etiqueta is string => Boolean(etiqueta && etiqueta.trim() !== ''));
+                
+                // Si el cliente no tiene etiqueta pero sus filas en Excel sí, usar la más común
+                if (!cliente.etiqueta && etiquetasEnFilas.length > 0) {
+                    // Encontrar la etiqueta más común
+                    const conteoEtiquetas: Record<string, number> = {};
+                    etiquetasEnFilas.forEach(etiqueta => {
+                        // `etiqueta` es ahora garantizado como string por el type guard anterior
+                        conteoEtiquetas[etiqueta] = (conteoEtiquetas[etiqueta] || 0) + 1;
+                    });
+                    
+                    const etiquetaMasComun = Object.entries(conteoEtiquetas)
+                        .sort((a, b) => b[1] - a[1])[0][0];
+                    
+                    return {
+                        ...cliente,
+                        etiqueta: etiquetaMasComun
+                    };
+                }
+                
+                return cliente;
+            });
+            
+            // Actualizar clientes si hubo cambios
+            const clientesConCambios = clientesActualizados.filter((cliente, index) => 
+                cliente.etiqueta !== clientes[index].etiqueta
+            );
+            
+            if (clientesConCambios.length > 0) {
+                setClientes(clientesActualizados);
+                
+                // Actualizar en el backend
+                for (const cliente of clientesConCambios) {
+                    try {
+                        await apiService.updateDebtorsCliente(cliente.id, {
+                            etiqueta: cliente.etiqueta
+                        });
+                    } catch (error: unknown) {
+                        toast.error(`Error actualizando cliente ${cliente.nombre}: ${error instanceof Error ? error.message : String(error)}`);
+                    }
+                }
+                
+                toast.success(`${clientesConCambios.length} cliente(s) actualizado(s) con etiquetas desde Excel`);
+            }
+            
+            toast.success('Etiquetas sincronizadas correctamente entre clientes y Excel');
+            
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            toast.error('Error al sincronizar etiquetas: ' + errorMessage);
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    // Función para obtener etiqueta desde Excel si el cliente no tiene
+    const obtenerEtiquetaDesdeExcel = (filas: ExcelRow[]): string => {
+        if (filas.length === 0) return '';
+        
+        // Buscar la primera etiqueta no vacía en las filas
+        const filaConEtiqueta = filas.find(fila => fila.etiqueta && fila.etiqueta.trim() !== '');
+        return filaConEtiqueta?.etiqueta ?? '';
     };
 
     // Función para obtener el color de una etiqueta
     const getColorEtiqueta = (etiqueta: string) => {
         return coloresEtiquetas[etiqueta] || { bg: 'bg-gray-100', text: 'text-gray-800' };
+    };
+
+    // Función para formatear fechas (Excel serial o ISO)
+    const formatDateExcel = (dateString: string): string => {
+        if (!dateString || dateString.trim() === '') return '-';
+        
+        try {
+            if (!isNaN(Number(dateString))) {
+                const excelDate = parseInt(dateString);
+                const date = new Date((excelDate - 25569) * 86400 * 1000);
+                if (isNaN(date.getTime())) {
+                    return dateString;
+                }
+                const day = date.getDate().toString().padStart(2, '0');
+                const month = date.toLocaleString('es-ES', { month: 'short' }).toLowerCase();
+                const year = date.getFullYear();
+                return `${day}/${month}/${year}`;
+            } else {
+                const date = new Date(dateString);
+                if (isNaN(date.getTime())) {
+                    return dateString;
+                }
+                const day = date.getDate().toString().padStart(2, '0');
+                const month = date.toLocaleString('es-ES', { month: 'short' }).toLowerCase();
+                const year = date.getFullYear();
+                return `${day}/${month}/${year}`;
+            }
+        } catch (error) {
+            return dateString;
+        }
+    };
+
+    // Función para formatear fechas para display
+    const formatDateForDisplay = (dateString: string): string => {
+        if (!dateString || dateString.trim() === '') return '-';
+        
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return dateString;
+            
+            const day = date.getDate().toString().padStart(2, '0');
+            const month = date.toLocaleString('es-ES', { month: 'short' }).toLowerCase();
+            const year = date.getFullYear();
+            return `${day}/${month}/${year}`;
+        } catch {
+            return dateString;
+        }
     };
 
     // Filtrar clientes
@@ -700,27 +976,53 @@ export const DebtorsMain: React.FC = () => {
 
     // Manejar doble click en cliente (desde tab Clientes)
     const handleDoubleClickCliente = async (cliente: ClienteComparativa) => {
-        setClienteDetallado(cliente);
         await cargarDetallesCliente(cliente);
-        setShowDetalleCliente(true);
     };
 
     // Manejar doble click en fila de Excel (desde tab Excel)
-    const handleDoubleClickExcel = (row: ExcelRow) => {
+    const handleDoubleClickExcel = async (row: ExcelRow) => {
         const filasDelMismoCliente = obtenerFilasCliente(row.clienteNombre);
-        setFilasCliente(filasDelMismoCliente);
         
-        setClienteDetallado({
-            id: `temp-${row.clienteNombre}`,
-            nombre: row.clienteNombre,
-            tipoCliente: 'No especificado',
-            limiteCredito: 0,
-            saldoActual: 0,
-            estado: 'activo'
-        });
+        // Buscar si el cliente ya existe
+        const clienteExistente = clientes.find(c => 
+            c.nombre.toLowerCase() === row.clienteNombre.toLowerCase()
+        );
         
-        setModalDesdeExcel(true);
-        setShowDetalleCliente(true);
+        if (clienteExistente) {
+            await cargarDetallesCliente(clienteExistente);
+        } else {
+            // Para clientes que solo existen en Excel
+            const totalesFilasCliente = {
+                totalImporte: filasDelMismoCliente.reduce((sum, f) => sum + f.totalImporte, 0),
+                totalCobrado: filasDelMismoCliente.reduce((sum, f) => sum + f.cobradoLinea, 0),
+                totalDeuda: filasDelMismoCliente.reduce((sum, f) => sum + f.deuda, 0)
+            };
+            
+            // Obtener etiqueta común de las filas
+            const etiquetasEnFilas = filasDelMismoCliente
+                .map(f => f.etiqueta)
+                .filter(etiqueta => etiqueta && etiqueta.trim() !== '');
+            const etiquetaComun = etiquetasEnFilas.length > 0 ? etiquetasEnFilas[0] : '';
+            
+            setFilasCliente(filasDelMismoCliente);
+            
+            setClienteDetallado({
+                id: `temp-${row.clienteNombre}`,
+                nombre: row.clienteNombre,
+                tipoCliente: 'No especificado',
+                limiteCredito: 0,
+                saldoActual: totalesFilasCliente.totalDeuda,
+                estado: totalesFilasCliente.totalDeuda > 0 ? 'moroso' : 'activo',
+                etiqueta: etiquetaComun,
+                historial: [],
+                totalDeuda: totalesFilasCliente.totalDeuda,
+                filasExcel: filasDelMismoCliente,
+                totalesFilas: totalesFilasCliente
+            });
+            
+            setModalDesdeExcel(true);
+            setShowDetalleCliente(true);
+        }
     };
 
     // Etiquetar cliente desde el modal de detalles
@@ -732,22 +1034,74 @@ export const DebtorsMain: React.FC = () => {
 
         try {
             if (modalDesdeExcel) {
-                const filasIds = filasCliente.map(fila => fila.id);
-                setExcelData(prev => prev.map(row => 
-                    filasIds.includes(row.id) ? { ...row, etiqueta: etiquetaSeleccionada } : row
-                ));
+                // Para filas de Excel: etiquetar todas las filas del cliente
+                const clienteNombre = clienteDetallado.nombre.toLowerCase();
+                const nuevasFilas = excelData.map(row => {
+                    if (row.clienteNombre.toLowerCase() === clienteNombre) {
+                        return {
+                            ...row,
+                            etiqueta: etiquetaSeleccionada
+                        };
+                    }
+                    return row;
+                });
+                
+                setExcelData(nuevasFilas);
+                
+                // También actualizar filasCliente para el modal
+                const filasActualizadas = filasCliente.map(fila => ({
+                    ...fila,
+                    etiqueta: etiquetaSeleccionada
+                }));
+                setFilasCliente(filasActualizadas);
+                
                 toast.success(`${filasCliente.length} registro(s) etiquetado(s) como ${etiquetaSeleccionada}`);
             } else {
+                // Para cliente existente: actualizar en la lista y backend
+                const clienteActualizado = {
+                    ...clienteDetallado,
+                    etiqueta: etiquetaSeleccionada
+                };
+                
+                // Actualizar cliente en la lista principal
                 setClientes(prev => prev.map(cliente => 
-                    cliente.id === clienteDetallado.id ? { ...cliente, etiqueta: etiquetaSeleccionada } : cliente
+                    cliente.id === clienteDetallado.id 
+                        ? { ...cliente, etiqueta: etiquetaSeleccionada } 
+                        : cliente
                 ));
-                setClienteDetallado(prev => prev ? { ...prev, etiqueta: etiquetaSeleccionada } : null);
+                
+                // Actualizar cliente detallado
+                setClienteDetallado(clienteActualizado);
+                
+                // Sincronizar etiquetas en las filas de Excel
+                const clienteNombre = clienteDetallado.nombre.toLowerCase();
+                const nuevasFilas = excelData.map(row => {
+                    if (row.clienteNombre.toLowerCase() === clienteNombre) {
+                        return {
+                            ...row,
+                            etiqueta: etiquetaSeleccionada
+                        };
+                    }
+                    return row;
+                });
+                
+                setExcelData(nuevasFilas);
+                
+                // Actualizar en el backend
+                await apiService.updateDebtorsCliente(clienteDetallado.id, {
+                    etiqueta: etiquetaSeleccionada
+                }).catch(err => {
+                    toast.error('Error al actualizar en backend: ' + (err instanceof Error ? err.message : String(err)));
+                    // Continuar aunque falle el backend
+                });
+                
                 toast.success(`Cliente etiquetado como ${etiquetaSeleccionada}`);
             }
             
             setEtiquetaSeleccionada('');
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+            
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : String(err);
             toast.error('Error al etiquetar: ' + errorMessage);
         }
     };
@@ -804,19 +1158,10 @@ export const DebtorsMain: React.FC = () => {
             setShowEtiquetarModal(false);
             setEtiquetaSeleccionada('');
             
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : String(err);
             toast.error('Error al etiquetar: ' + errorMessage);
         }
-    };
-
-    // Calcular totales de las filas del cliente
-    const calcularTotalesFilasCliente = () => {
-        const totalImporte = filasCliente.reduce((sum, row) => sum + row.totalImporte, 0);
-        const totalCobrado = filasCliente.reduce((sum, row) => sum + row.cobradoLinea, 0);
-        const totalDeuda = filasCliente.reduce((sum, row) => sum + row.deuda, 0);
-        
-        return { totalImporte, totalCobrado, totalDeuda };
     };
 
     // Manejar selección/deselección de filas de Excel
@@ -864,36 +1209,6 @@ export const DebtorsMain: React.FC = () => {
         }
 
         return hasVeryHighValues;
-    };
-
-    // Función para formatear fechas (Excel serial o ISO)
-    const formatDate = (dateString: string): string => {
-        if (!dateString || dateString.trim() === '') return '-';
-        
-        try {
-            if (!isNaN(Number(dateString))) {
-                const excelDate = parseInt(dateString);
-                const date = new Date((excelDate - 25569) * 86400 * 1000);
-                if (isNaN(date.getTime())) {
-                    return dateString;
-                }
-                const day = date.getDate().toString().padStart(2, '0');
-                const month = date.toLocaleString('es-ES', { month: 'short' }).toLowerCase();
-                const year = date.getFullYear();
-                return `${day}/${month}/${year}`;
-            } else {
-                const date = new Date(dateString);
-                if (isNaN(date.getTime())) {
-                    return dateString;
-                }
-                const day = date.getDate().toString().padStart(2, '0');
-                const month = date.toLocaleString('es-ES', { month: 'short' }).toLowerCase();
-                const year = date.getFullYear();
-                return `${day}/${month}/${year}`;
-            }
-        } catch (error) {
-            return dateString;
-        }
     };
 
     // Función para detectar automáticamente las columnas
@@ -958,7 +1273,6 @@ export const DebtorsMain: React.FC = () => {
 
     const excelTotals = calculateExcelTotals();
     const elementosSeleccionados = getElementosSeleccionados();
-    const totalesFilas = calcularTotalesFilasCliente();
 
     return (
         <div className="min-h-screen bg-white p-2 rounded-md">
@@ -1058,8 +1372,8 @@ export const DebtorsMain: React.FC = () => {
                     </div>
                 )}
 
-                {/* Resumen de Etiquetas / Resumen Comparativo*/}
-                {activeTab === 'Clientes' ? (
+                {/* Resumen Comparativo - Siempre visible en pestaña Clientes */}
+                {activeTab === 'Clientes' && (
                     <div className="bg-white rounded-lg shadow p-1 mb-1">
                         <div className="flex justify-between items-center mb-2">
                             <div>
@@ -1096,18 +1410,10 @@ export const DebtorsMain: React.FC = () => {
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-1">
                             <div className="bg-blue-50 p-4 rounded-lg flex justify-between items-center">
                                 <h3 className="text-xs font-bold text-blue-600">
-                                    Comparativa por periodo
-                                </h3>
-                                <p className="text-xs text-blue-700">
-                                    ${comparativaPorPeriodo?.toLocaleString() || '0'}
-                                </p>
-                            </div>
-                            <div className="bg-blue-50 p-4 rounded-lg flex justify-between items-center">
-                                <h3 className="text-xs font-bold text-blue-600">
                                     Deuda {tipoPeriodo === 'dia' ? 'Hoy' : tipoPeriodo === 'semana' ? 'Esta Semana' : 'Este Mes'}
                                 </h3>
                                 <p className="text-xs text-blue-700">
-                                    ${resumenComparativa?.totalDeudaActual.toLocaleString() || '0'}
+                                    ${resumenComparativa?.totalDeudaActual?.toLocaleString() || '0'}
                                 </p>
                             </div>
                             <div className="bg-green-50 p-4 rounded-lg flex justify-between items-center">
@@ -1115,30 +1421,33 @@ export const DebtorsMain: React.FC = () => {
                                     Deuda {tipoPeriodo === 'dia' ? 'Ayer' : tipoPeriodo === 'semana' ? 'Semana Pasada' : 'Mes Pasado'}
                                 </h3>
                                 <p className="text-xs text-green-700">
-                                    ${resumenComparativa?.totalDeudaAnterior.toLocaleString() || '0'}
+                                    ${resumenComparativa?.totalDeudaAnterior?.toLocaleString() || '0'}
                                 </p>
                             </div>
                             <div className="bg-purple-50 p-4 rounded-lg flex justify-between items-center">
                                 <h3 className="text-xs font-bold text-purple-600">Variación</h3>
-                                <p className={`text-xs ${resumenComparativa?.totalVariacion >= 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                    {resumenComparativa?.totalVariacion >= 0 ? '+' : ''}${resumenComparativa?.totalVariacion.toLocaleString() || '0'}
+                                <p className={`text-xs ${(resumenComparativa?.totalVariacion || 0) >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                    {(resumenComparativa?.totalVariacion || 0) >= 0 ? '+' : ''}${(resumenComparativa?.totalVariacion || 0).toLocaleString()}
                                 </p>
                             </div>
                             <div className="bg-orange-50 p-4 rounded-lg flex justify-between items-center">
                                 <h3 className="text-xs font-bold text-orange-600">% Cambio</h3>
-                                <p className={`text-xs ${resumenComparativa?.totalPorcentajeVariacion >= 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                    {resumenComparativa?.totalPorcentajeVariacion >= 0 ? '+' : ''}{resumenComparativa?.totalPorcentajeVariacion?.toFixed(1) || '0'}%
+                                <p className={`text-xs ${(resumenComparativa?.totalPorcentajeVariacion || 0) >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                    {(resumenComparativa?.totalPorcentajeVariacion || 0) >= 0 ? '+' : ''}{(resumenComparativa?.totalPorcentajeVariacion || 0).toFixed(1)}%
                                 </p>
                             </div>
                         </div>
                     </div>
-                ) : (
+                )}
+
+                {/* Resumen de Etiquetas - Solo en pestaña Excel */}
+                {activeTab === 'Excel' && (
                     <div className="bg-white rounded-lg shadow p-1 mb-1">
                         <div className="flex justify-between items-center mb-1">
                             <h2 className="text-xl font-bold">Resumen de Etiquetas</h2>
                         </div>
                         
-                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                        <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-5 gap-2">
                             {Object.entries(resumenEtiquetas).map(([etiqueta, count]) => (
                                 <div 
                                     key={etiqueta} 
@@ -1296,7 +1605,7 @@ export const DebtorsMain: React.FC = () => {
                                 <div className="overflow-y-auto max-h-[calc(100vh-400px)]">
                                     <table className="min-w-full">
                                     {/* Encabezado STICKY */}
-                                        <thead className="sticky top-0 z-20 bg-gray-200">
+                                        <thead className="sticky top-0 z-10 bg-gray-200">
                                             <tr>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
                                                     Etiqueta
@@ -1347,29 +1656,29 @@ export const DebtorsMain: React.FC = () => {
                                                         <div className="flex items-center">
                                                             <span
                                                                 className={`text-sm font-medium ${
-                                                                    cliente.variacion && cliente.variacion > 0 ? 'text-red-600' : 
-                                                                    cliente.variacion && cliente.variacion < 0 ? 'text-green-600' : 'text-gray-600'
+                                                                    (cliente.variacion || 0) > 0 ? 'text-red-600' : 
+                                                                    (cliente.variacion || 0) < 0 ? 'text-green-600' : 'text-gray-600'
                                                                 }`}>
-                                                                {cliente.variacion && cliente.variacion > 0 ? '+' : ''}${cliente.variacion?.toLocaleString()}
+                                                                {(cliente.variacion || 0) > 0 ? '+' : ''}${(cliente.variacion || 0).toLocaleString()}
                                                             </span>
-                                                            {cliente.porcentajeVariacion !== undefined && (
+                                                            {(cliente.porcentajeVariacion || 0) !== 0 && (
                                                                 <span
                                                                     className={`ml-2 text-xs ${
-                                                                        cliente.porcentajeVariacion > 0 ? 'text-red-500' : 
-                                                                        cliente.porcentajeVariacion < 0 ? 'text-green-500' : 'text-gray-500'
+                                                                        (cliente.porcentajeVariacion || 0) > 0 ? 'text-red-500' : 
+                                                                        (cliente.porcentajeVariacion || 0) < 0 ? 'text-green-500' : 'text-gray-500'
                                                                     }`}>
-                                                                    ({cliente.porcentajeVariacion > 0 ? '+' : ''}{cliente.porcentajeVariacion.toFixed(1)}%)
+                                                                    ({(cliente.porcentajeVariacion || 0) > 0 ? '+' : ''}{(cliente.porcentajeVariacion || 0).toFixed(1)}%)
                                                                 </span>
                                                             )}
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap w-1/6">
                                                         <div className="flex items-center">
-                                                            {cliente.variacion && cliente.variacion > 0 ? (
+                                                            {(cliente.variacion || 0) > 0 ? (
                                                                 <svg className="w-4 h-4 text-red-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
                                                                 </svg>
-                                                            ) : cliente.variacion && cliente.variacion < 0 ? (
+                                                            ) : (cliente.variacion || 0) < 0 ? (
                                                                 <svg className="w-4 h-4 text-green-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                                                                 </svg>
@@ -1379,8 +1688,8 @@ export const DebtorsMain: React.FC = () => {
                                                                 </svg>
                                                             )}
                                                             <span className="text-sm text-gray-600">
-                                                                {cliente.variacion && cliente.variacion > 0 ? 'Aumentando' : 
-                                                                cliente.variacion && cliente.variacion < 0 ? 'Disminuyendo' : 'Estable'}
+                                                                {(cliente.variacion || 0) > 0 ? 'Aumentando' : 
+                                                                (cliente.variacion || 0) < 0 ? 'Disminuyendo' : 'Estable'}
                                                             </span>
                                                         </div>
                                                     </td>
@@ -1446,7 +1755,7 @@ export const DebtorsMain: React.FC = () => {
 
                                         {/* Botón para sincronizar etiquetas */}
                                         <button
-                                            onClick={handleSincronizarEtiquetas}
+                                            onClick={handleSincronizarTodasEtiquetas}
                                             disabled={isUploading || !clientes.some(cliente => cliente.etiqueta)}
                                             className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center"
                                         >
@@ -1468,7 +1777,7 @@ export const DebtorsMain: React.FC = () => {
                                 <div className="overflow-y-auto max-h-[calc(100vh-400px)]">
                                     <table className="min-w-full">
                                     {/* Encabezado STICKY */}
-                                        <thead className="sticky top-0 z-20 bg-gray-200">
+                                        <thead className="sticky top-0 z-10 bg-gray-200">
                                             <tr>
                                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
                                                     <input
@@ -1555,7 +1864,7 @@ export const DebtorsMain: React.FC = () => {
                 )}
             </div>
             
-            {/* Modal de Detalle de Cliente */}
+            {/* Modal de Detalle de Cliente - MEJORADO */}
             {showDetalleCliente && clienteDetallado && (
                 <Modal
                     className1="fixed inset-0 flex items-center justify-center bg-black/70 z-50"
@@ -1572,8 +1881,7 @@ export const DebtorsMain: React.FC = () => {
                                     {modalDesdeExcel ? 'Registros del Cliente: ' : 'Detalles del Cliente: '} {clienteDetallado.nombre}
                                 </h2>
                                 <p className="text-gray-600 mt-1">
-                                    {filasCliente.length} registro(s) encontrado(s) en Excel
-                                    {modalDesdeExcel && ' • Desde tab Excel'}
+                                    {modalDesdeExcel ? 'Desde tab Excel' : 'Vista completa del cliente'}
                                 </p>
                             </div>
                             
@@ -1604,42 +1912,63 @@ export const DebtorsMain: React.FC = () => {
                             </div>
                         </div>
                         
-                        {/* Información general del cliente - Solo mostrar si no es desde Excel */}
+                        {/* Información general del cliente */}
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+                            <div>
+                                <h3 className="text-sm font-medium text-gray-500">Tipo de Cliente</h3>
+                                <p className="text-lg font-semibold text-gray-800">{clienteDetallado.tipoCliente}</p>
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-medium text-gray-500">Total Deuda Actual</h3>
+                                <p className={`text-lg font-semibold ${
+                                    clienteDetallado.totalDeuda > 0 ? 'text-red-600' : 'text-green-600'
+                                }`}>
+                                    ${clienteDetallado.totalDeuda.toLocaleString()}
+                                </p>
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-medium text-gray-500">Estado</h3>
+                                <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${
+                                    clienteDetallado.estado === 'activo' ? 'bg-green-100 text-green-800' :
+                                    clienteDetallado.estado === 'moroso' ? 'bg-red-100 text-red-800' :
+                                    'bg-gray-100 text-gray-800'
+                                }`}>
+                                    {clienteDetallado.estado}
+                                </span>
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-medium text-gray-500">Etiqueta</h3>
+                                {clienteDetallado.etiqueta ? (
+                                    <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getColorEtiqueta(clienteDetallado.etiqueta).bg} ${getColorEtiqueta(clienteDetallado.etiqueta).text}`}>
+                                        {clienteDetallado.etiqueta}
+                                    </span>
+                                ) : (
+                                    <span className="text-gray-500">Sin etiqueta</span>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Resumen de las filas del cliente */}
+                        {clienteDetallado.totalesFilas && (
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                <div className="bg-blue-50 p-4 rounded-lg">
+                                    <h3 className="text-sm font-medium text-blue-600">Total Importe</h3>
+                                    <p className="text-2xl font-bold text-blue-700">${clienteDetallado.totalesFilas.totalImporte.toLocaleString()}</p>
+                                </div>
+                                <div className="bg-green-50 p-4 rounded-lg">
+                                    <h3 className="text-sm font-medium text-green-600">Total Cobrado</h3>
+                                    <p className="text-2xl font-bold text-green-700">${clienteDetallado.totalesFilas.totalCobrado.toLocaleString()}</p>
+                                </div>
+                                <div className="bg-red-50 p-4 rounded-lg">
+                                    <h3 className="text-sm font-medium text-red-600">Total Deuda</h3>
+                                    <p className="text-2xl font-bold text-red-700">${clienteDetallado.totalesFilas.totalDeuda.toLocaleString()}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Botones de acción */}
                         {!modalDesdeExcel && (
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
-                                <div>
-                                    <h3 className="text-sm font-medium text-gray-500">Tipo de Cliente</h3>
-                                    <p className="text-lg font-semibold text-gray-800">{clienteDetallado.tipoCliente}</p>
-                                </div>
-                                <div>
-                                    <h3 className="text-sm font-medium text-gray-500">Límite de Crédito</h3>
-                                    <p className="text-lg font-semibold text-blue-600">${clienteDetallado.limiteCredito.toLocaleString()}</p>
-                                </div>
-                                <div>
-                                    <h3 className="text-sm font-medium text-gray-500">Saldo Actual</h3>
-                                    <p className={`text-lg font-semibold ${
-                                        clienteDetallado.saldoActual > 0 ? 'text-red-600' : 'text-green-600'
-                                    }`}>
-                                        ${clienteDetallado.saldoActual.toLocaleString()}
-                                    </p>
-                                </div>
-                                <div>
-                                    <h3 className="text-sm font-medium text-gray-500">Estado / Etiqueta</h3>
-                                    <div className="flex flex-col space-y-1">
-                                        <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${
-                                            clienteDetallado.estado === 'activo' ? 'bg-green-100 text-green-800' :
-                                            clienteDetallado.estado === 'moroso' ? 'bg-red-100 text-red-800' :
-                                            'bg-gray-100 text-gray-800'
-                                        }`}>
-                                            {clienteDetallado.estado}
-                                        </span>
-                                        {clienteDetallado.etiqueta && (
-                                            <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getColorEtiqueta(clienteDetallado.etiqueta).bg} ${getColorEtiqueta(clienteDetallado.etiqueta).text}`}>
-                                                {clienteDetallado.etiqueta}
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
+                            <div className="flex space-x-2 mb-6">
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
@@ -1658,12 +1987,10 @@ export const DebtorsMain: React.FC = () => {
                                                 estado: clienteDetallado.estado
                                             });
                                             toast.success('Cliente actualizado en el backend');
-                                        } catch (err) {
+                                        } catch (err: unknown) {
                                             const message = err instanceof Error
                                                 ? err.message
-                                                : typeof err === 'string'
-                                                    ? err
-                                                    : JSON.stringify(err);
+                                                : String(err);
                                             toast.error('Error al actualizar cliente: ' + message);
                                         }
                                     }}
@@ -1674,25 +2001,59 @@ export const DebtorsMain: React.FC = () => {
                             </div>
                         )}
 
-                        {/* Resumen de las filas del cliente */}
-                        {filasCliente.length > 0 && (
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                                <div className="bg-blue-50 p-4 rounded-lg">
-                                    <h3 className="text-sm font-medium text-blue-600">Total Importe</h3>
-                                    <p className="text-2xl font-bold text-blue-700">${totalesFilas.totalImporte.toLocaleString()}</p>
-                                </div>
-                                <div className="bg-green-50 p-4 rounded-lg">
-                                    <h3 className="text-sm font-medium text-green-600">Total Cobrado</h3>
-                                    <p className="text-2xl font-bold text-green-700">${totalesFilas.totalCobrado.toLocaleString()}</p>
-                                </div>
-                                <div className="bg-red-50 p-4 rounded-lg">
-                                    <h3 className="text-sm font-medium text-red-600">Total Deuda</h3>
-                                    <p className="text-2xl font-bold text-red-700">${totalesFilas.totalDeuda.toLocaleString()}</p>
+                        {/* Historial de Deudas por Fecha */}
+                        {clienteDetallado.historial && clienteDetallado.historial.length > 0 && (
+                            <div className="mt-6 mb-8">
+                                <h3 className="text-xl font-semibold mb-4 text-gray-800">
+                                    Historial de Deudas por Fecha ({clienteDetallado.historial.length} días)
+                                </h3>
+                                
+                                <div className="overflow-hidden border border-gray-200 rounded-lg">
+                                    <div className="overflow-y-auto max-h-96">
+                                        <table className="min-w-full divide-y divide-gray-200">
+                                            <thead className="bg-gray-50 sticky top-0">
+                                                <tr>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Fecha
+                                                    </th>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Deuda del Día
+                                                    </th>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Deuda Acumulada
+                                                    </th>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Registros
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="bg-white divide-y divide-gray-200">
+                                                {clienteDetallado.historial.map((deudaFecha: any) => (
+                                                    <tr key={deudaFecha.fecha} className="hover:bg-gray-50">
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            {formatDateForDisplay(deudaFecha.fecha)}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-red-600 font-medium">
+                                                            ${deudaFecha.deudaDia?.toLocaleString() || '0'}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap font-medium">
+                                                            ${deudaFecha.acumulado?.toLocaleString() || '0'}
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <div className="text-sm text-gray-600">
+                                                                {deudaFecha.registros?.length || 0} registro(s)
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
                         )}
 
-                        {/* Lista de TODAS las filas de Excel del cliente */}
+                        {/* Registros en Excel del cliente */}
                         <div className="mt-6">
                             <h3 className="text-xl font-semibold mb-4 text-gray-800">
                                 Registros en Excel ({filasCliente.length})

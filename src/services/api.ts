@@ -375,7 +375,7 @@ class ApiService {
     }
 
     // =============================================
-    // 🔥 MÉTODOS PARA DEBTORS
+    // 🔥 MÉTODOS PARA DEBTORS - ACTUALIZADOS
     // =============================================
 
     // 👥 CLIENTES
@@ -404,21 +404,80 @@ class ApiService {
         return this.get('/debtors/metricas');
     }
 
-    // 🔄 Procesar comparativa de Excel
-    async procesarExcelComparativa(excelData: any[], periodo: string, tipoPeriodo: string): Promise<any> {
-        return this.post('/debtors/procesar-comparativa', {
-            excelData,
-            periodo,
-            tipoPeriodo
-        });
+    /**
+     * Obtener comparativa por período
+     */
+    async getComparativaPorPeriodo(periodo: string, tipo: string): Promise<any> {
+        try {
+            const response = await this.get(
+                `/debtors/deudas/comparativa?periodo=${periodo}&tipo=${tipo}`
+            );
+            return response;
+        } catch (error) {
+            throw error;
+        }
     }
 
-    async getComparativaPorPeriodo(periodo: string, tipoPeriodo: string): Promise<any> {
-        const queryParams = new URLSearchParams();
-        queryParams.append('periodo', periodo);
-        queryParams.append('tipoPeriodo', tipoPeriodo);
-        
-        return this.get(`/debtors/comparativa-periodo?${queryParams.toString()}`);
+    /**
+     * Obtener deudas por período (día, semana, mes)
+     */
+    async getDeudasPorPeriodo(periodo: string, tipo: string): Promise<any[]> {
+        try {
+            const response = await this.get(
+                `/debtors/deudas/por-periodo?periodo=${periodo}&tipo=${tipo}`
+            );
+            return response;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    /**
+     * Obtener historial completo de un cliente
+     */
+    async getHistorialCliente(clienteId: string, fechaInicio: string, fechaFin: string): Promise<any[]> {
+        try {
+            const response = await this.get(
+                `/debtors/deudas/historial/${clienteId}?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`
+            );
+            return response;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    /**
+     * Procesar Excel con datos de comparativa
+     */
+    async procesarExcelComparativa(datos: any[], periodo: string, tipo: string): Promise<any> {
+        try {
+            const response = await this.post('/debtors/deudas/procesar-excel-comparativa', {
+                datos,
+                periodo,
+                tipo
+            });
+            return response;
+        } catch (error) {
+            console.error('Error en procesarExcelComparativa:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Obtener resumen comparativo
+     */
+    async getResumenComparativo(tipo: string, fecha?: string): Promise<any> {
+        try {
+            let url = `/debtors/deudas/resumen-comparativo?tipo=${tipo}`;
+            if (fecha) {
+                url += `&fecha=${fecha}`;
+            }
+            
+            const response = await this.get(url);
+            return response;
+        } catch (error) {
+            throw error;
+        }
     }
 
     // 📊 MÉTRICAS Y TENDENCIAS
@@ -440,10 +499,6 @@ class ApiService {
         
         const queryString = queryParams.toString();
         return this.get(`/debtors/registros-excel${queryString ? `?${queryString}` : ''}`);
-    }
-
-    async getDebtorsHistorial(clienteId: string): Promise<any> {
-        return this.get(`/debtors/historial/${clienteId}`);
     }
 
     // 🔍 BÚSQUEDA
