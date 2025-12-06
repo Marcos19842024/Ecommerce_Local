@@ -426,9 +426,15 @@ class ApiService {
             const response = await this.get(
                 `/debtors/deudas/por-periodo?periodo=${periodo}&tipo=${tipo}`
             );
-            return response;
+            
+            console.log('API Response getDeudasPorPeriodo:', response);
+            
+            // Asegurar que siempre devuelva un array
+            return Array.isArray(response) ? response : [];
         } catch (error) {
-            throw error;
+            const message = error instanceof Error ? error.message : String(error);
+            toast.error(`Error en getDeudasPorPeriodo: ${message}`);
+            return [];
         }
     }
 
