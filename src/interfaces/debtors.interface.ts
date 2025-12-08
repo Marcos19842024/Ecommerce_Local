@@ -32,11 +32,25 @@ export interface ResumenEtiquetas {
   [key: string]: number;
 }
 
-export interface ClienteComparativa extends Cliente {
-  deudaAnterior?: number;
-  variacion?: number;
-  porcentajeVariacion?: number;
-  periodoActual?: string;
+export interface ClienteComparativa {
+  id: string;
+  nombre: string;
+  tipoCliente: string;
+  limiteCredito: number;
+  saldoActual: number;
+  estado: string;
+  etiqueta: string;
+  variacion: number;
+  deudaAnterior: number;
+  porcentajeVariacion: number;
+  estadoComparativa?: string; // 'nuevo', 'liquidado', 'aumento', 'disminucion', 'estable'
+  tieneRegistrosAnteriores?: boolean;
+  fechaActual?: string;
+  fechaAnterior?: string;
+  totalRegistros?: number;
+  sinDatosEstaSemana?: boolean;
+  tieneComparativa?: boolean;
+  encontradoPor?: string;
 }
 
 export interface DeudaPorFecha {

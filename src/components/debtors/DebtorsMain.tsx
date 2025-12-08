@@ -30,7 +30,93 @@ export const DebtorsMain: React.FC = () => {
     const [tipoPeriodo, setTipoPeriodo] = useState<'dia' | 'semana' | 'mes'>('mes');
     const [comparativaPorPeriodo, setComparativaPorPeriodo] = useState<any[]>([]);
     const [resumenComparativa, setResumenComparativa] = useState<any>(null);
-    const [fechaSeleccionada, setFechaSeleccionada] = useState<string>('');
+    const [filtroEstadoComparativa, setFiltroEstadoComparativa] = useState('');
+    const [filtroTieneAnteriores, setFiltroTieneAnteriores] = useState('');
+
+    /**
+     * Obtener todos los días de una semana específica
+     */
+    const obtenerDiasDeSemana = (semanaISO: string): string[] => {
+        // Formato: 2025-W49
+        const [year, week] = semanaISO.split('-W').map(Number);
+        const dates: string[] = [];
+        
+        // Encontrar el primer día (lunes) de la semana ISO
+        const firstDay = new Date(year, 0, 1 + (week - 1) * 7);
+        while (firstDay.getDay() !== 1) {
+            firstDay.setDate(firstDay.getDate() - 1);
+        }
+        
+        // Agregar los 7 días de la semana
+        for (let i = 0; i < 7; i++) {
+            const date = new Date(firstDay);
+            date.setDate(firstDay.getDate() + i);
+            dates.push(date.toISOString().split('T')[0]); // Formato YYYY-MM-DD
+        }
+        
+        return dates;
+    };
+
+    /**
+     * Obtener todos los días de un mes específico
+     */
+    const obtenerDiasDeMes = (mes: string): string[] => {
+        // Formato: 2025-12
+        const [year, month] = mes.split('-').map(Number);
+        const dates: string[] = [];
+        
+        const lastDay = new Date(year, month, 0).getDate(); // Último día del mes
+        
+        for (let day = 1; day <= lastDay; day++) {
+            const dateStr = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+            dates.push(dateStr);
+        }
+        
+        return dates;
+    };
+
+    /**
+     * Agrupar datos diarios por cliente
+     */
+    const agruparDatosPorCliente = (datosDiarios: any[]): any[] => {
+        const mapaClientes = new Map();
+        
+        datosDiarios.forEach((dia: any) => {
+            if (Array.isArray(dia.datos) && dia.datos.length > 0) {
+                dia.datos.forEach((registro: any) => {
+                    const clienteId = registro?.clienteId || registro?.clienteNombre;
+                    if (!clienteId) return;
+                    
+                    if (!mapaClientes.has(clienteId)) {
+                        mapaClientes.set(clienteId, {
+                            clienteId,
+                            clienteNombre: registro?.clienteNombre || 'Cliente',
+                            deudaTotal: 0,
+                            registros: [],
+                            fechas: new Set()
+                        });
+                    }
+                    
+                    const cliente = mapaClientes.get(clienteId);
+                    const deuda = registro?.deudaTotal || registro?.deuda || 0;
+                    
+                    cliente.deudaTotal += deuda;
+                    cliente.registros.push({
+                        ...registro,
+                        fecha: dia.periodo
+                    });
+                    cliente.fechas.add(dia.periodo);
+                });
+            }
+        });
+        
+        // Convertir a array
+        return Array.from(mapaClientes.values()).map(cliente => ({
+            ...cliente,
+            fechas: Array.from(cliente.fechas),
+            totalDias: cliente.fechas.size
+        }));
+    };
 
     // Función helper para mapear clientes
     const mapearCliente = useCallback((cliente: any): ClienteComparativa => {
@@ -57,7 +143,7 @@ export const DebtorsMain: React.FC = () => {
     useEffect(() => {
         const loadComparativa = async () => {
             if (!loading) {
-                await cargarComparativaPorPeriodo(tipoPeriodo);
+                await cargarComparativaExcel(tipoPeriodo);
             }
         };
         
@@ -73,44 +159,42 @@ export const DebtorsMain: React.FC = () => {
         try {
             setLoading(true);
             
-            // Solo cargar datos básicos, no la comparativa
-            const [clientesData, metricasData] = await Promise.all([
-                apiService.getDebtorsClientes(),
-                apiService.getDebtorsMetricas()
-            ]);
+            // Cargar comparativa primero
+            await cargarComparativaExcel(tipoPeriodo);
             
+            // También puedes cargar la lista completa de clientes si la necesitas
+            const clientesData = await apiService.getDebtorsClientes();
             const clientesMapeados = clientesData.map(mapearCliente);
             
+            // No sobreescribir los clientes de la comparativa
             setClientes(clientesMapeados);
-            setMetricas(metricasData);
             
-            // Cargar comparativa después de tener los datos básicos
-            await cargarComparativaPorPeriodo(tipoPeriodo);
+            // Cargar métricas si las necesitas
+            const metricasData = await apiService.getDebtorsMetricas();
+            setMetricas(metricasData);
             
         } catch (err: unknown) {
             const errorMessage = err instanceof Error ? err.message : String(err);
-            
-            if (errorMessage.includes('Unexpected token') || errorMessage.includes('<!doctype')) {
-                toast.error('El servidor está devolviendo HTML en lugar de JSON. Posiblemente se reinició o hay un error temporal.');
-            } else if (errorMessage.includes('Network Error') || errorMessage.includes('Failed to fetch')) {
-                toast.error('Error de conexión. Verifica tu internet e intenta nuevamente.');
-            } else {
-                toast.error('Error al cargar los datos: ' + errorMessage);
-            }
+            toast.error('Error al cargar los datos: ' + errorMessage);
         } finally {
             setLoading(false);
         }
     };
 
+    // Limpiar selecciones cuando cambian los filtros
+    useEffect(() => {
+        setSelectedClientes([]);
+    }, [filtroTendencia, filtroEstado, filtroEtiqueta]);
+
     // Función para cargar comparativa por período
     const cargarComparativaPorPeriodo = async (tipo: 'dia' | 'semana' | 'mes') => {
         try {
-            // Verificar si ya está cargando para evitar duplicados
             if (loading) return;
             
+            console.log(`🔄 Cargando comparativa para tipo: ${tipo}`);
             setLoading(true);
             
-            // Obtener el período actual y anterior
+            // Obtener períodos
             const fechaActual = new Date();
             const fechaAnterior = new Date();
             
@@ -129,38 +213,98 @@ export const DebtorsMain: React.FC = () => {
             const periodoActual = obtenerPeriodo(tipo, fechaActual);
             const periodoAnterior = obtenerPeriodo(tipo, fechaAnterior);
             
-            setFechaSeleccionada(periodoActual);
+            console.log(`📅 Comparando: ${periodoActual} vs ${periodoAnterior}`);
+            
             setTipoPeriodo(tipo);
             
-            // Obtener datos de ambos períodos con manejo de errores robusto
-            let comparativaActual: any[] = [];
-            let comparativaAnterior: any[] = [];
+            let datosActual: any[] = [];
+            let datosAnterior: any[] = [];
             
-            try {
-                const [resultadoActual, resultadoAnterior] = await Promise.all([
+            // Estrategia diferente según el tipo
+            if (tipo === 'dia') {
+                // Para días, usar el endpoint normal
+                const [respuestaActual, respuestaAnterior] = await Promise.all([
                     apiService.getDeudasPorPeriodo(periodoActual, tipo),
                     apiService.getDeudasPorPeriodo(periodoAnterior, tipo)
                 ]);
                 
-                // Asegurar que sean arrays
-                comparativaActual = Array.isArray(resultadoActual) ? resultadoActual : [];
-                comparativaAnterior = Array.isArray(resultadoAnterior) ? resultadoAnterior : [];
+                datosActual = Array.isArray(respuestaActual?.datos) ? respuestaActual.datos : [];
+                datosAnterior = Array.isArray(respuestaAnterior?.datos) ? respuestaAnterior.datos : [];
                 
-            } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : String(error);
-                toast.error('Error al obtener comparativa de la API: ' + errorMessage);
-                // Continuar con arrays vacíos si falla
+            } else {
+                // Para semanas o meses, obtener todos los días y agrupar
+                console.log(`📊 Obteniendo datos diarios para ${tipo === 'semana' ? 'semana' : 'mes'}...`);
+                
+                // Obtener todos los días del período actual
+                const diasPeriodoActual = tipo === 'semana' 
+                    ? obtenerDiasDeSemana(periodoActual)
+                    : obtenerDiasDeMes(periodoActual);
+                
+                // Obtener todos los días del período anterior
+                const diasPeriodoAnterior = tipo === 'semana'
+                    ? obtenerDiasDeSemana(periodoAnterior)
+                    : obtenerDiasDeMes(periodoAnterior);
+                
+                console.log(`📅 Días a obtener: Actual=${diasPeriodoActual.length}, Anterior=${diasPeriodoAnterior.length}`);
+                
+                // Obtener datos para todos los días del período actual
+                const promesasActual = diasPeriodoActual.map(dia => 
+                    apiService.getDeudasPorPeriodo(dia, 'dia')
+                        .then(respuesta => ({
+                            periodo: dia,
+                            datos: Array.isArray(respuesta?.datos) ? respuesta.datos : [],
+                            success: respuesta?.success || false
+                        }))
+                        .catch(error => {
+                            console.warn(`Error obteniendo datos para ${dia}:`, error);
+                            return { periodo: dia, datos: [], success: false };
+                        })
+                );
+                
+                // Obtener datos para todos los días del período anterior
+                const promesasAnterior = diasPeriodoAnterior.map(dia => 
+                    apiService.getDeudasPorPeriodo(dia, 'dia')
+                        .then(respuesta => ({
+                            periodo: dia,
+                            datos: Array.isArray(respuesta?.datos) ? respuesta.datos : [],
+                            success: respuesta?.success || false
+                        }))
+                        .catch(error => {
+                            console.warn(`Error obteniendo datos para ${dia}:`, error);
+                            return { periodo: dia, datos: [], success: false };
+                        })
+                );
+                
+                // Ejecutar todas las promesas
+                const [resultadosActual, resultadosAnterior] = await Promise.all([
+                    Promise.all(promesasActual),
+                    Promise.all(promesasAnterior)
+                ]);
+                
+                console.log(`✅ Datos diarios obtenidos: Actual=${resultadosActual.length}, Anterior=${resultadosAnterior.length}`);
+                
+                // Agrupar datos por cliente
+                datosActual = agruparDatosPorCliente(resultadosActual);
+                datosAnterior = agruparDatosPorCliente(resultadosAnterior);
+                
+                console.log(`📊 Datos agrupados: Actual=${datosActual.length} clientes, Anterior=${datosAnterior.length} clientes`);
             }
             
-            // Crear resumen comparativo - con validación adicional
-            const totalDeudaActual = Array.isArray(comparativaActual) 
-                ? comparativaActual.reduce((sum: number, item: any) => sum + (item?.deudaTotal || 0), 0)
-                : 0;
-                
-            const totalDeudaAnterior = Array.isArray(comparativaAnterior) 
-                ? comparativaAnterior.reduce((sum: number, item: any) => sum + (item?.deudaTotal || 0), 0)
-                : 0;
-                
+            console.log('📊 Datos finales:', {
+                actual: { count: datosActual.length, sample: datosActual.slice(0, 2) },
+                anterior: { count: datosAnterior.length, sample: datosAnterior.slice(0, 2) }
+            });
+            
+            // Calcular resumen comparativo
+            const calcularTotalDeuda = (datos: any[]): number => {
+                return datos.reduce((sum: number, item: any) => {
+                    const deuda = item?.deudaTotal || item?.deuda || item?.saldo || item?.total || 0;
+                    return sum + deuda;
+                }, 0);
+            };
+            
+            const totalDeudaActual = calcularTotalDeuda(datosActual);
+            const totalDeudaAnterior = calcularTotalDeuda(datosAnterior);
             const totalVariacion = totalDeudaActual - totalDeudaAnterior;
             const totalPorcentajeVariacion = totalDeudaAnterior > 0 
                 ? (totalVariacion / totalDeudaAnterior) * 100 
@@ -173,49 +317,85 @@ export const DebtorsMain: React.FC = () => {
                 totalDeudaAnterior,
                 totalVariacion,
                 totalPorcentajeVariacion,
-                comparativa: []
+                totalClientesActual: datosActual.length,
+                totalClientesAnterior: datosAnterior.length,
+                totalRegistrosActual: datosActual.reduce((sum, item) => sum + (item?.registros?.length || 0), 0),
+                totalRegistrosAnterior: datosAnterior.reduce((sum, item) => sum + (item?.registros?.length || 0), 0),
+                usandoAgrupacion: tipo !== 'dia'
             };
             
-            // Crear comparativa detallada por cliente - con validación
+            console.log('📈 Resumen comparativo:', resumen);
+            
+            // Crear comparativa detallada por cliente
             let comparativaDetallada: any[] = [];
             
-            if (Array.isArray(comparativaActual)) {
-                const mapaAnterior = new Map(
-                    Array.isArray(comparativaAnterior) 
-                        ? comparativaAnterior.map((item: any) => [item?.clienteId, item])
-                        : []
-                );
+            if (datosActual.length > 0) {
+                // Crear mapa para búsqueda rápida de datos anteriores
+                const mapaAnterior = new Map();
+                datosAnterior.forEach((item: any) => {
+                    const clave = item?.clienteId || item?.clienteNombre;
+                    if (clave) {
+                        mapaAnterior.set(clave, item);
+                    }
+                });
                 
-                comparativaDetallada = comparativaActual.map((actual: any) => {
-                    const anterior = mapaAnterior.get(actual?.clienteId);
-                    const deudaActual = actual?.deudaTotal || 0;
-                    const deudaAnterior = anterior?.deudaTotal || 0;
+                comparativaDetallada = datosActual.map((actual: any) => {
+                    const claveActual = actual?.clienteId || actual?.clienteNombre;
+                    const clienteNombre = actual?.clienteNombre || 'Cliente';
+                    const anterior = mapaAnterior.get(claveActual);
+                    
+                    const deudaActual = actual?.deudaTotal || actual?.deuda || actual?.saldo || actual?.total || 0;
+                    const deudaAnterior = anterior 
+                        ? (anterior?.deudaTotal || anterior?.deuda || anterior?.saldo || anterior?.total || 0)
+                        : 0;
+                    
                     const variacion = deudaActual - deudaAnterior;
                     const porcentajeVariacion = deudaAnterior > 0 
                         ? (variacion / deudaAnterior) * 100 
                         : (variacion > 0 ? 100 : 0);
                     
                     return {
-                        clienteId: actual?.clienteId,
-                        clienteNombre: actual?.clienteNombre || 'Sin nombre',
+                        clienteId: claveActual,
+                        clienteNombre,
                         deudaActual,
                         deudaAnterior,
                         variacion,
                         porcentajeVariacion,
-                        registros: actual?.registros || []
+                        tieneDatosAnteriores: !!anterior,
+                        totalDias: actual?.totalDias || 1,
+                        totalRegistros: actual?.registros?.length || 0
                     };
-                }).filter(item => item.clienteId); // Filtrar items válidos
+                });
+                
+                console.log(`📋 Comparativa creada: ${comparativaDetallada.length} clientes`);
             }
             
             setComparativaPorPeriodo(comparativaDetallada);
             setResumenComparativa(resumen);
             
-            // Actualizar clientes con los datos de comparativa (si existen clientes)
-            if (clientes.length > 0 && comparativaDetallada.length > 0) {
+            // Actualizar clientes con datos de comparativa
+            if (comparativaDetallada.length > 0 && clientes.length > 0) {
+                console.log('👥 Actualizando clientes con datos de comparativa...');
+                
                 const clientesActualizados = clientes.map(cliente => {
-                    const datosComparativa = comparativaDetallada.find((c: any) => 
-                        c.clienteNombre.toLowerCase() === cliente.nombre.toLowerCase()
-                    );
+                    // Buscar datos de comparativa para este cliente
+                    const datosComparativa = comparativaDetallada.find((c: any) => {
+                        if (!c.clienteNombre || !cliente.nombre) return false;
+                        
+                        const nombreCliente = cliente.nombre.toLowerCase();
+                        const nombreComparativa = c.clienteNombre.toLowerCase();
+                        
+                        // Coincidencia exacta
+                        if (nombreCliente === nombreComparativa) return true;
+                        
+                        // Coincidencia parcial (contiene)
+                        if (nombreCliente.includes(nombreComparativa) || 
+                            nombreComparativa.includes(nombreCliente)) {
+                            return true;
+                        }
+                        
+                        return false;
+                    });
                     
                     if (datosComparativa) {
                         return {
@@ -223,82 +403,55 @@ export const DebtorsMain: React.FC = () => {
                             saldoActual: datosComparativa.deudaActual,
                             deudaAnterior: datosComparativa.deudaAnterior,
                             variacion: datosComparativa.variacion,
-                            porcentajeVariacion: datosComparativa.porcentajeVariacion
+                            porcentajeVariacion: datosComparativa.porcentajeVariacion,
+                            tieneComparativa: true
                         };
                     }
                     
-                    // Si no está en la comparativa actual, buscar en la anterior
-                    const datosAnterior = Array.isArray(comparativaAnterior) 
-                        ? comparativaAnterior.find((c: any) => 
-                            c?.clienteNombre?.toLowerCase() === cliente.nombre.toLowerCase()
-                        )
-                        : null;
-                    
-                    if (datosAnterior) {
-                        return {
-                            ...cliente,
-                            saldoActual: 0,
-                            deudaAnterior: datosAnterior.deudaTotal || 0,
-                            variacion: -(datosAnterior.deudaTotal || 0),
-                            porcentajeVariacion: -100
-                        };
-                    }
-                    
-                    // Mantener valores originales si no hay datos de comparativa
-                    return cliente;
+                    return {
+                        ...cliente,
+                        tieneComparativa: false
+                    };
                 });
                 
                 setClientes(clientesActualizados);
-            } else if (comparativaDetallada.length === 0) {
-                console.warn('No se recibieron datos de comparativa para actualizar clientes');
+                
+                const clientesConComparativa = clientesActualizados.filter(c => c.tieneComparativa).length;
+                console.log(`✅ ${clientesConComparativa} de ${clientesActualizados.length} clientes actualizados`);
+                
+            } else {
+                console.warn('⚠️ No se pudieron actualizar clientes');
+            }
+            
+            // Mostrar notificación informativa
+            if (resumen.usandoAgrupacion) {
+                toast.success(`📊 Comparativa ${tipo} calculada a partir de datos diarios`);
+            } else if (datosActual.length > 0 && datosAnterior.length > 0) {
+                toast.success(`✅ Comparativa diaria cargada`);
+            } else if (datosActual.length > 0) {
+                toast.error(`📈 Datos actuales cargados (sin datos anteriores)`);
+            } else {
+                toast.error('⚠️ No hay datos disponibles');
             }
             
         } catch (error: unknown) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            toast.error('Error al cargar comparativa por período: ' + errorMessage);
+            console.error('❌ Error en cargarComparativaPorPeriodo:', error);
+            toast.error('Error al cargar comparativa');
         } finally {
             setLoading(false);
         }
     };
 
-    // Limpiar selecciones cuando cambian los filtros
-    useEffect(() => {
-        setSelectedClientes([]);
-    }, [filtroTendencia, filtroEstado, filtroEtiqueta]);
-
-    // Función para obtener el período
+    // Función para obtener el período en formato YYYY-MM-DD
     const obtenerPeriodo = (tipo: 'dia' | 'semana' | 'mes', fechaEspecifica?: Date): string => {
         const fecha = fechaEspecifica || new Date();
         
-        switch (tipo) {
-            case 'dia':
-                const dia = fecha.getDate().toString().padStart(2, '0');
-                const mesDia = (fecha.getMonth() + 1).toString().padStart(2, '0');
-                const anioDia = fecha.getFullYear();
-                return `${anioDia}-${mesDia}-${dia}`;
-                
-            case 'semana':
-                // Cálculo de semana ISO
-                const getISOWeek = (date: Date): string => {
-                    const target = new Date(date.valueOf());
-                    const dayNr = (date.getDay() + 6) % 7;
-                    target.setDate(target.getDate() - dayNr + 3);
-                    const firstThursday = target.valueOf();
-                    target.setMonth(0, 1);
-                    if (target.getDay() !== 4) {
-                        target.setMonth(0, 1 + ((4 - target.getDay()) + 7) % 7);
-                    }
-                    const weekNum = 1 + Math.ceil((firstThursday - target.valueOf()) / 604800000);
-                    return `${date.getFullYear()}-W${weekNum.toString().padStart(2, '0')}`;
-                };
-                return getISOWeek(fecha);
-                
-            case 'mes':
-            default:
-                const mes = (fecha.getMonth() + 1).toString().padStart(2, '0');
-                const anio = fecha.getFullYear();
-                return `${anio}-${mes}`;
-        }
+        // Siempre devolver fecha en formato YYYY-MM-DD para buscar Excel
+        const year = fecha.getFullYear();
+        const month = (fecha.getMonth() + 1).toString().padStart(2, '0');
+        const day = fecha.getDate().toString().padStart(2, '0');
+        
+        return `(${tipo}) ${year}-${month}-${day}`;
     };
     
     // Función para manejar la subida de archivos Excel
@@ -457,6 +610,71 @@ export const DebtorsMain: React.FC = () => {
                 await new Promise(resolve => setTimeout(resolve, delay));
                 delay *= 2;
             }
+        }
+    };
+
+    // Función principal para cargar comparativa de Excel
+    const cargarComparativaExcel = async (tipo: 'dia' | 'semana' | 'mes') => {
+        try {
+            if (loading) return;
+            
+            setLoading(true);
+            
+            // Obtener fechas según el tipo
+            const fechaActual = new Date();
+            const fechaAnterior = new Date();
+            
+            switch (tipo) {
+                case 'dia':
+                    fechaAnterior.setDate(fechaAnterior.getDate() - 1);
+                    break;
+                case 'semana':
+                    fechaAnterior.setDate(fechaAnterior.getDate() - 7);
+                    break;
+                case 'mes':
+                    fechaAnterior.setMonth(fechaAnterior.getMonth() - 1);
+                    break;
+            }
+            
+            const fechaActualStr = fechaActual.toISOString().split('T')[0];
+            const fechaAnteriorStr = fechaAnterior.toISOString().split('T')[0];
+            
+            console.log(`📅 Comparando: ${fechaActualStr} vs ${fechaAnteriorStr}`);
+            
+            // Usar el nuevo endpoint
+            const comparativa = await apiService.getComparativaExcel(fechaActualStr, fechaAnteriorStr);
+            
+            if (comparativa.success) {
+                // Transformar datos para la tabla
+                const clientesComparativa = comparativa.comparativa.map((item: any) => ({
+                    id: item.clienteId || `comp-${item.clienteNombre}`,
+                    nombre: item.clienteNombre,
+                    tipoCliente: 'cliente',
+                    limiteCredito: 0,
+                    saldoActual: item.deudaActual,
+                    estado: item.estado === 'liquidado' ? 'liquidado' : 
+                        item.deudaActual > 0 ? 'activo' : 'inactivo',
+                    etiqueta: '',
+                    variacion: item.variacion,
+                    deudaAnterior: item.deudaAnterior,
+                    porcentajeVariacion: item.porcentajeVariacion,
+                    estadoComparativa: item.estado,
+                    tieneRegistrosAnteriores: item.tieneRegistrosAnteriores
+                }));
+                
+                setClientes(clientesComparativa);
+                setResumenComparativa(comparativa.resumen);
+                
+                toast.success(`Comparativa: ${fechaActualStr} vs ${fechaAnteriorStr}`);
+            } else {
+                toast.error('Error al cargar comparativa');
+            }
+            
+        } catch (error) {
+            console.error('Error cargando comparativa:', error);
+            toast.error('Error al cargar comparativa');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -1436,7 +1654,7 @@ export const DebtorsMain: React.FC = () => {
                                 <p className="text-sm text-gray-600">
                                     {resumenComparativa ? (
                                         <>
-                                            📅 {fechaSeleccionada} vs {resumenComparativa.periodoAnterior} • 
+                                            📅 {resumenComparativa.periodoActual} vs {resumenComparativa.periodoAnterior} • 
                                             {tipoPeriodo === 'dia' ? ' Comparando día vs día anterior' : 
                                             tipoPeriodo === 'semana' ? ' Comparando semana vs semana anterior' : 
                                             ' Comparando mes vs mes anterior'}
@@ -1451,7 +1669,7 @@ export const DebtorsMain: React.FC = () => {
                                 <select
                                     value={tipoPeriodo}
                                     onChange={(e) => {
-                                        cargarComparativaPorPeriodo(e.target.value as 'dia' | 'semana' | 'mes');
+                                        setTipoPeriodo(e.target.value as 'dia' | 'semana' | 'mes');
                                     }}
                                     className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
@@ -1462,33 +1680,55 @@ export const DebtorsMain: React.FC = () => {
                             </div>
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-1">
+                        <div className="grid grid-cols-1 md:grid-cols-6 gap-1">
                             <div className="bg-blue-50 p-4 rounded-lg flex justify-between items-center">
-                                <h3 className="text-xs font-bold text-blue-600">
-                                    Deuda {tipoPeriodo === 'dia' ? 'Hoy' : tipoPeriodo === 'semana' ? 'Esta Semana' : 'Este Mes'}
-                                </h3>
-                                <p className="text-xs text-blue-700">
+                                <div>
+                                    <h3 className="text-xs font-bold text-blue-600">
+                                        {tipoPeriodo === 'dia' ? 'Hoy' : tipoPeriodo === 'semana' ? 'Esta Semana' : 'Este Mes'}
+                                    </h3>
+                                    <p className="text-xs text-blue-700 mt-1">
+                                        Clientes: {resumenComparativa?.totalClientesActual || 0}
+                                    </p>
+                                </div>
+                                <p className="text-xs text-blue-700 font-bold">
                                     ${resumenComparativa?.totalDeudaActual?.toLocaleString() || '0'}
                                 </p>
                             </div>
                             <div className="bg-green-50 p-4 rounded-lg flex justify-between items-center">
-                                <h3 className="text-xs font-bold text-green-600">
-                                    Deuda {tipoPeriodo === 'dia' ? 'Ayer' : tipoPeriodo === 'semana' ? 'Semana Pasada' : 'Mes Pasado'}
-                                </h3>
-                                <p className="text-xs text-green-700">
+                                <div>
+                                    <h3 className="text-xs font-bold text-green-600">
+                                        {tipoPeriodo === 'dia' ? 'Ayer' : tipoPeriodo === 'semana' ? 'Semana Pasada' : 'Mes Pasado'}
+                                    </h3>
+                                    <p className="text-xs text-green-700 mt-1">
+                                        Clientes: {resumenComparativa?.totalClientesAnterior || 0}
+                                    </p>
+                                </div>
+                                <p className="text-xs text-green-700 font-bold">
                                     ${resumenComparativa?.totalDeudaAnterior?.toLocaleString() || '0'}
                                 </p>
                             </div>
                             <div className="bg-purple-50 p-4 rounded-lg flex justify-between items-center">
                                 <h3 className="text-xs font-bold text-purple-600">Variación</h3>
-                                <p className={`text-xs ${(resumenComparativa?.totalVariacion || 0) >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                <p className={`text-xs font-bold ${(resumenComparativa?.totalVariacion || 0) >= 0 ? 'text-red-600' : 'text-green-600'}`}>
                                     {(resumenComparativa?.totalVariacion || 0) >= 0 ? '+' : ''}${(resumenComparativa?.totalVariacion || 0).toLocaleString()}
                                 </p>
                             </div>
                             <div className="bg-orange-50 p-4 rounded-lg flex justify-between items-center">
                                 <h3 className="text-xs font-bold text-orange-600">% Cambio</h3>
-                                <p className={`text-xs ${(resumenComparativa?.totalPorcentajeVariacion || 0) >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                <p className={`text-xs font-bold ${(resumenComparativa?.totalPorcentajeVariacion || 0) >= 0 ? 'text-red-600' : 'text-green-600'}`}>
                                     {(resumenComparativa?.totalPorcentajeVariacion || 0) >= 0 ? '+' : ''}{(resumenComparativa?.totalPorcentajeVariacion || 0).toFixed(1)}%
+                                </p>
+                            </div>
+                            <div className="bg-gray-50 p-4 rounded-lg flex justify-between items-center">
+                                <h3 className="text-xs font-bold text-gray-600">Registros Actual</h3>
+                                <p className="text-xs text-gray-700 font-bold">
+                                    {resumenComparativa?.totalRegistrosActual || 0}
+                                </p>
+                            </div>
+                            <div className="bg-gray-50 p-4 rounded-lg flex justify-between items-center">
+                                <h3 className="text-xs font-bold text-gray-600">Registros Anterior</h3>
+                                <p className="text-xs text-gray-700 font-bold">
+                                    {resumenComparativa?.totalRegistrosAnterior || 0}
                                 </p>
                             </div>
                         </div>
@@ -1652,6 +1892,28 @@ export const DebtorsMain: React.FC = () => {
                                                         <option key={etiqueta} value={etiqueta}>{etiqueta}</option>
                                                     ))}
                                                 </select>
+                                                <select
+                                                    value={filtroEstadoComparativa}
+                                                    onChange={(e) => setFiltroEstadoComparativa(e.target.value)}
+                                                    className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                >
+                                                    <option value="">Todos los estados</option>
+                                                    <option value="nuevo">Clientes Nuevos</option>
+                                                    <option value="liquidado">Clientes Liquidados</option>
+                                                    <option value="aumento">Deuda Aumentó</option>
+                                                    <option value="disminucion">Deuda Disminuyó</option>
+                                                    <option value="estable">Deuda Estable</option>
+                                                </select>
+
+                                                <select
+                                                    value={filtroTieneAnteriores}
+                                                    onChange={(e) => setFiltroTieneAnteriores(e.target.value)}
+                                                    className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                >
+                                                    <option value="">Todos los clientes</option>
+                                                    <option value="conAnteriores">Con datos anteriores</option>
+                                                    <option value="sinAnteriores">Sin datos anteriores</option>
+                                                </select>
                                             </div>
                                         </div>
                                     )}
@@ -1747,6 +2009,40 @@ export const DebtorsMain: React.FC = () => {
                                                                 (cliente.variacion || 0) < 0 ? 'Disminuyendo' : 'Estable'}
                                                             </span>
                                                         </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap w-1/8">
+                                                        {cliente.estadoComparativa === 'nuevo' && (
+                                                            <span className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                                                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
+                                                                </svg>
+                                                                Nuevo
+                                                            </span>
+                                                        )}
+                                                        {cliente.estadoComparativa === 'liquidado' && (
+                                                            <span className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                                                                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                                </svg>
+                                                                Liquidado
+                                                            </span>
+                                                        )}
+                                                        {cliente.estadoComparativa === 'aumento' && (
+                                                            <span className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                                                                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                                    <path fillRule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                                                                </svg>
+                                                                Aumentó
+                                                            </span>
+                                                        )}
+                                                        {cliente.estadoComparativa === 'disminucion' && (
+                                                            <span className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                                                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                                    <path fillRule="evenodd" d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                                </svg>
+                                                                Disminuyó
+                                                            </span>
+                                                        )}
                                                     </td>
                                                 </tr>
                                             ))}

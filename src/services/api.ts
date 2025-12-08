@@ -421,20 +421,116 @@ class ApiService {
     /**
      * Obtener deudas por período (día, semana, mes)
      */
-    async getDeudasPorPeriodo(periodo: string, tipo: string): Promise<any[]> {
+    async getDeudasPorPeriodo(periodo: string, tipo: string): Promise<any> {
         try {
+            console.log(`📊 Llamando a API: /debtors/deudas/por-periodo?periodo=${periodo}&tipo=${tipo}`);
+            
             const response = await this.get(
                 `/debtors/deudas/por-periodo?periodo=${periodo}&tipo=${tipo}`
             );
             
-            console.log('API Response getDeudasPorPeriodo:', response);
+            console.log('🔍 Respuesta completa de API:', {
+                periodo,
+                tipo,
+                success: response?.success,
+                totalRegistros: response?.totalRegistros,
+                totalClientes: response?.totalClientes,
+                totalDeuda: response?.totalDeuda,
+                tieneDeudas: Array.isArray(response?.deudas),
+                deudasCount: Array.isArray(response?.deudas) ? response.deudas.length : 0,
+                tieneDatos: Array.isArray(response?.datos),
+                datosCount: Array.isArray(response?.datos) ? response.datos.length : 0
+            });
             
-            // Asegurar que siempre devuelva un array
-            return Array.isArray(response) ? response : [];
+            // Los datos están en la propiedad "deudas" según el log
+            const datos = Array.isArray(response?.deudas) ? response.deudas : 
+                        Array.isArray(response?.datos) ? response.datos : [];
+            
+            console.log(`✅ Datos finales: ${datos.length} registros`);
+            
+            return {
+                success: response?.success || true,
+                periodo,
+                tipo,
+                totalRegistros: response?.totalRegistros || datos.length,
+                totalClientes: response?.totalClientes || new Set(datos.map((d: any) => d.clienteId || d.clienteNombre)).size,
+                totalDeuda: response?.totalDeuda || datos.reduce((sum: number, item: any) => 
+                    sum + (item?.deudaTotal || item?.deuda || 0), 0),
+                datos: datos
+            };
+            
         } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
-            toast.error(`Error en getDeudasPorPeriodo: ${message}`);
-            return [];
+            console.error('❌ Error en getDeudasPorPeriodo:', error);
+            return {
+                success: false,
+                periodo,
+                tipo,
+                totalRegistros: 0,
+                totalClientes: 0,
+                totalDeuda: 0,
+                datos: []
+            };
+        }
+    }
+
+    /**
+     * Obtener deudas detalladas por período (versión alternativa si el otro endpoint no funciona)
+     */
+    async getDeudasDetalladasPorPeriodo(periodo: string, tipo: string): Promise<any> {
+        try {
+            console.log(`🔍 Llamando endpoint alternativo: /debtors/deudas/detalladas?periodo=${periodo}&tipo=${tipo}`);
+            
+            const response = await this.get(
+                `/debtors/deudas/detalladas?periodo=${periodo}&tipo=${tipo}`
+            );
+            
+            return response;
+        } catch (error) {
+            console.error('Error en getDeudasDetalladasPorPeriodo:', error);
+            // Intentar otro endpoint posible
+            try {
+                const response2 = await this.get(
+                    `/debtors/deudas?periodo=${periodo}&tipo=${tipo}`
+                );
+                return response2;
+            } catch (error2) {
+                return {
+                    success: false,
+                    periodo,
+                    tipo,
+                    datos: []
+                };
+            }
+        }
+    }
+
+    /**
+     * Obtener comparativa entre dos fechas de Excel
+     */
+    async getComparativaExcel(fechaActual: string, fechaAnterior: string): Promise<any> {
+        try {
+            const response = await this.get(
+                `/debtors/registros-excel/comparativa?fechaActual=${fechaActual}&fechaAnterior=${fechaAnterior}`
+            );
+            return response;
+        } catch (error) {
+            console.error('Error en getComparativaExcel:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Obtener estadísticas por período (para cuando no hay datos detallados)
+     */
+    async getEstadisticasPorPeriodo(periodo: string, tipo: string): Promise<any> {
+        try {
+            const response = await this.get(
+                `/debtors/estadisticas?periodo=${periodo}&tipo=${tipo}`
+            );
+            return response;
+        } catch (error) {
+            console.error('Error en getEstadisticasPorPeriodo:', error);
+            return null;
         }
     }
 
@@ -463,8 +559,9 @@ class ApiService {
                 tipo
             });
             return response;
-        } catch (error) {
-            console.error('Error en procesarExcelComparativa:', error);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            toast.error(`Error en procesarExcelComparativa: ${message}`);
             throw error;
         }
     }
@@ -483,6 +580,55 @@ class ApiService {
             return response;
         } catch (error) {
             throw error;
+        }
+    }
+
+    /**
+     * Obtener registros de Excel por fecha específica (para comparación)
+     */
+    async getRegistrosExcelPorFecha(fecha: string): Promise<any> {
+        try {
+            console.log(`📅 Obteniendo registros Excel para fecha: ${fecha}`);
+            
+            const response = await this.get(
+                `/debtors/registros-excel/fecha/${fecha}`
+            );
+            
+            console.log(`✅ Registros Excel para ${fecha}:`, {
+                count: Array.isArray(response) ? response.length : 0,
+                tieneDatos: Array.isArray(response) && response.length > 0
+            });
+            
+            return response;
+        } catch (error) {
+            console.error(`❌ Error obteniendo registros Excel para ${fecha}:`, error);
+            return [];
+        }
+    }
+
+    /**
+     * Obtener las fechas disponibles de Excel subidos
+     */
+    async getFechasDisponiblesExcel(): Promise<string[]> {
+        try {
+            const response = await this.get('/debtors/registros-excel/fechas');
+            return Array.isArray(response) ? response : [];
+        } catch (error) {
+            console.error('Error obteniendo fechas disponibles:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Obtener el último Excel subido
+     */
+    async getUltimoExcel(): Promise<any> {
+        try {
+            const response = await this.get('/debtors/registros-excel/ultimo');
+            return response;
+        } catch (error) {
+            console.error('Error obteniendo último Excel:', error);
+            return null;
         }
     }
 
