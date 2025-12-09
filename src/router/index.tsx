@@ -1,3 +1,4 @@
+// router/index.tsx
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { DashboardLayout } from '../Pages/DashboardLayout';
 import { RemindersPage } from '../Pages/RemindersPage';
@@ -6,40 +7,66 @@ import { ExpenseReportPage } from '../Pages/ExpenseReportPage';
 import { CheckListPage } from '../Pages/CheckListPage';
 import { OrgChartInteractivePage } from '../Pages/OrgChartInteractivePage';
 import { DebtorsPage } from '../Pages/DebtorsPage';
+import { AdminLogin } from '../Pages/AdminLogin';
+import { ProtectedRoute } from '../components/ProtectedRoute';
 
 export const router = createBrowserRouter([
 	{
 		path: '/',
 		element: <DashboardLayout />,
 		children: [
-			{
-				index: true,
-				element: <Navigate to='/mensajes' />,
-			},
-			{
-				path: 'mensajes',
-				element: <RemindersPage />,
-			},
-			{
-				path: 'transportes',
-				element: <TransportPage />,
-			},
-			{
-				path: 'reporte',
-				element: <ExpenseReportPage />,
-			},
-			{
-				path: 'checklist',
-				element: <CheckListPage />,
-			},
-			{
-				path: 'expedientes',
-				element: <OrgChartInteractivePage />,
-			},
-			{
-				path: 'Deudores',
-				element: <DebtorsPage />,
-			},
+		{
+			index: true,
+			element: <Navigate to='/checklist' />,
+		},
+		{
+			path: 'mensajes',
+			element: (
+				<ProtectedRoute adminOnly>
+					<RemindersPage />
+				</ProtectedRoute>
+			),
+		},
+		{
+			path: 'transportes',
+			element: (
+				<ProtectedRoute adminOnly>
+					<TransportPage />
+				</ProtectedRoute>
+			),
+		},
+		{
+			path: 'reporte',
+			element: (
+				<ProtectedRoute adminOnly>
+					<ExpenseReportPage />
+				</ProtectedRoute>
+			),
+		},
+		{
+			path: 'checklist',
+			element: <CheckListPage />,
+		},
+		{
+			path: 'expedientes',
+			element: (
+				<ProtectedRoute adminOnly>
+					<OrgChartInteractivePage />
+				</ProtectedRoute>
+			),
+		},
+		{
+			path: 'deudores',
+			element: (
+				<ProtectedRoute adminOnly>
+					<DebtorsPage />
+				</ProtectedRoute>
+			),
+		},
+		{
+			path: 'admin-login',
+			element: <AdminLogin />,
+		},
 		],
 	}
 ]);
