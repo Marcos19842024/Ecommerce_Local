@@ -3,6 +3,10 @@ import { cel, center } from '../server/user';
 import { runtimeConfig } from './config';
 
 class ApiService {
+    // =============================================
+    // 🔥 MÉTODOS AUXILIARES
+    // =============================================
+
     private async ensureConfigLoaded(): Promise<void> {
         if (!runtimeConfig.isConfigLoaded()) {
             await runtimeConfig.loadConfig();
@@ -29,7 +33,10 @@ class ApiService {
         return response.json();
     }
 
-    // Método para verificar conectividad
+    // =============================================
+    // 🔥 MÉTODO DE CHECK DE CONECTIVIDAD
+    // =============================================
+
     async checkConnectivity(): Promise<boolean> {
         try {
             await this.ensureConfigLoaded();
@@ -49,7 +56,10 @@ class ApiService {
         }
     }
 
-    // Métodos genéricos
+    // =============================================
+    // 🔥 MÉTODOS BÁSICOS DE API (GET, POST, PUT, DELETE)
+    // =============================================
+
     async get(endpoint: string): Promise<any> {
         return this.fetchWithConfig(endpoint);
     }
@@ -74,7 +84,27 @@ class ApiService {
         });
     }
 
-    // Métodos para upload de archivos (FormData)
+    // =============================================
+    // 🔥 MÉTODOS DE AUTENTICACIÓN
+    // =============================================
+
+    /**
+     * Verificar contraseña de administrador
+     */
+    async verifyAdminPassword(password: string): Promise<any> {
+        try {
+            const response = await this.post('/auth/verify', { password });
+            return response;
+        } catch (error) {
+            console.error('Error en verificación de contraseña:', error);
+            throw error;
+        }
+    }
+
+    // =============================================
+    // 🔥 MÉTODOS PARA UPLOAD Y FETCH DIRECTO
+    // =============================================
+
     async uploadFile(endpoint: string, formData: FormData): Promise<any> {
         await this.ensureConfigLoaded();
         const url = `${runtimeConfig.getApiUrl()}${endpoint}`;

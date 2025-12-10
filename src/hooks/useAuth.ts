@@ -1,46 +1,37 @@
-import { useState, useEffect, useCallback } from 'react';
-import { password } from '../server/user';
+import { useState } from 'react';
+import { apiService } from '../services/api';
 
 export const useAuth = () => {
-    const [isAdmin, setIsAdmin] = useState(false);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-    useEffect(() => {
-        const checkAdminAuth = () => {
-            const adminAuth = localStorage.getItem('adminAuthenticated');
-            const authTime = localStorage.getItem('adminAuthTime');
-            
-            if (adminAuth === 'true' && authTime) {
-                const authTimeNum = parseInt(authTime);
-                const now = Date.now();
-                const hoursElapsed = (now - authTimeNum) / (1000 * 60 * 60);
-                
-                if (hoursElapsed < 8) {
-                    setIsAdmin(true);
-                } else {
-                    logout();
+    const login = async (password: string) => {
+        try {
+            const response = await apiService.verifyAdminPassword(password);
+            if (response.success) {
+                localStorage.setItem('adminAuthenticated', 'true');
+                localStorage.setItem('adminAuthTime', Date.now().toString());
+                if (response.token) {
+                    localStorage.setItem('adminToken', response.token);
                 }
+                setIsAuthenticated(true);
+                return { success: true };
             }
-        };
-        
-        checkAdminAuth();
-    }, []);
-
-    const login = useCallback((adminPassword: string): boolean => {;
-        
-        if (adminPassword === password) {
-            localStorage.setItem('adminAuthenticated', 'true');
-            localStorage.setItem('adminAuthTime', Date.now().toString());
-            setIsAdmin(true);
-            return true;
+            return { success: false, message: response.message };
+        } catch (error) {
+            return { success: false, message: 'Error de conexión' };
         }
-        return false;
-    }, []);
+    };
 
-    const logout = useCallback(() => {
+    const logout = async () => {
         localStorage.removeItem('adminAuthenticated');
         localStorage.removeItem('adminAuthTime');
-        setIsAdmin(false);
-    }, []);
+        localStorage.removeItem('adminToken');
+        setIsAuthenticated(false);
+    };
 
-    return { isAdmin, login, logout };
+    return {
+        isAuthenticated,
+        login,
+        logout,
+    };
 };
