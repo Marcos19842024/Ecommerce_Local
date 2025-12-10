@@ -1,16 +1,17 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { dashboardLinks } from '../constants/links';
 import { LogOut } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 
 export const Sidebar = () => {
 	const navigate = useNavigate();
+	const { logout } = useAuth();
 
 	const isAdmin = localStorage.getItem('adminAuthenticated') === 'true';
 
-	const handleLogout = () => {
-		localStorage.removeItem('adminAuthenticated');
-		localStorage.removeItem('adminAuthTime');
-		navigate('/checklist');
+	const handleLogout = async () => {
+		await logout();
+		navigate('/CheckList');
 	};
 
 	return (
