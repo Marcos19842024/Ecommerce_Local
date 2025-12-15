@@ -5,6 +5,8 @@ import { ClienteComparativa, ExcelRow, MetricasGlobales } from '../../interfaces
 import readXlsxFile from 'read-excel-file';
 import toast from 'react-hot-toast';
 import Modal from '../shared/Modal';
+import DebtorsPDFReport from './PdfDebtorsMain';
+import { pdf } from '@react-pdf/renderer';
 
 export const DebtorsMain: React.FC = () => {
     const [clientes, setClientes] = useState<ClienteComparativa[]>([]);
@@ -28,7 +30,6 @@ export const DebtorsMain: React.FC = () => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [clienteToDelete, setClienteToDelete] = useState<ClienteComparativa | null>(null);
     const [tipoPeriodo, setTipoPeriodo] = useState<'dia' | 'semana' | 'mes'>('mes');
-    const [comparativaPorPeriodo, setComparativaPorPeriodo] = useState<any[]>([]);
     const [resumenComparativa, setResumenComparativa] = useState<any>(null);
     const [filtroEstadoComparativa, setFiltroEstadoComparativa] = useState('');
     const [filtroTieneAnteriores, setFiltroTieneAnteriores] = useState('');
@@ -370,7 +371,6 @@ export const DebtorsMain: React.FC = () => {
                 console.log(`📋 Comparativa creada: ${comparativaDetallada.length} clientes`);
             }
             
-            setComparativaPorPeriodo(comparativaDetallada);
             setResumenComparativa(resumen);
             
             // Actualizar clientes con datos de comparativa
@@ -829,41 +829,6 @@ export const DebtorsMain: React.FC = () => {
         setShowDeleteModal(true);
     };
 
-    // Función para descargar comparativa
-    const handleDescargarComparativa = async () => {
-        try {
-            const loadingToast = toast.loading('Generando comparativa...');
-            
-            const comparativaData = {
-                clientes: clientes,
-                periodo: obtenerPeriodo(tipoPeriodo),
-                metricas: metricas,
-                fechaGeneracion: new Date().toISOString(),
-                totalClientes: clientes.length,
-                totalDeuda: clientes.reduce((sum, c) => sum + c.saldoActual, 0),
-                clientesConDeuda: clientes.filter(c => c.saldoActual > 0).length,
-                resumenComparativa: resumenComparativa,
-                comparativaPorPeriodo: comparativaPorPeriodo
-            };
-            
-            const dataStr = JSON.stringify(comparativaData, null, 2);
-            const dataBlob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(dataBlob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `comparativa-deudores-${obtenerPeriodo(tipoPeriodo)}.json`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-            
-            toast.dismiss(loadingToast);
-            toast.success('Comparativa exportada correctamente');
-        } catch (error: unknown) {
-            toast.error('Error al exportar comparativa: ' + error);
-        }
-    };
-
     // Calcular resumen de etiquetas con total de deuda
     const calcularResumenEtiquetas = (): { resumen: Record<string, number>, deudaPorEtiqueta: Record<string, number> } => {
         const resumen: Record<string, number> = {};
@@ -911,8 +876,87 @@ export const DebtorsMain: React.FC = () => {
     };
 
     // Función para descargar PDF
-    const handleDescargarPDF = () => {
-        toast.success('Funcionalidad de descarga PDF en desarrollo');
+    const handleDescargarPDF = async () => {
+        if (!metricas || clientesFiltrados.length === 0) {
+            toast.error('No hay datos suficientes para generar el PDF');
+            return;
+        }
+
+        // Preparar datos para el PDF
+        const periodo = {
+            año: new Date().getFullYear(),
+            mes: new Date().getMonth() + 1,
+        };
+
+        // Transformar clientes para el PDF
+        const reportesPorTipo = new Map();
+        
+        // Agrupar clientes por tipo
+        clientesFiltrados.forEach(cliente => {
+            const tipo = cliente.tipoCliente || 'regular';
+            
+            if (!reportesPorTipo.has(tipo)) {
+                reportesPorTipo.set(tipo, {
+                    tipo: tipo,
+                    clientesDetalle: [],
+                    totalAdeudo: 0,
+                    totalClientes: 0
+                });
+            }
+            
+            const reporte = reportesPorTipo.get(tipo);
+            reporte.clientesDetalle.push({
+                nombre: cliente.nombre,
+                saldoInicial: cliente.deudaAnterior || 0,
+                consumosMes: 0, // Puedes calcular esto si tienes los datos
+                abonosMes: 0, // Puedes calcular esto si tienes los datos
+                saldoFinal: cliente.saldoActual,
+                estado: cliente.variacion > 0 ? 'EMPEORÓ' : 
+                    cliente.variacion < 0 ? 'MEJORÓ' : 'ESTABLE'
+            });
+            reporte.totalAdeudo += cliente.saldoActual;
+            reporte.totalClientes++;
+        });
+
+        // Crear métricas para el PDF
+        const metricasPDF = {
+            totalClientes: clientesFiltrados.length,
+            totalAdeudo: clientesFiltrados.reduce((sum, c) => sum + c.saldoActual, 0),
+            totalConsumos: 0, // Ajustar según tus datos
+            totalAbonos: 0, // Ajustar según tus datos
+            porTipo: {} as Record<string, any>
+        };
+
+        // Calcular por tipo
+        reportesPorTipo.forEach((reporte, tipo) => {
+            metricasPDF.porTipo[tipo] = {
+                totalClientes: reporte.totalClientes,
+                totalAdeudo: reporte.totalAdeudo,
+                totalConsumos: 0,
+                totalAbonos: 0
+            };
+        });
+
+        const blob = await pdf(
+            <DebtorsPDFReport
+                reportes={reportesPorTipo}
+                metricas={metricasPDF}
+                periodo={periodo}
+                tipoAnalisis="completo"
+            />
+        ).toBlob();
+
+        const urlPdf = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = urlPdf;
+        a.download = `Reporte_Deudores_${new Date().toISOString().split('T')[0]}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        
+        setTimeout(() => {
+            window.URL.revokeObjectURL(urlPdf);
+            document.body.removeChild(a);
+        }, 100);
     };
 
     // Función para obtener todas las filas de Excel de un cliente
@@ -1839,12 +1883,6 @@ export const DebtorsMain: React.FC = () => {
                                                 className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-200"
                                             >
                                                 {showFiltros ? 'Ocultar Filtros' : 'Mostrar Filtros'}
-                                            </button>
-                                            <button
-                                                onClick={handleDescargarComparativa}
-                                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-200"
-                                            >
-                                                Exportar Comparativa
                                             </button>
                                             <button
                                                 onClick={handleDescargarPDF}

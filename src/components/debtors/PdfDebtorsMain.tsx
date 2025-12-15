@@ -162,7 +162,6 @@ export const DebtorsPDFReport: React.FC<DebtorsPDFReportProps> = ({
 
     const analisis = calcularAnalisisCrecimiento();
 
-    // Documento PDF
     const MyDocument = () => (
         <Document>
             <Page size="A4" style={styles.page}>
