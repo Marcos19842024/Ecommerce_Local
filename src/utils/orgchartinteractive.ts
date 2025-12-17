@@ -52,6 +52,7 @@ export const FOLDERS = [
     { id: 'leyes', name: 'Leyes, Procedimientos y Protocolos' },
     { id: 'reportes', name: 'Reportes y Memorandums' },
     { id: 'router', name: 'Router' },
+    { id: 'wenScrapConfort', name: 'wenScrapConfort' },
     { id: 'otros', name: 'Otros' }
 ];
 
