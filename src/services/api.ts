@@ -96,7 +96,8 @@ class ApiService {
             const response = await this.post('/auth/verify', { password });
             return response;
         } catch (error) {
-            console.error('Error en verificación de contraseña:', error);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            toast.error(`Error en verificación de contraseña: ${errorMessage}`);
             throw error;
         }
     }
