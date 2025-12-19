@@ -10,6 +10,7 @@ import { GrDocumentUpload } from "react-icons/gr";
 import { RiMobileDownloadLine } from "react-icons/ri";
 import { Loader } from "../components/shared/Loader";
 import { apiService } from "../services/api";
+import { useReminders } from "../hooks/useReminders";
 
 export const RemindersPage = () => {
   const [showQr, setShowQr] = useState(false);
@@ -20,6 +21,7 @@ export const RemindersPage = () => {
   const [list, setList] = useState(false);
   const [loader, setLoader] = useState(false);
   const [whatsappConnected, setWhatsappConnected] = useState(false);
+  const { handleCloseWhatsApp } = useReminders({ clientes });
 
   const handleStatus = async () => {
     setLoader(true);
@@ -192,10 +194,15 @@ export const RemindersPage = () => {
           <div className="flex flex-wrap items-center gap-2">
             {whatsappConnected ? (
               // Mostrar texto cuando WhatsApp está conectado (mismo estilo que total de registros)
-              <div className="flex items-center gap-2 text-cyan-700 text-sm font-medium">
+              <button
+                className="flex items-center gap-2 text-white rounded-md px-3 py-2 transition-all bg-cyan-600 hover:bg-yellow-500 hover:scale-105 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                type="button"
+                onClick={handleCloseWhatsApp}
+                disabled={loader}
+              >
                 <FaWhatsapp className="text-green-600" />
                 <span>WhatsApp Conectado</span>
-              </div>
+              </button>
             ) : (
               // Mostrar botón cuando WhatsApp no está conectado
               <button

@@ -234,6 +234,15 @@ export const useReminders = ({clientes}: RemindersProps) => {
     }
   };
 
+  const handleCloseWhatsApp = async () => {
+    try {
+      const response = await apiService.closeWhatsApp();
+      toast.success(response.statusText);
+    } catch (error) {
+      toast.error("Error al cerrar WhatsApp");
+    }
+  };
+
   return {
     enviados,
     noEnviados,
@@ -245,5 +254,6 @@ export const useReminders = ({clientes}: RemindersProps) => {
     handleSend,
     handleKeyDown,
     deleteMessage,
+    handleCloseWhatsApp,
   };
 };

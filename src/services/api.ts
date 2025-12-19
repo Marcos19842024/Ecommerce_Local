@@ -164,6 +164,10 @@ class ApiService {
         return this.delete(`/wwebjs/${fileName}`);
     }
 
+    async closeWhatsApp(): Promise<any> {
+        return this.get('/wwebjs/close');
+    }
+
     // =============================================
     // 🔥 MÉTODOS PARA EXPENSEREPORT
     // =============================================
