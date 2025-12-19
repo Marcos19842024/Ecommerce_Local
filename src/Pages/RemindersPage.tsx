@@ -200,8 +200,8 @@ export const RemindersPage = () => {
                 onClick={handleCloseWhatsApp}
                 disabled={loader}
               >
-                <FaWhatsapp className="text-green-600" />
-                <span>WhatsApp Conectado</span>
+                <FaWhatsapp />
+                WhatsApp Conectado
               </button>
             ) : (
               // Mostrar botón cuando WhatsApp no está conectado
