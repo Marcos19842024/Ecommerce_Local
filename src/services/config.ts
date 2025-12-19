@@ -38,7 +38,6 @@ class RuntimeConfig {
 
             const configData: AppConfig = await response.json();
             this.config = configData;
-            this.isLoaded = true;
             return configData;
 
         } catch (error) {
