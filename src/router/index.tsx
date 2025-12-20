@@ -9,7 +9,7 @@ import { OrgChartInteractivePage } from '../Pages/OrgChartInteractivePage';
 import { DebtorsPage } from '../Pages/DebtorsPage';
 import { AdminLogin } from '../Pages/AdminLogin';
 import { ProtectedRoute } from '../components/ProtectedRoute';
-import { GeneralReportPage } from '../Pages/GeneralReportPage';
+import { UtilitiesPage } from '../Pages/UtilitiesPage';
 
 export const router = createBrowserRouter([
 	{
@@ -68,7 +68,7 @@ export const router = createBrowserRouter([
 			path: 'reporte-general',
 			element: (
 				<ProtectedRoute adminOnly>
-					<GeneralReportPage />
+					<UtilitiesPage />
 				</ProtectedRoute>
 			),
 		},

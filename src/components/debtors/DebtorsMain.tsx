@@ -8,6 +8,7 @@ import Modal from '../shared/Modal';
 
 export const DebtorsMain: React.FC = () => {
     const [excelData, setExcelData] = useState<ExcelRow[]>([]);
+    const [filteredExcelData, setFilteredExcelData] = useState<ExcelRow[]>([]); // <-- Nuevo estado para datos filtrados
     const [loading, setLoading] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [selectedExcelRows, setSelectedExcelRows] = useState<string[]>([]);
@@ -16,6 +17,7 @@ export const DebtorsMain: React.FC = () => {
     const [showDetalleCliente, setShowDetalleCliente] = useState(false);
     const [clienteDetallado, setClienteDetallado] = useState<any>(null);
     const [filasCliente, setFilasCliente] = useState<ExcelRow[]>([]);
+    const [filtroEtiquetaActivo, setFiltroEtiquetaActivo] = useState<string | null>(null); // <-- Nuevo estado para filtro
 
     /**
      * Función para manejar la subida de archivos Excel
@@ -83,6 +85,8 @@ export const DebtorsMain: React.FC = () => {
             }
 
             setExcelData(processedData);
+            setFilteredExcelData(processedData); // <-- Inicializar datos filtrados
+            setFiltroEtiquetaActivo(null); // <-- Resetear filtro al cargar nuevo archivo
 
             if (processedData.length === 0) {
                 toast.error('No se encontraron datos válidos en el archivo Excel');
@@ -99,6 +103,32 @@ export const DebtorsMain: React.FC = () => {
                 event.target.value = '';
             }
         }
+    };
+
+    /**
+     * Función para filtrar por etiqueta
+     */
+    const handleFiltrarPorEtiqueta = (etiqueta: string) => {
+        if (filtroEtiquetaActivo === etiqueta) {
+            // Si ya está activo este filtro, quitarlo
+            setFilteredExcelData(excelData);
+            setFiltroEtiquetaActivo(null);
+        } else {
+            // Aplicar filtro
+            const filtrados = excelData.filter(row => 
+                row.etiqueta === etiqueta || (etiqueta === 'Sin etiqueta' && (!row.etiqueta || row.etiqueta.trim() === ''))
+            );
+            setFilteredExcelData(filtrados);
+            setFiltroEtiquetaActivo(etiqueta);
+        }
+    };
+
+    /**
+     * Función para limpiar filtro
+     */
+    const handleLimpiarFiltro = () => {
+        setFilteredExcelData(excelData);
+        setFiltroEtiquetaActivo(null);
     };
 
     /**
@@ -295,6 +325,15 @@ export const DebtorsMain: React.FC = () => {
             });
             
             setExcelData(nuevasFilas);
+            // Actualizar también los datos filtrados si corresponde
+            if (filtroEtiquetaActivo) {
+                const filtrados = nuevasFilas.filter(row => 
+                    row.etiqueta === filtroEtiquetaActivo || (filtroEtiquetaActivo === 'Sin etiqueta' && (!row.etiqueta || row.etiqueta.trim() === ''))
+                );
+                setFilteredExcelData(filtrados);
+            } else {
+                setFilteredExcelData(nuevasFilas);
+            }
             
             // También actualizar filasCliente para el modal
             const filasActualizadas = filasCliente.map(fila => ({
@@ -324,11 +363,23 @@ export const DebtorsMain: React.FC = () => {
 
         try {
             if (selectedExcelRows.length > 0) {
-                setExcelData(prev => prev.map(row =>
+                const nuevasFilas = excelData.map(row =>
                     selectedExcelRows.includes(row.id) 
                         ? { ...row, etiqueta: etiquetaSeleccionada } 
                         : row
-                ));
+                );
+                setExcelData(nuevasFilas);
+                
+                // Actualizar datos filtrados
+                if (filtroEtiquetaActivo) {
+                    const filtrados = nuevasFilas.filter(row => 
+                        row.etiqueta === filtroEtiquetaActivo || (filtroEtiquetaActivo === 'Sin etiqueta' && (!row.etiqueta || row.etiqueta.trim() === ''))
+                    );
+                    setFilteredExcelData(filtrados);
+                } else {
+                    setFilteredExcelData(nuevasFilas);
+                }
+                
                 toast.success(`${selectedExcelRows.length} registro(s) de Excel etiquetado(s) como ${etiquetaSeleccionada}`);
                 setSelectedExcelRows([]);
             } else {
@@ -362,10 +413,10 @@ export const DebtorsMain: React.FC = () => {
      * Seleccionar/deseleccionar todas las filas de Excel
      */
     const handleSelectAllExcelRows = () => {
-        if (selectedExcelRows.length === excelData.length) {
+        if (selectedExcelRows.length === filteredExcelData.length) {
             setSelectedExcelRows([]);
         } else {
-            setSelectedExcelRows(excelData.map(row => row.id));
+            setSelectedExcelRows(filteredExcelData.map(row => row.id));
         }
     };
 
@@ -435,6 +486,8 @@ export const DebtorsMain: React.FC = () => {
      */
     const clearExcelData = () => {
         setExcelData([]);
+        setFilteredExcelData([]);
+        setFiltroEtiquetaActivo(null);
     };
 
     /**
@@ -535,30 +588,43 @@ export const DebtorsMain: React.FC = () => {
                         </div>
                         
                         <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-5 gap-2">
-                            {Object.entries(resumenEtiquetas).map(([etiqueta, count]) => (
-                                <div 
-                                    key={etiqueta} 
-                                    className={`p-2 rounded-lg border ${
-                                        etiqueta === 'Sin etiqueta' ? 'bg-gray-50 border-gray-200 text-xs font-bold flex justify-between items-center' 
-                                        : `${getColorEtiqueta(etiqueta).bg} border-transparent text-xs font-bold`
-                                    }`}
-                                >
-                                    <div
-                                        className={` ${
-                                            etiqueta === 'Sin etiqueta' ? 'text-gray-600' : getColorEtiqueta(etiqueta).text
+                            {Object.entries(resumenEtiquetas).map(([etiqueta, count]) => {
+                                const isActive = filtroEtiquetaActivo === etiqueta;
+                                return (
+                                    <div 
+                                        key={etiqueta} 
+                                        onClick={() => handleFiltrarPorEtiqueta(etiqueta)}
+                                        className={`p-2 rounded-lg border cursor-pointer transition-all duration-200 hover:scale-105 ${
+                                            isActive ? 'ring-2 ring-blue-500 ring-opacity-50' : ''
+                                        } ${
+                                            etiqueta === 'Sin etiqueta' 
+                                                ? 'bg-gray-50 border-gray-200 text-xs font-bold flex justify-between items-center hover:bg-gray-100' 
+                                                : `${getColorEtiqueta(etiqueta).bg} border-transparent text-xs font-bold hover:opacity-90`
                                         }`}
                                     >
-                                        {`${etiqueta} (${count})`}
                                         <div
                                             className={` ${
-                                                etiqueta === 'Sin etiqueta' ? 'text-gray-600 font-medium' : `${getColorEtiqueta(etiqueta).text} font-medium`
+                                                etiqueta === 'Sin etiqueta' ? 'text-gray-600' : getColorEtiqueta(etiqueta).text
                                             }`}
                                         >
-                                            {`Total Deuda: $${deudaPorEtiqueta[etiqueta]?.toLocaleString() || '0'}`}
+                                            {`${etiqueta} (${count})`}
+                                            <div
+                                                className={` ${
+                                                    etiqueta === 'Sin etiqueta' ? 'text-gray-600 font-medium' : `${getColorEtiqueta(etiqueta).text} font-medium`
+                                                }`}
+                                            >
+                                                {`Total Deuda: $${deudaPorEtiqueta[etiqueta]?.toLocaleString() || '0'}`}
+
+                                                {isActive && (
+                                                    <div className="text-xs text-blue-600 font-medium mt-1">
+                                                        ✓ Filtrado
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 )}
@@ -591,13 +657,27 @@ export const DebtorsMain: React.FC = () => {
 
             {/* Contenido desplazable - TABLA DE EXCEL */}
             <div className="bg-white p-1 mb-1 rounded-md shadow">
-                {excelData.length === 0 ? (
+                {filteredExcelData.length === 0 ? (
                     <div className="text-center py-8 text-gray-500">
                         <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
-                        <h3 className="mt-2 text-sm font-medium text-gray-900">Sin datos de Excel</h3>
-                        <p className="mt-1 text-sm text-gray-500">Sube un archivo Excel para ver los datos aquí.</p>
+                        <h3 className="mt-2 text-sm font-medium text-gray-900">
+                            {excelData.length === 0 ? 'Sin datos de Excel' : 'No hay registros con este filtro'}
+                        </h3>
+                        <p className="mt-1 text-sm text-gray-500">
+                            {excelData.length === 0 
+                                ? 'Sube un archivo Excel para ver los datos aquí.' 
+                                : 'No se encontraron registros con la etiqueta seleccionada.'}
+                        </p>
+                        {filtroEtiquetaActivo && (
+                            <button
+                                onClick={handleLimpiarFiltro}
+                                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200"
+                            >
+                                Limpiar filtro y ver todos
+                            </button>
+                        )}
                     </div>
                 ) : (
                     <>
@@ -632,7 +712,7 @@ export const DebtorsMain: React.FC = () => {
                                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
                                             <input
                                                 type="checkbox"
-                                                checked={selectedExcelRows.length === excelData.length && excelData.length > 0}
+                                                checked={selectedExcelRows.length === filteredExcelData.length && filteredExcelData.length > 0}
                                                 onChange={handleSelectAllExcelRows}
                                                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                             />
@@ -663,7 +743,7 @@ export const DebtorsMain: React.FC = () => {
                             
                                 {/* Cuerpo de la tabla */}
                                 <tbody className="bg-white divide-y divide-gray-200">
-                                    {excelData.map((row) => (
+                                    {filteredExcelData.map((row) => (
                                         <tr 
                                             key={row.id} 
                                             className="hover:bg-gray-50 transition duration-150 cursor-pointer"

@@ -1,5 +1,5 @@
-import { FaTruckPickup } from 'react-icons/fa6';
-import { TbMessageCircleShare, TbReportAnalytics, TbReportMoney } from 'react-icons/tb';
+import { FaBoxOpen, FaTruckPickup } from 'react-icons/fa6';
+import { TbMessageCircleShare, TbReportMoney } from 'react-icons/tb';
 import { GiOrganigram } from "react-icons/gi";
 import { VscChecklist } from 'react-icons/vsc';
 import { FcDebt } from 'react-icons/fc';
@@ -43,8 +43,8 @@ export const dashboardLinks = [
 	},
 	{
 		id: 7,
-		title: 'Reporte General',
-		href: '/reporte-general',
-		icon: <TbReportAnalytics size={25} />,
+		title: 'Utilidades',
+		href: '/utilidades',
+		icon: <FaBoxOpen size={25} />,
 	},
 ];
