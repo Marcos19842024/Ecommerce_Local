@@ -5,10 +5,12 @@ import { ExcelRow } from '../../interfaces/debtors.interface';
 import readXlsxFile from 'read-excel-file';
 import toast from 'react-hot-toast';
 import Modal from '../shared/Modal';
+import { pdf } from '@react-pdf/renderer';
+import { PdfDebtorsMain } from './PdfDebtorsMain';
 
 export const DebtorsMain: React.FC = () => {
     const [excelData, setExcelData] = useState<ExcelRow[]>([]);
-    const [filteredExcelData, setFilteredExcelData] = useState<ExcelRow[]>([]); // <-- Nuevo estado para datos filtrados
+    const [filteredExcelData, setFilteredExcelData] = useState<ExcelRow[]>([]);
     const [loading, setLoading] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [selectedExcelRows, setSelectedExcelRows] = useState<string[]>([]);
@@ -17,7 +19,8 @@ export const DebtorsMain: React.FC = () => {
     const [showDetalleCliente, setShowDetalleCliente] = useState(false);
     const [clienteDetallado, setClienteDetallado] = useState<any>(null);
     const [filasCliente, setFilasCliente] = useState<ExcelRow[]>([]);
-    const [filtroEtiquetaActivo, setFiltroEtiquetaActivo] = useState<string | null>(null); // <-- Nuevo estado para filtro
+    const [filtroEtiquetaActivo, setFiltroEtiquetaActivo] = useState<string | null>(null);
+    const [generandoPDF, setGenerandoPDF] = useState(false);
 
     /**
      * Función para manejar la subida de archivos Excel
@@ -85,8 +88,8 @@ export const DebtorsMain: React.FC = () => {
             }
 
             setExcelData(processedData);
-            setFilteredExcelData(processedData); // <-- Inicializar datos filtrados
-            setFiltroEtiquetaActivo(null); // <-- Resetear filtro al cargar nuevo archivo
+            setFilteredExcelData(processedData);
+            setFiltroEtiquetaActivo(null);
 
             if (processedData.length === 0) {
                 toast.error('No se encontraron datos válidos en el archivo Excel');
@@ -124,11 +127,39 @@ export const DebtorsMain: React.FC = () => {
     };
 
     /**
-     * Función para limpiar filtro
+     * Función para exportar a PDF
      */
-    const handleLimpiarFiltro = () => {
-        setFilteredExcelData(excelData);
-        setFiltroEtiquetaActivo(null);
+    const handleExportarPDF = async () => {
+        try {
+            setGenerandoPDF(true);
+            
+            const MyDocument = (
+                <PdfDebtorsMain 
+                    data={filteredExcelData}
+                    totals={filteredTotals}
+                    filterActive={filtroEtiquetaActivo}
+                    summary={{ resumen: resumenEtiquetas, deudaPorEtiqueta }}
+                />
+            );
+            
+            const blob = await pdf(MyDocument).toBlob();
+            
+            // Crear enlace de descarga
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = pdfFileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            toast.success('PDF descargado exitosamente');
+        } catch (error) {
+            toast.error('Error al generar PDF');
+        } finally {
+            setGenerandoPDF(false);
+        }
     };
 
     /**
@@ -482,6 +513,17 @@ export const DebtorsMain: React.FC = () => {
     };
 
     /**
+     * Calcular totales de los datos filtrados
+     */
+    const calculateFilteredTotals = () => {
+        const totalImporte = filteredExcelData.reduce((sum, row) => sum + row.totalImporte, 0);
+        const totalCobrado = filteredExcelData.reduce((sum, row) => sum + row.cobradoLinea, 0);
+        const totalDeuda = filteredExcelData.reduce((sum, row) => sum + row.deuda, 0);
+        
+        return { totalImporte, totalCobrado, totalDeuda };
+    };
+
+    /**
      * Limpiar datos de Excel
      */
     const clearExcelData = () => {
@@ -530,7 +572,13 @@ export const DebtorsMain: React.FC = () => {
     // Obtener el resumen de etiquetas actual con deuda
     const { resumen: resumenEtiquetas, deudaPorEtiqueta } = calcularResumenEtiquetas();
     const excelTotals = calculateExcelTotals();
+    const filteredTotals = calculateFilteredTotals();
     const elementosSeleccionados = getElementosSeleccionados();
+
+    // Nombre del archivo PDF
+    const pdfFileName = `reporte-excel-${new Date().toISOString().split('T')[0]}${
+        filtroEtiquetaActivo ? `-${filtroEtiquetaActivo.replace(/\s+/g, '-')}` : ''
+    }.pdf`;
 
     return (
         <div className="min-h-screen bg-white p-2 rounded-md">
@@ -670,14 +718,6 @@ export const DebtorsMain: React.FC = () => {
                                 ? 'Sube un archivo Excel para ver los datos aquí.' 
                                 : 'No se encontraron registros con la etiqueta seleccionada.'}
                         </p>
-                        {filtroEtiquetaActivo && (
-                            <button
-                                onClick={handleLimpiarFiltro}
-                                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200"
-                            >
-                                Limpiar filtro y ver todos
-                            </button>
-                        )}
                     </div>
                 ) : (
                     <>
@@ -701,6 +741,36 @@ export const DebtorsMain: React.FC = () => {
                                 >
                                     Limpiar Datos
                                 </button>
+
+                                {/* Botón para exportar a PDF */}
+                                {filteredExcelData.length > 0 && (
+                                    <div className="relative">
+                                        <button
+                                            onClick={handleExportarPDF}
+                                            disabled={generandoPDF || filteredExcelData.length === 0}
+                                            className={`px-4 py-2 text-white rounded-lg transition duration-200 flex items-center ${
+                                                generandoPDF ? 'bg-purple-400' : 'bg-purple-600 hover:bg-purple-700'
+                                            } disabled:bg-purple-300 disabled:cursor-not-allowed`}
+                                        >
+                                            {generandoPDF ? (
+                                                <>
+                                                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                                    </svg>
+                                                    Generando PDF...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                    </svg>
+                                                    Exportar PDF ({filteredExcelData.length})
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         </div>
 

@@ -1,306 +1,263 @@
-import React from 'react';
-import { Document, Page, Text, View, StyleSheet, Font, PDFDownloadLink } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+import { ExcelRow } from '../../interfaces/debtors.interface';
 
-// Registrar fuentes (opcional)
-Font.register({
-    family: 'Helvetica',
-    fonts: [
-        { src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-regular-webfont.ttf' },
-        { src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-bold-webfont.ttf', fontWeight: 'bold' },
-    ],
-});
-
-// Estilos
 const styles = StyleSheet.create({
     page: {
         flexDirection: 'column',
         backgroundColor: '#FFFFFF',
         padding: 30,
-        fontFamily: 'Helvetica',
+        fontSize: 10,
     },
     header: {
         marginBottom: 20,
-        borderBottom: '2pt solid #3B82F6',
         paddingBottom: 10,
+        borderBottomWidth: 2,
+        borderBottomColor: '#1e40af',
+        borderBottomStyle: 'solid',
     },
     title: {
-        fontSize: 24,
+        fontSize: 18,
         fontWeight: 'bold',
-        color: '#1F2937',
+        color: '#1e40af',
         marginBottom: 5,
     },
     subtitle: {
-        fontSize: 14,
-        color: '#6B7280',
+        fontSize: 12,
+        color: '#4b5563',
         marginBottom: 10,
     },
-    section: {
-        marginBottom: 15,
-    },
-    sectionTitle: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#374151',
-        marginBottom: 8,
-        backgroundColor: '#F3F4F6',
-        padding: 5,
-    },
-    metricsGrid: {
+    summaryContainer: {
         flexDirection: 'row',
-        flexWrap: 'wrap',
-        marginBottom: 15,
-        gap: 10,
-    },
-    metricCard: {
-        width: '48%',
+        justifyContent: 'space-between',
+        marginBottom: 20,
+        backgroundColor: '#f3f4f6',
         padding: 10,
-        backgroundColor: '#F8FAFC',
-        border: '1pt solid #E2E8F0',
-        borderRadius: 4,
+        borderRadius: 5,
     },
-    metricTitle: {
+    summaryItem: {
+        flexDirection: 'column',
+        alignItems: 'center',
+    },
+    summaryLabel: {
         fontSize: 10,
-        color: '#64748B',
-        marginBottom: 4,
+        color: '#6b7280',
+        marginBottom: 2,
     },
-    metricValue: {
+    summaryValue: {
         fontSize: 14,
         fontWeight: 'bold',
-        color: '#1E293B',
+        color: '#1f2937',
     },
     table: {
-        marginBottom: 15,
-    },
-    tableHeader: {
-        flexDirection: 'row',
-        backgroundColor: '#3B82F6',
-        padding: 8,
-    },
-    tableHeaderText: {
-        fontSize: 10,
-        fontWeight: 'bold',
-        color: '#FFFFFF',
-        flex: 1,
+        display: 'flex',
+        width: 'auto',
+        borderStyle: 'solid',
+        borderWidth: 1,
+        borderColor: '#d1d5db',
+        marginBottom: 20,
     },
     tableRow: {
         flexDirection: 'row',
-        borderBottom: '1pt solid #E5E7EB',
-        padding: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: '#d1d5db',
+        borderBottomStyle: 'solid',
     },
-    tableCell: {
+    tableHeader: {
+        backgroundColor: '#e5e7eb',
+        fontWeight: 'bold',
+        padding: 8,
+        flex: 1,
+        textAlign: 'left',
         fontSize: 9,
         color: '#374151',
+    },
+    tableCell: {
+        padding: 8,
         flex: 1,
-    },
-    clienteRow: {
-        flexDirection: 'row',
-        borderBottom: '1pt solid #E5E7EB',
-        padding: 6,
-        backgroundColor: '#F9FAFB',
-    },
-    clienteCell: {
-        fontSize: 8,
-        color: '#6B7280',
-        flex: 1,
-    },
-    analysisSection: {
-        marginTop: 20,
-        padding: 15,
-        backgroundColor: '#F0F9FF',
-        border: '1pt solid #BAE6FD',
-        borderRadius: 4,
-    },
-    analysisTitle: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        color: '#0369A1',
-        marginBottom: 8,
-    },
-    analysisItem: {
         fontSize: 9,
-        color: '#0C4A6E',
-        marginBottom: 4,
+        color: '#1f2937',
+        textAlign: 'left',
     },
-    positive: {
+    footer: {
+        position: 'absolute',
+        bottom: 30,
+        left: 30,
+        right: 30,
+        textAlign: 'center',
+        color: '#6b7280',
+        fontSize: 8,
+    },
+    tag: {
+        backgroundColor: '#e5e7eb',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 3,
+        fontSize: 8,
+        fontWeight: 'bold',
+    },
+    positiveValue: {
         color: '#059669',
+        fontWeight: 'bold',
     },
-    negative: {
-        color: '#DC2626',
+    negativeValue: {
+        color: '#dc2626',
+        fontWeight: 'bold',
+    },
+    filterInfo: {
+        backgroundColor: '#dbeafe',
+        padding: 8,
+        borderRadius: 3,
+        marginBottom: 15,
+        fontSize: 9,
+    },
+    sectionTitle: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#1e40af',
+        marginBottom: 10,
+        marginTop: 15,
     },
 });
 
-interface DebtorsPDFReportProps {
-    reportes: Map<any, any>;
-    metricas: any;
-    periodo: { año: number; mes: number };
-    tipoAnalisis?: 'completo' | 'resumen';
-}
+export const PdfDebtorsMain = ({ 
+    data, 
+    totals, 
+    filterActive, 
+    summary 
+}: { 
+    data: ExcelRow[], 
+    totals: any,
+    filterActive: string | null,
+    summary: any 
+}) => (
+    <Document>
+        <Page size="LETTER" style={styles.page} orientation="landscape">
+            {/* Header */}
+            <View style={styles.header}>
+                <Text style={styles.title}>Reporte de Excel - Gestión de Deudores</Text>
+                <Text style={styles.subtitle}>
+                    Generado el: {new Date().toLocaleDateString('es-ES', { 
+                        day: '2-digit', 
+                        month: 'long', 
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    })}
+                </Text>
+            </View>
 
-export const DebtorsPDFReport: React.FC<DebtorsPDFReportProps> = ({ 
-    reportes, 
-    metricas, 
-    periodo,
-    tipoAnalisis = 'completo'
-}) => {
-    // Calcular análisis de crecimiento
-    const calcularAnalisisCrecimiento = () => {
-        const mesesAnteriores = [
-        { mes: 'Enero', crecimiento: 5.2 },
-        { mes: 'Febrero', crecimiento: -2.1 },
-        { mes: 'Marzo', crecimiento: 8.7 },
-        { mes: 'Abril', crecimiento: 3.4 },
-        ];
+            {/* Información del filtro activo */}
+            {filterActive && (
+                <View style={styles.filterInfo}>
+                    <Text>Filtro activo: {filterActive}</Text>
+                </View>
+            )}
 
-        const crecimientoPromedio = mesesAnteriores.reduce((sum, mes) => sum + mes.crecimiento, 0) / mesesAnteriores.length;
-        
-        return {
-        mesesAnteriores,
-        crecimientoPromedio,
-        tendencia: crecimientoPromedio > 0 ? 'CRECIMIENTO' : 'DECRECIMIENTO'
-        };
-    };
-
-    const analisis = calcularAnalisisCrecimiento();
-
-    const MyDocument = () => (
-        <Document>
-            <Page size="A4" style={styles.page}>
-                {/* Header */}
-                <View style={styles.header}>
-                    <Text style={styles.title}>🏥 Reporte de Créditos</Text>
-                    <Text style={styles.subtitle}>
-                        Período: {periodo.mes.toString().padStart(2, '0')}/{periodo.año} | 
-                        Fecha de generación: {new Date().toLocaleDateString('es-MX')}
+            {/* Resumen de datos */}
+            <View style={styles.summaryContainer}>
+                <View style={styles.summaryItem}>
+                    <Text style={styles.summaryLabel}>Total Registros</Text>
+                    <Text style={styles.summaryValue}>{data.length}</Text>
+                </View>
+                <View style={styles.summaryItem}>
+                    <Text style={styles.summaryLabel}>Importe Total</Text>
+                    <Text style={styles.summaryValue}>${totals?.totalImporte?.toLocaleString() || '0'}</Text>
+                </View>
+                <View style={styles.summaryItem}>
+                    <Text style={styles.summaryLabel}>Total Cobrado</Text>
+                    <Text style={[styles.summaryValue, styles.positiveValue]}>
+                        ${totals?.totalCobrado?.toLocaleString() || '0'}
                     </Text>
                 </View>
-
-                {/* Métricas Principales */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>📊 Métricas Globales</Text>
-                    <View style={styles.metricsGrid}>
-                        <View style={styles.metricCard}>
-                            <Text style={styles.metricTitle}>Total Clientes</Text>
-                            <Text style={styles.metricValue}>{metricas?.totalClientes || 0}</Text>
-                        </View>
-                        <View style={styles.metricCard}>
-                            <Text style={styles.metricTitle}>Total Adeudo</Text>
-                            <Text style={styles.metricValue}>${(metricas?.totalAdeudo || 0).toFixed(2)}</Text>
-                        </View>
-                        <View style={styles.metricCard}>
-                            <Text style={styles.metricTitle}>Total Consumos</Text>
-                            <Text style={styles.metricValue}>${(metricas?.totalConsumos || 0).toFixed(2)}</Text>
-                        </View>
-                        <View style={styles.metricCard}>
-                            <Text style={styles.metricTitle}>Total Abonos</Text>
-                            <Text style={styles.metricValue}>${(metricas?.totalAbonos || 0).toFixed(2)}</Text>
-                        </View>
-                    </View>
-                </View>
-
-                {/* Análisis de Crecimiento */}
-                <View style={styles.analysisSection}>
-                    <Text style={styles.analysisTitle}>📈 Análisis de Tendencias</Text>
-                    <Text style={styles.analysisItem}>
-                        Tendencia actual: 
-                        <Text style={analisis.tendencia === 'CRECIMIENTO' ? styles.positive : styles.negative}>
-                            {analisis.tendencia === 'CRECIMIENTO' ? ' CRECIMIENTO ' : ' DECRECIMIENTO '}
-                        </Text>
-                        ({analisis.crecimientoPromedio.toFixed(1)}%)
-                    </Text>
-                    <Text style={styles.analysisItem}>
-                        • Comparativa con meses anteriores disponible
-                    </Text>
-                    <Text style={styles.analysisItem}>
-                        • Proyección basada en tendencias históricas
-                    </Text>
-                    <Text style={styles.analysisItem}>
-                        • Análisis de comportamiento por cliente
+                <View style={styles.summaryItem}>
+                    <Text style={styles.summaryLabel}>Total Deuda</Text>
+                    <Text style={[styles.summaryValue, styles.negativeValue]}>
+                        ${totals?.totalDeuda?.toLocaleString() || '0'}
                     </Text>
                 </View>
+            </View>
 
-                {/* Resumen por Tipo de Cliente */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>👥 Resumen por Tipo de Cliente</Text>
+            {/* Resumen de etiquetas */}
+            {summary && Object.keys(summary.resumen).length > 0 && (
+                <>
+                    <Text style={styles.sectionTitle}>Resumen de Etiquetas</Text>
                     <View style={styles.table}>
-                        <View style={styles.tableHeader}>
-                            <Text style={styles.tableHeaderText}>Tipo de Cliente</Text>
-                            <Text style={styles.tableHeaderText}>Clientes</Text>
-                            <Text style={styles.tableHeaderText}>Adeudo Total</Text>
-                            <Text style={styles.tableHeaderText}>Consumos</Text>
-                            <Text style={styles.tableHeaderText}>Abonos</Text>
+                        <View style={[styles.tableRow, { backgroundColor: '#f3f4f6' }]}>
+                            <Text style={[styles.tableHeader, { flex: 2 }]}>Etiqueta</Text>
+                            <Text style={styles.tableHeader}>Registros</Text>
+                            <Text style={styles.tableHeader}>Total Deuda</Text>
                         </View>
-                        
-                        {metricas?.porTipo && Object.entries(metricas.porTipo).map(([tipo, datos]: [string, any]) => (
-                            <View key={tipo} style={styles.tableRow}>
-                                <Text style={styles.tableCell}>{tipo}</Text>
-                                <Text style={styles.tableCell}>{datos.totalClientes}</Text>
-                                <Text style={styles.tableCell}>${datos.totalAdeudo.toFixed(2)}</Text>
-                                <Text style={styles.tableCell}>${datos.totalConsumos.toFixed(2)}</Text>
-                                <Text style={styles.tableCell}>${datos.totalAbonos.toFixed(2)}</Text>
+                        {Object.entries(summary.resumen).map(([etiqueta, count], index) => (
+                            <View 
+                                key={etiqueta} 
+                                style={[
+                                    styles.tableRow,
+                                    { backgroundColor: index % 2 === 0 ? '#ffffff' : '#f9fafb' }
+                                ]}
+                            >
+                                <Text style={[styles.tableCell, { flex: 2 }]}>{etiqueta}</Text>
+                                <Text style={styles.tableCell}>{(count as number).toString()}</Text>
+                                <Text style={[styles.tableCell, styles.negativeValue]}>
+                                    ${summary.deudaPorEtiqueta[etiqueta]?.toLocaleString() || '0'}
+                                </Text>
                             </View>
                         ))}
                     </View>
+                </>
+            )}
+
+            {/* Tabla principal */}
+            <Text style={styles.sectionTitle}>Registros de Excel ({data.length})</Text>
+            <View style={styles.table}>
+                {/* Encabezados */}
+                <View style={[styles.tableRow, { backgroundColor: '#e5e7eb' }]}>
+                    <Text style={[styles.tableHeader, { flex: 1.5 }]}>Etiqueta</Text>
+                    <Text style={styles.tableHeader}>Fecha</Text>
+                    <Text style={[styles.tableHeader, { flex: 2 }]}>Cliente</Text>
+                    <Text style={styles.tableHeader}>Paciente</Text>
+                    <Text style={styles.tableHeader}>Importe</Text>
+                    <Text style={styles.tableHeader}>Cobrado</Text>
+                    <Text style={styles.tableHeader}>Deuda</Text>
                 </View>
 
-                {/* Detalle por Cliente (solo en modo completo) */}
-                {tipoAnalisis === 'completo' && Array.from(reportes.entries()).map(([tipoCliente, reporte]) => (
-                    <View key={tipoCliente} style={styles.section}>
-                        <Text style={styles.sectionTitle}>📋 Detalle - {tipoCliente}</Text>
-                        <View style={styles.table}>
-                            <View style={styles.tableHeader}>
-                                <Text style={[styles.tableHeaderText, { flex: 2 }]}>Cliente</Text>
-                                <Text style={styles.tableHeaderText}>Saldo Inicial</Text>
-                                <Text style={styles.tableHeaderText}>Consumos</Text>
-                                <Text style={styles.tableHeaderText}>Abonos</Text>
-                                <Text style={styles.tableHeaderText}>Saldo Final</Text>
-                                <Text style={styles.tableHeaderText}>Estado</Text>
-                            </View>
-                        
-                            {reporte.clientesDetalle.map((cliente: any, index: number) => (
-                                <View key={index} style={styles.clienteRow}>
-                                    <Text style={[styles.clienteCell, { flex: 2 }]}>{cliente.nombre}</Text>
-                                    <Text style={styles.clienteCell}>${cliente.saldoInicial.toFixed(2)}</Text>
-                                    <Text style={styles.clienteCell}>${cliente.consumosMes.toFixed(2)}</Text>
-                                    <Text style={styles.clienteCell}>${cliente.abonosMes.toFixed(2)}</Text>
-                                    <Text style={styles.clienteCell}>${cliente.saldoFinal.toFixed(2)}</Text>
-                                    <Text style={[
-                                        styles.clienteCell, 
-                                        cliente.estado === 'MEJORÓ' ? styles.positive : styles.negative
-                                    ]}>
-                                        {cliente.estado}
-                                    </Text>
-                                </View>
-                            ))}
-                        </View>
+                {/* Filas de datos */}
+                {data.map((row, index) => (
+                    <View 
+                        key={row.id} 
+                        style={[
+                            styles.tableRow,
+                            { backgroundColor: index % 2 === 0 ? '#ffffff' : '#f9fafb' }
+                        ]}
+                    >
+                        <Text style={[styles.tableCell, { flex: 1.5 }]}>
+                            {row.etiqueta || '-'}
+                        </Text>
+                        <Text style={styles.tableCell}>
+                            {row.fechaAlbaran || '-'}
+                        </Text>
+                        <Text style={[styles.tableCell, { flex: 2 }]}>
+                            {row.clienteNombre || 'Sin nombre'}
+                        </Text>
+                        <Text style={styles.tableCell}>
+                            {row.paciente || '-'}
+                        </Text>
+                        <Text style={styles.tableCell}>
+                            ${row.totalImporte.toLocaleString()}
+                        </Text>
+                        <Text style={[styles.tableCell, styles.positiveValue]}>
+                            ${row.cobradoLinea.toLocaleString()}
+                        </Text>
+                        <Text style={[styles.tableCell, styles.negativeValue]}>
+                            ${row.deuda.toLocaleString()}
+                        </Text>
                     </View>
                 ))}
+            </View>
 
-                {/* Footer */}
-                <View style={[styles.section, { marginTop: 'auto' }]}>
-                    <Text style={[styles.subtitle, { textAlign: 'center', fontSize: 8 }]}>
-                        Generado por Sistema de Gestión de Crédito - Confidencial
-                    </Text>
-                </View>
-            </Page>
-        </Document>
-    );
-
-    return (
-        <PDFDownloadLink
-            document={<MyDocument />}
-            fileName={`reporte_creditos_${periodo.año}_${periodo.mes}.pdf`}
-            style={{
-                textDecoration: 'none',
-                padding: '10px 20px',
-                backgroundColor: '#EF4444',
-                color: 'white',
-                borderRadius: '6px',
-                fontWeight: 'bold',
-            }}
-        >
-            {({ loading }) => (loading ? 'Generando PDF...' : '📥 Descargar Reporte PDF')}
-        </PDFDownloadLink>
-    );
-};
-
-export default DebtorsPDFReport;
+            {/* Footer */}
+            <View style={styles.footer}>
+                <Text>Reporte generado automáticamente • Página 1 de 1</Text>
+            </View>
+        </Page>
+    </Document>
+);
