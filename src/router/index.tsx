@@ -65,7 +65,7 @@ export const router = createBrowserRouter([
 			),
 		},
 		{
-			path: 'reporte-general',
+			path: 'utilidades',
 			element: (
 				<ProtectedRoute adminOnly>
 					<UtilitiesPage />
