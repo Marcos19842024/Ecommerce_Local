@@ -134,7 +134,7 @@ export const PdfDebtorsMain = ({
         <Page size="LETTER" style={styles.page} orientation="landscape">
             {/* Header */}
             <View style={styles.header}>
-                <Text style={styles.title}>Reporte de Excel - Gestión de Deudores</Text>
+                <Text style={styles.title}>Reporte de Deudores</Text>
                 <Text style={styles.subtitle}>
                     Generado el: {new Date().toLocaleDateString('es-ES', { 
                         day: '2-digit', 
