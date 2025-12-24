@@ -253,11 +253,6 @@ export const PdfDebtorsMain = ({
                     </View>
                 ))}
             </View>
-
-            {/* Footer */}
-            <View style={styles.footer}>
-                <Text>Reporte generado automáticamente • Página 1 de 1</Text>
-            </View>
         </Page>
     </Document>
 );
