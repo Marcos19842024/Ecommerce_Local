@@ -576,7 +576,7 @@ export const DebtorsMain: React.FC = () => {
     const elementosSeleccionados = getElementosSeleccionados();
 
     // Nombre del archivo PDF
-    const pdfFileName = `reporte-excel-${new Date().toISOString().split('T')[0]}${
+    const pdfFileName = `Reporte-${new Date().toISOString().split('T')[0]}${
         filtroEtiquetaActivo ? `-${filtroEtiquetaActivo.replace(/\s+/g, '-')}` : ''
     }.pdf`;
 
