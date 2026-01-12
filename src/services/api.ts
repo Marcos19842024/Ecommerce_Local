@@ -201,34 +201,6 @@ class ApiService {
     }
 
     // =============================================
-    // 🔥 MÉTODOS PARA CHECKLIST
-    // =============================================
-
-    async saveChecklist(formData: FormData): Promise<any> {
-        await this.ensureConfigLoaded();
-        const url = `${runtimeConfig.getApiUrl()}/checklist/save`;
-        
-        const response = await fetch(url, {
-            method: 'POST',
-            body: formData,
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        return response.json();
-    }
-
-    async getChecklistFiles(): Promise<any> {
-        return this.get('/checklist/files');
-    }
-
-    async getChecklistFile(filename: string): Promise<any> {
-        return this.get(`/checklist/file/${encodeURIComponent(filename)}`);
-    }
-
-    // =============================================
     // 🔥 MÉTODOS PARA ORGCHARTINTERACTIVE
     // =============================================
     

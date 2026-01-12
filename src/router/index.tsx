@@ -1,10 +1,8 @@
-// router/index.tsx
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { DashboardLayout } from '../Pages/DashboardLayout';
 import { RemindersPage } from '../Pages/RemindersPage';
 import { TransportPage } from '../Pages/TransportPage';
 import { ExpenseReportPage } from '../Pages/ExpenseReportPage';
-import { CheckListPage } from '../Pages/CheckListPage';
 import { OrgChartInteractivePage } from '../Pages/OrgChartInteractivePage';
 import { DebtorsPage } from '../Pages/DebtorsPage';
 import { AdminLogin } from '../Pages/AdminLogin';
@@ -18,7 +16,7 @@ export const router = createBrowserRouter([
 		children: [
 		{
 			index: true,
-			element: <Navigate to='/checklist' />,
+			element: <Navigate to='/utilidades' />,
 		},
 		{
 			path: 'mensajes',
@@ -43,10 +41,6 @@ export const router = createBrowserRouter([
 					<ExpenseReportPage />
 				</ProtectedRoute>
 			),
-		},
-		{
-			path: 'checklist',
-			element: <CheckListPage />,
 		},
 		{
 			path: 'expedientes',
