@@ -1,62 +1,5 @@
 import { Row } from 'read-excel-file';
-import { Cliente, ContactItem } from '../interfaces/reminders.interface';
 import { Fechas } from '../interfaces/transport.interface';
-
-// Función para preparar los clientes
-export const prepareClients = (rows: Row[]) => {
-	return rows.reduce((acc: Cliente[], cell: Row) => {
-		const nombreCliente = formatString(cell[0].toString());
-		const telefono = formatNumbers(cell[1].toString());
-		const nombreMascota = formatString(cell[2].toString());
-		const nombreRecordatorio = formatString(cell[3].toString());
-		const tipoRecordatorio = formatString(cell[4].toString());
-		const fecha = cell[5].toString();
-
-		// Buscar o crear el cliente
-		let cliente = acc.find(c => c.nombre === nombreCliente);
-		if (!cliente) {
-			cliente = {
-				nombre: nombreCliente,
-				telefono,
-				mascotas: [],
-				mensajes: [],
-				status: false
-			};
-			acc.push(cliente);
-		}
-
-		// Buscar o crear la mascota
-		let mascota = cliente.mascotas.find(m => m.nombre === nombreMascota);
-		if (!mascota) {
-			mascota = {
-				nombre: nombreMascota,
-				recordatorios: []
-			};
-			cliente.mascotas.push(mascota);
-		}
-
-		// Buscar o crear el recordatorio
-		let recordatorio = mascota.recordatorios.find(r => r.nombre === nombreRecordatorio);
-		if (!recordatorio) {
-			recordatorio = {
-				nombre: nombreRecordatorio,
-				tipos: []
-			};
-			mascota.recordatorios.push(recordatorio);
-		}
-
-		// Agregar el tipo de recordatorio si no existe
-		const existeTipo = recordatorio.tipos.some(t => t.nombre === tipoRecordatorio && t.fecha === fecha);
-		if (!existeTipo) {
-			recordatorio.tipos.push({
-				nombre: tipoRecordatorio,
-				fecha
-			});
-		}
-
-		return acc;
-	}, []);
-};
 
 // Función para preparar los clientes
 export const prepareClientsTransport = (rows: Row[]) => {
@@ -106,29 +49,6 @@ export const prepareClientsTransport = (rows: Row[]) => {
 
 		return acc;
 	}, []);
-};
-
-// Función para preparar los contactos
-export const prepareContacts = (contacts: ContactItem[]) => {
-	const result = contacts.reduce(
-		(acc: Cliente[], contact: ContactItem) => {
-			if (contact.isMyContact && contact.id.server === 'c.us') {
-				acc.push({
-					nombre: contact.name,
-					telefono: contact.number.slice(-10),
-					mascotas: [],
-					mensajes: [],
-					status: false
-				});
-			}
-			return acc;
-		},
-		[]
-	);
-	// Ordenar alfabéticamente por nombre
-	result.sort((a, b) => a.nombre.localeCompare(b.nombre));
-
-	return result;
 };
 
 // Función para formatear la fecha a formato 3 de enero de 2022

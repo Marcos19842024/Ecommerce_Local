@@ -1,6 +1,5 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { DashboardLayout } from '../Pages/DashboardLayout';
-import { RemindersPage } from '../Pages/RemindersPage';
 import { TransportPage } from '../Pages/TransportPage';
 import { ExpenseReportPage } from '../Pages/ExpenseReportPage';
 import { OrgChartInteractivePage } from '../Pages/OrgChartInteractivePage';
@@ -17,14 +16,6 @@ export const router = createBrowserRouter([
 		{
 			index: true,
 			element: <Navigate to='/utilidades' />,
-		},
-		{
-			path: 'mensajes',
-			element: (
-				<ProtectedRoute adminOnly>
-					<RemindersPage />
-				</ProtectedRoute>
-			),
 		},
 		{
 			path: 'transportes',

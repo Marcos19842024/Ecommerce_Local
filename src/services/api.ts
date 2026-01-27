@@ -1,5 +1,4 @@
 import toast from 'react-hot-toast';
-import { cel, center } from '../server/user';
 import { runtimeConfig } from './config';
 
 class ApiService {
@@ -134,38 +133,6 @@ class ApiService {
         }
         
         return response;
-    }
-
-    // =============================================
-    // 🔥 MÉTODOS PARA REMINDERS
-    // =============================================
-
-    async startWhatsApp(): Promise<any> {
-        return this.post('/wwebjs/start', {});
-    }
-
-    async getWhatsAppStatus(): Promise<any> {
-        return this.get(`/wwebjs/status/${center}/${cel}`);
-    }
-
-    async getWhatsAppContacts(): Promise<any> {
-        return this.get('/wwebjs/contact');
-    }
-
-    async sendWhatsAppMessage(center: string, cel: string, data: any): Promise<any> {
-        return this.post(`/wwebjs/send/${center}/${cel}`, data);
-    }
-
-    async uploadWhatsAppFile(formData: FormData): Promise<any> {
-        return this.uploadFile('/wwebjs/upload', formData);
-    }
-
-    async deleteWhatsAppFile(fileName: string): Promise<any> {
-        return this.delete(`/wwebjs/${fileName}`);
-    }
-
-    async closeWhatsApp(): Promise<any> {
-        return this.get('/wwebjs/close');
     }
 
     // =============================================
