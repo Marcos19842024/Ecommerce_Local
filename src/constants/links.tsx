@@ -1,4 +1,4 @@
-import { FaBoxOpen, FaTruckPickup } from 'react-icons/fa6';
+import { FaTruckPickup } from 'react-icons/fa6';
 import { TbReportMoney } from 'react-icons/tb';
 import { GiOrganigram } from "react-icons/gi";
 import { FcDebt } from 'react-icons/fc';
@@ -27,11 +27,5 @@ export const dashboardLinks = [
 		title: 'Deudores',
 		href: '/deudores',
 		icon: <FcDebt size={25} />,
-	},
-	{
-		id: 5,
-		title: 'Utilidades',
-		href: '/utilidades',
-		icon: <FaBoxOpen size={25} />,
 	},
 ];

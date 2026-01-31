@@ -6,7 +6,6 @@ import { OrgChartInteractivePage } from '../Pages/OrgChartInteractivePage';
 import { DebtorsPage } from '../Pages/DebtorsPage';
 import { AdminLogin } from '../Pages/AdminLogin';
 import { ProtectedRoute } from '../components/ProtectedRoute';
-import { UtilitiesPage } from '../Pages/UtilitiesPage';
 
 export const router = createBrowserRouter([
 	{
@@ -46,14 +45,6 @@ export const router = createBrowserRouter([
 			element: (
 				<ProtectedRoute adminOnly>
 					<DebtorsPage />
-				</ProtectedRoute>
-			),
-		},
-		{
-			path: 'utilidades',
-			element: (
-				<ProtectedRoute adminOnly>
-					<UtilitiesPage />
 				</ProtectedRoute>
 			),
 		},
