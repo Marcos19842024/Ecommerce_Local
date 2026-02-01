@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Lock, Eye, EyeOff } from 'lucide-react';
-import { useAuth } from '../hooks/useAuth'; // Importa el hook
+import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
 
 export const AdminLogin = () => {

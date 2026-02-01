@@ -11,7 +11,7 @@ export const Sidebar = () => {
 
 	const handleLogout = async () => {
 		await logout();
-		navigate('/CheckList');
+		navigate('/admin-login');
 	};
 
 	return (

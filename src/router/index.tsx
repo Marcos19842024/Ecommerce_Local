@@ -14,7 +14,7 @@ export const router = createBrowserRouter([
 		children: [
 		{
 			index: true,
-			element: <Navigate to='/utilidades' />,
+			element: <Navigate to='/expedientes' />,
 		},
 		{
 			path: 'transportes',
